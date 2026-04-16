@@ -1,0 +1,1497 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "Flex Partner API",
+    "version": "1.0.0",
+    "description": ""
+  },
+  "servers": [
+    {
+      "url": "https://api.yourflexpay.com/v2",
+      "description": "Production"
+    },
+    {
+      "url": "https://staging-api.yourflexpay.com/v2",
+      "description": "Staging"
+    }
+  ],
+  "paths": {
+    "/partner/transaction/initiate": {
+      "post": {
+        "summary": "Initiate Transaction",
+        "parameters": [
+          {
+            "name": "R-Partner-ID",
+            "in": "header",
+            "schema": {
+              "type": "string"
+            },
+            "example": "{{partnerId}}"
+          },
+          {
+            "name": "R-Api-Key",
+            "in": "header",
+            "schema": {
+              "type": "string"
+            },
+            "example": "{{apiKey}}"
+          }
+        ],
+        "responses": {},
+        "tags": [
+          "Gateway"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "amount": {
+                    "type": "integer"
+                  },
+                  "name": {
+                    "type": "string"
+                  },
+                  "reference": {
+                    "type": "string"
+                  },
+                  "metadata": {
+                    "type": "object",
+                    "properties": {
+                      "foo": {
+                        "type": "string"
+                      }
+                    }
+                  }
+                }
+              },
+              "example": {
+                "amount": 500,
+                "name": "Chi. Ventures",
+                "reference": "{{$randomUUID}}",
+                "metadata": {
+                  "foo": "bar"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/partner/transactions": {
+      "get": {
+        "summary": "Get Transactions",
+        "parameters": [
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "integer"
+            },
+            "example": "1"
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "schema": {
+              "type": "integer"
+            },
+            "example": "0"
+          },
+          {
+            "name": "R-Partner-ID",
+            "in": "header",
+            "schema": {
+              "type": "string"
+            },
+            "example": "{{partnerId}}"
+          },
+          {
+            "name": "R-Api-Key",
+            "in": "header",
+            "schema": {
+              "type": "string"
+            },
+            "example": "{{apiKey}}"
+          }
+        ],
+        "responses": {},
+        "tags": [
+          "Gateway"
+        ]
+      }
+    },
+    "/partner/transaction/{reference}": {
+      "get": {
+        "summary": "Get Transaction",
+        "parameters": [
+          {
+            "name": "R-Partner-ID",
+            "in": "header",
+            "schema": {
+              "type": "string"
+            },
+            "example": "{{partnerId}}"
+          },
+          {
+            "name": "R-Api-Key",
+            "in": "header",
+            "schema": {
+              "type": "string"
+            },
+            "example": "{{apiKey}}"
+          }
+        ],
+        "responses": {},
+        "tags": [
+          "Gateway"
+        ]
+      },
+      "parameters": [
+        {
+          "name": "reference",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string"
+          },
+          "example": "752f883b-788c-47ee-8c04-a1a7fada03a6"
+        }
+      ]
+    },
+    "/terminal": {
+      "get": {
+        "summary": "Get Terminal",
+        "parameters": [
+          {
+            "name": "R-Partner-ID",
+            "in": "header",
+            "required": false,
+            "deprecated": false,
+            "schema": {},
+            "example": "{{partnerId}}"
+          },
+          {
+            "name": "R-Api-Key",
+            "in": "header",
+            "required": false,
+            "deprecated": false,
+            "schema": {},
+            "example": "{{apiKey}}"
+          },
+          {
+            "name": "R-Terminal",
+            "in": "header",
+            "required": false,
+            "deprecated": false,
+            "schema": {},
+            "example": "{{terminal}}"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Get Info",
+            "headers": {
+              "Access-Control-Allow-Origin": {
+                "schema": {
+                  "type": "string"
+                },
+                "example": "*"
+              },
+              "X-RateLimit-Limit-Short": {
+                "schema": {
+                  "type": "integer"
+                },
+                "example": "50"
+              },
+              "X-RateLimit-Remaining-Short": {
+                "schema": {
+                  "type": "integer"
+                },
+                "example": "49"
+              },
+              "X-RateLimit-Reset-Short": {
+                "schema": {
+                  "type": "integer"
+                },
+                "example": "1"
+              },
+              "X-RateLimit-Limit-Medium": {
+                "schema": {
+                  "type": "integer"
+                },
+                "example": "300"
+              },
+              "X-RateLimit-Remaining-Medium": {
+                "schema": {
+                  "type": "integer"
+                },
+                "example": "299"
+              },
+              "X-RateLimit-Reset-Medium": {
+                "schema": {
+                  "type": "integer"
+                },
+                "example": "10"
+              },
+              "X-RateLimit-Limit-Long": {
+                "schema": {
+                  "type": "integer"
+                },
+                "example": "1000"
+              },
+              "X-RateLimit-Remaining-Long": {
+                "schema": {
+                  "type": "integer"
+                },
+                "example": "999"
+              },
+              "X-RateLimit-Reset-Long": {
+                "schema": {
+                  "type": "integer"
+                },
+                "example": "60"
+              },
+              "X-Frame-Options": {
+                "schema": {
+                  "type": "string"
+                },
+                "example": "DENY"
+              },
+              "Strict-Transport-Security": {
+                "schema": {
+                  "type": "string"
+                },
+                "example": "max-age=63072000; includeSubDomains; preload"
+              },
+              "Content-Security-Policy": {
+                "schema": {
+                  "type": "string"
+                },
+                "example": "default-src 'self';"
+              },
+              "Referrer-Policy": {
+                "schema": {
+                  "type": "string"
+                },
+                "example": "same-origin"
+              },
+              "Cross-Origin-Embedder-Policy": {
+                "schema": {
+                  "type": "string"
+                },
+                "example": "require-corp"
+              },
+              "Cross-Origin-Resource-Policy": {
+                "schema": {
+                  "type": "string"
+                },
+                "example": "same-origin"
+              },
+              "Cross-Origin-Opener-Policy": {
+                "schema": {
+                  "type": "string"
+                },
+                "example": "same-origin"
+              },
+              "Content-Length": {
+                "schema": {
+                  "type": "integer"
+                },
+                "example": "9205"
+              },
+              "ETag": {
+                "schema": {
+                  "type": "string"
+                },
+                "example": "W/\"23f5-S3QsnXm4zUl5IzjUI2j+wjyYU68\""
+              },
+              "Date": {
+                "schema": {
+                  "type": "string"
+                },
+                "example": "Tue, 19 Aug 2025 19:07:51 GMT"
+              },
+              "Connection": {
+                "schema": {
+                  "type": "string"
+                },
+                "example": "keep-alive"
+              },
+              "Keep-Alive": {
+                "schema": {
+                  "type": "string"
+                },
+                "example": "timeout=5"
+              }
+            }
+          }
+        },
+        "tags": [
+          "Terminal"
+        ]
+      }
+    },
+    "/terminal/transactions": {
+      "get": {
+        "summary": "Get Transactions",
+        "parameters": [
+          {
+            "name": "R-Partner-ID",
+            "in": "header",
+            "schema": {
+              "type": "string"
+            },
+            "example": "{{partnerId}}"
+          },
+          {
+            "name": "R-Api-Key",
+            "in": "header",
+            "schema": {
+              "type": "string"
+            },
+            "example": "{{apiKey}}"
+          },
+          {
+            "name": "R-Terminal",
+            "in": "header",
+            "schema": {
+              "type": "string"
+            },
+            "example": "{{terminal}}"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Get Transactions",
+            "headers": {
+              "Access-Control-Allow-Origin": {
+                "schema": {
+                  "type": "string"
+                },
+                "example": "*"
+              },
+              "X-RateLimit-Limit-Short": {
+                "schema": {
+                  "type": "integer"
+                },
+                "example": "50"
+              },
+              "X-RateLimit-Remaining-Short": {
+                "schema": {
+                  "type": "integer"
+                },
+                "example": "49"
+              },
+              "X-RateLimit-Reset-Short": {
+                "schema": {
+                  "type": "integer"
+                },
+                "example": "1"
+              },
+              "X-RateLimit-Limit-Medium": {
+                "schema": {
+                  "type": "integer"
+                },
+                "example": "300"
+              },
+              "X-RateLimit-Remaining-Medium": {
+                "schema": {
+                  "type": "integer"
+                },
+                "example": "299"
+              },
+              "X-RateLimit-Reset-Medium": {
+                "schema": {
+                  "type": "integer"
+                },
+                "example": "10"
+              },
+              "X-RateLimit-Limit-Long": {
+                "schema": {
+                  "type": "integer"
+                },
+                "example": "1000"
+              },
+              "X-RateLimit-Remaining-Long": {
+                "schema": {
+                  "type": "integer"
+                },
+                "example": "999"
+              },
+              "X-RateLimit-Reset-Long": {
+                "schema": {
+                  "type": "integer"
+                },
+                "example": "60"
+              },
+              "X-Frame-Options": {
+                "schema": {
+                  "type": "string"
+                },
+                "example": "DENY"
+              },
+              "Strict-Transport-Security": {
+                "schema": {
+                  "type": "string"
+                },
+                "example": "max-age=63072000; includeSubDomains; preload"
+              },
+              "Content-Security-Policy": {
+                "schema": {
+                  "type": "string"
+                },
+                "example": "default-src 'self';"
+              },
+              "Referrer-Policy": {
+                "schema": {
+                  "type": "string"
+                },
+                "example": "same-origin"
+              },
+              "Cross-Origin-Embedder-Policy": {
+                "schema": {
+                  "type": "string"
+                },
+                "example": "require-corp"
+              },
+              "Cross-Origin-Resource-Policy": {
+                "schema": {
+                  "type": "string"
+                },
+                "example": "same-origin"
+              },
+              "Cross-Origin-Opener-Policy": {
+                "schema": {
+                  "type": "string"
+                },
+                "example": "same-origin"
+              },
+              "Content-Length": {
+                "schema": {
+                  "type": "integer"
+                },
+                "example": "2192"
+              },
+              "ETag": {
+                "schema": {
+                  "type": "string"
+                },
+                "example": "W/\"890-jbKQ1/FERDsA44LOJ11zJxe5t0o\""
+              },
+              "Date": {
+                "schema": {
+                  "type": "string"
+                },
+                "example": "Tue, 19 Aug 2025 08:37:26 GMT"
+              },
+              "Connection": {
+                "schema": {
+                  "type": "string"
+                },
+                "example": "keep-alive"
+              },
+              "Keep-Alive": {
+                "schema": {
+                  "type": "string"
+                },
+                "example": "timeout=5"
+              }
+            }
+          }
+        },
+        "tags": [
+          "Terminal"
+        ]
+      }
+    },
+    "/terminal/transaction/{reference}": {
+      "get": {
+        "summary": "Get Transaction",
+        "parameters": [
+          {
+            "name": "R-Partner-ID",
+            "in": "header",
+            "schema": {
+              "type": "string"
+            },
+            "example": "{{partnerId}}"
+          },
+          {
+            "name": "R-Api-Key",
+            "in": "header",
+            "schema": {
+              "type": "string"
+            },
+            "example": "{{apiKey}}"
+          },
+          {
+            "name": "R-Terminal",
+            "in": "header",
+            "schema": {
+              "type": "string"
+            },
+            "example": "{{terminal}}"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Get Transaction",
+            "headers": {
+              "Access-Control-Allow-Origin": {
+                "schema": {
+                  "type": "string"
+                },
+                "example": "*"
+              },
+              "X-RateLimit-Limit-Short": {
+                "schema": {
+                  "type": "integer"
+                },
+                "example": "50"
+              },
+              "X-RateLimit-Remaining-Short": {
+                "schema": {
+                  "type": "integer"
+                },
+                "example": "49"
+              },
+              "X-RateLimit-Reset-Short": {
+                "schema": {
+                  "type": "integer"
+                },
+                "example": "1"
+              },
+              "X-RateLimit-Limit-Medium": {
+                "schema": {
+                  "type": "integer"
+                },
+                "example": "300"
+              },
+              "X-RateLimit-Remaining-Medium": {
+                "schema": {
+                  "type": "integer"
+                },
+                "example": "299"
+              },
+              "X-RateLimit-Reset-Medium": {
+                "schema": {
+                  "type": "integer"
+                },
+                "example": "10"
+              },
+              "X-RateLimit-Limit-Long": {
+                "schema": {
+                  "type": "integer"
+                },
+                "example": "1000"
+              },
+              "X-RateLimit-Remaining-Long": {
+                "schema": {
+                  "type": "integer"
+                },
+                "example": "999"
+              },
+              "X-RateLimit-Reset-Long": {
+                "schema": {
+                  "type": "integer"
+                },
+                "example": "60"
+              },
+              "X-Frame-Options": {
+                "schema": {
+                  "type": "string"
+                },
+                "example": "DENY"
+              },
+              "Strict-Transport-Security": {
+                "schema": {
+                  "type": "string"
+                },
+                "example": "max-age=63072000; includeSubDomains; preload"
+              },
+              "Content-Security-Policy": {
+                "schema": {
+                  "type": "string"
+                },
+                "example": "default-src 'self';"
+              },
+              "Referrer-Policy": {
+                "schema": {
+                  "type": "string"
+                },
+                "example": "same-origin"
+              },
+              "Cross-Origin-Embedder-Policy": {
+                "schema": {
+                  "type": "string"
+                },
+                "example": "require-corp"
+              },
+              "Cross-Origin-Resource-Policy": {
+                "schema": {
+                  "type": "string"
+                },
+                "example": "same-origin"
+              },
+              "Cross-Origin-Opener-Policy": {
+                "schema": {
+                  "type": "string"
+                },
+                "example": "same-origin"
+              },
+              "Content-Length": {
+                "schema": {
+                  "type": "integer"
+                },
+                "example": "400"
+              },
+              "ETag": {
+                "schema": {
+                  "type": "string"
+                },
+                "example": "W/\"190-rDOWF++svyYDfJgELALm27o/FpA\""
+              },
+              "Date": {
+                "schema": {
+                  "type": "string"
+                },
+                "example": "Tue, 19 Aug 2025 08:37:35 GMT"
+              },
+              "Connection": {
+                "schema": {
+                  "type": "string"
+                },
+                "example": "keep-alive"
+              },
+              "Keep-Alive": {
+                "schema": {
+                  "type": "string"
+                },
+                "example": "timeout=5"
+              }
+            }
+          }
+        },
+        "tags": [
+          "Terminal"
+        ]
+      },
+      "parameters": [
+        {
+          "name": "reference",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string"
+          },
+          "example": "92c66bc3-0b74-4e16-a241-a1c63f667b45"
+        }
+      ]
+    },
+    "/terminal/transaction": {
+      "post": {
+        "summary": "Initiate Transaction",
+        "parameters": [
+          {
+            "name": "R-Partner-ID",
+            "in": "header",
+            "schema": {
+              "type": "string"
+            },
+            "example": "{{partnerId}}"
+          },
+          {
+            "name": "R-Api-Key",
+            "in": "header",
+            "schema": {
+              "type": "string"
+            },
+            "example": "{{apiKey}}"
+          },
+          {
+            "name": "R-Terminal",
+            "in": "header",
+            "schema": {
+              "type": "string"
+            },
+            "example": "{{terminal}}"
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Initiate Transaction",
+            "headers": {
+              "Access-Control-Allow-Origin": {
+                "schema": {
+                  "type": "string"
+                },
+                "example": "*"
+              },
+              "X-RateLimit-Limit-Short": {
+                "schema": {
+                  "type": "integer"
+                },
+                "example": "50"
+              },
+              "X-RateLimit-Remaining-Short": {
+                "schema": {
+                  "type": "integer"
+                },
+                "example": "49"
+              },
+              "X-RateLimit-Reset-Short": {
+                "schema": {
+                  "type": "integer"
+                },
+                "example": "1"
+              },
+              "X-RateLimit-Limit-Medium": {
+                "schema": {
+                  "type": "integer"
+                },
+                "example": "300"
+              },
+              "X-RateLimit-Remaining-Medium": {
+                "schema": {
+                  "type": "integer"
+                },
+                "example": "299"
+              },
+              "X-RateLimit-Reset-Medium": {
+                "schema": {
+                  "type": "integer"
+                },
+                "example": "10"
+              },
+              "X-RateLimit-Limit-Long": {
+                "schema": {
+                  "type": "integer"
+                },
+                "example": "1000"
+              },
+              "X-RateLimit-Remaining-Long": {
+                "schema": {
+                  "type": "integer"
+                },
+                "example": "999"
+              },
+              "X-RateLimit-Reset-Long": {
+                "schema": {
+                  "type": "integer"
+                },
+                "example": "60"
+              },
+              "X-Frame-Options": {
+                "schema": {
+                  "type": "string"
+                },
+                "example": "DENY"
+              },
+              "Strict-Transport-Security": {
+                "schema": {
+                  "type": "string"
+                },
+                "example": "max-age=63072000; includeSubDomains; preload"
+              },
+              "Content-Security-Policy": {
+                "schema": {
+                  "type": "string"
+                },
+                "example": "default-src 'self';"
+              },
+              "Referrer-Policy": {
+                "schema": {
+                  "type": "string"
+                },
+                "example": "same-origin"
+              },
+              "Cross-Origin-Embedder-Policy": {
+                "schema": {
+                  "type": "string"
+                },
+                "example": "require-corp"
+              },
+              "Cross-Origin-Resource-Policy": {
+                "schema": {
+                  "type": "string"
+                },
+                "example": "same-origin"
+              },
+              "Cross-Origin-Opener-Policy": {
+                "schema": {
+                  "type": "string"
+                },
+                "example": "same-origin"
+              },
+              "Content-Length": {
+                "schema": {
+                  "type": "integer"
+                },
+                "example": "2923"
+              },
+              "ETag": {
+                "schema": {
+                  "type": "string"
+                },
+                "example": "W/\"b6b-504yf5VPpIWdiCePa1+iF68qrrU\""
+              },
+              "Date": {
+                "schema": {
+                  "type": "string"
+                },
+                "example": "Tue, 19 Aug 2025 08:37:46 GMT"
+              },
+              "Connection": {
+                "schema": {
+                  "type": "string"
+                },
+                "example": "keep-alive"
+              },
+              "Keep-Alive": {
+                "schema": {
+                  "type": "string"
+                },
+                "example": "timeout=5"
+              }
+            }
+          }
+        },
+        "tags": [
+          "Terminal"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "amount": {
+                    "type": "integer"
+                  },
+                  "reference": {
+                    "type": "string"
+                  }
+                }
+              },
+              "example": {
+                "amount": 500,
+                "reference": "{{$randomUUID}}"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/terminal/split": {
+      "post": {
+        "summary": "Create Split",
+        "parameters": [
+          {
+            "name": "R-Partner-ID",
+            "in": "header",
+            "schema": {
+              "type": "string"
+            },
+            "example": "{{partnerId}}"
+          },
+          {
+            "name": "R-Api-Key",
+            "in": "header",
+            "schema": {
+              "type": "string"
+            },
+            "example": "{{apiKey}}"
+          },
+          {
+            "name": "R-Terminal",
+            "in": "header",
+            "schema": {
+              "type": "string"
+            },
+            "example": "{{terminal}}"
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Create Split",
+            "headers": {
+              "Access-Control-Allow-Origin": {
+                "schema": {
+                  "type": "string"
+                },
+                "example": "*"
+              },
+              "X-RateLimit-Limit-Short": {
+                "schema": {
+                  "type": "integer"
+                },
+                "example": "50"
+              },
+              "X-RateLimit-Remaining-Short": {
+                "schema": {
+                  "type": "integer"
+                },
+                "example": "49"
+              },
+              "X-RateLimit-Reset-Short": {
+                "schema": {
+                  "type": "integer"
+                },
+                "example": "1"
+              },
+              "X-RateLimit-Limit-Medium": {
+                "schema": {
+                  "type": "integer"
+                },
+                "example": "300"
+              },
+              "X-RateLimit-Remaining-Medium": {
+                "schema": {
+                  "type": "integer"
+                },
+                "example": "299"
+              },
+              "X-RateLimit-Reset-Medium": {
+                "schema": {
+                  "type": "integer"
+                },
+                "example": "10"
+              },
+              "X-RateLimit-Limit-Long": {
+                "schema": {
+                  "type": "integer"
+                },
+                "example": "1000"
+              },
+              "X-RateLimit-Remaining-Long": {
+                "schema": {
+                  "type": "integer"
+                },
+                "example": "999"
+              },
+              "X-RateLimit-Reset-Long": {
+                "schema": {
+                  "type": "integer"
+                },
+                "example": "60"
+              },
+              "X-Frame-Options": {
+                "schema": {
+                  "type": "string"
+                },
+                "example": "DENY"
+              },
+              "Strict-Transport-Security": {
+                "schema": {
+                  "type": "string"
+                },
+                "example": "max-age=63072000; includeSubDomains; preload"
+              },
+              "Content-Security-Policy": {
+                "schema": {
+                  "type": "string"
+                },
+                "example": "default-src 'self';"
+              },
+              "Referrer-Policy": {
+                "schema": {
+                  "type": "string"
+                },
+                "example": "same-origin"
+              },
+              "Cross-Origin-Embedder-Policy": {
+                "schema": {
+                  "type": "string"
+                },
+                "example": "require-corp"
+              },
+              "Cross-Origin-Resource-Policy": {
+                "schema": {
+                  "type": "string"
+                },
+                "example": "same-origin"
+              },
+              "Cross-Origin-Opener-Policy": {
+                "schema": {
+                  "type": "string"
+                },
+                "example": "same-origin"
+              },
+              "Content-Length": {
+                "schema": {
+                  "type": "integer"
+                },
+                "example": "259"
+              },
+              "ETag": {
+                "schema": {
+                  "type": "string"
+                },
+                "example": "W/\"103-5q3CEAwH5U8zb/iWPJskl28UC6I\""
+              },
+              "Date": {
+                "schema": {
+                  "type": "string"
+                },
+                "example": "Tue, 19 Aug 2025 08:45:30 GMT"
+              },
+              "Connection": {
+                "schema": {
+                  "type": "string"
+                },
+                "example": "keep-alive"
+              },
+              "Keep-Alive": {
+                "schema": {
+                  "type": "string"
+                },
+                "example": "timeout=5"
+              }
+            }
+          }
+        },
+        "tags": [
+          "Terminal"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "amount": {
+                    "type": "integer"
+                  },
+                  "title": {
+                    "type": "string"
+                  },
+                  "description": {
+                    "type": "string"
+                  }
+                }
+              },
+              "example": {
+                "amount": 1000,
+                "title": "Pizza",
+                "description": "split payment for pizza"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/terminal/splits": {
+      "get": {
+        "summary": "Get Splits",
+        "parameters": [
+          {
+            "name": "R-Partner-ID",
+            "in": "header",
+            "schema": {
+              "type": "string"
+            },
+            "example": "{{partnerId}}"
+          },
+          {
+            "name": "R-Api-Key",
+            "in": "header",
+            "schema": {
+              "type": "string"
+            },
+            "example": "{{apiKey}}"
+          },
+          {
+            "name": "R-Terminal",
+            "in": "header",
+            "schema": {
+              "type": "string"
+            },
+            "example": "{{terminal}}"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Get Splits",
+            "headers": {
+              "Access-Control-Allow-Origin": {
+                "schema": {
+                  "type": "string"
+                },
+                "example": "*"
+              },
+              "X-RateLimit-Limit-Short": {
+                "schema": {
+                  "type": "integer"
+                },
+                "example": "50"
+              },
+              "X-RateLimit-Remaining-Short": {
+                "schema": {
+                  "type": "integer"
+                },
+                "example": "49"
+              },
+              "X-RateLimit-Reset-Short": {
+                "schema": {
+                  "type": "integer"
+                },
+                "example": "1"
+              },
+              "X-RateLimit-Limit-Medium": {
+                "schema": {
+                  "type": "integer"
+                },
+                "example": "300"
+              },
+              "X-RateLimit-Remaining-Medium": {
+                "schema": {
+                  "type": "integer"
+                },
+                "example": "299"
+              },
+              "X-RateLimit-Reset-Medium": {
+                "schema": {
+                  "type": "integer"
+                },
+                "example": "10"
+              },
+              "X-RateLimit-Limit-Long": {
+                "schema": {
+                  "type": "integer"
+                },
+                "example": "1000"
+              },
+              "X-RateLimit-Remaining-Long": {
+                "schema": {
+                  "type": "integer"
+                },
+                "example": "999"
+              },
+              "X-RateLimit-Reset-Long": {
+                "schema": {
+                  "type": "integer"
+                },
+                "example": "60"
+              },
+              "X-Frame-Options": {
+                "schema": {
+                  "type": "string"
+                },
+                "example": "DENY"
+              },
+              "Strict-Transport-Security": {
+                "schema": {
+                  "type": "string"
+                },
+                "example": "max-age=63072000; includeSubDomains; preload"
+              },
+              "Content-Security-Policy": {
+                "schema": {
+                  "type": "string"
+                },
+                "example": "default-src 'self';"
+              },
+              "Referrer-Policy": {
+                "schema": {
+                  "type": "string"
+                },
+                "example": "same-origin"
+              },
+              "Cross-Origin-Embedder-Policy": {
+                "schema": {
+                  "type": "string"
+                },
+                "example": "require-corp"
+              },
+              "Cross-Origin-Resource-Policy": {
+                "schema": {
+                  "type": "string"
+                },
+                "example": "same-origin"
+              },
+              "Cross-Origin-Opener-Policy": {
+                "schema": {
+                  "type": "string"
+                },
+                "example": "same-origin"
+              },
+              "Content-Length": {
+                "schema": {
+                  "type": "integer"
+                },
+                "example": "5756"
+              },
+              "ETag": {
+                "schema": {
+                  "type": "string"
+                },
+                "example": "W/\"167c-IiHTogriehVrz08BEgSyiJRnSLQ\""
+              },
+              "Date": {
+                "schema": {
+                  "type": "string"
+                },
+                "example": "Tue, 19 Aug 2025 08:37:52 GMT"
+              },
+              "Connection": {
+                "schema": {
+                  "type": "string"
+                },
+                "example": "keep-alive"
+              },
+              "Keep-Alive": {
+                "schema": {
+                  "type": "string"
+                },
+                "example": "timeout=5"
+              }
+            }
+          }
+        },
+        "tags": [
+          "Terminal"
+        ]
+      }
+    },
+    "/terminal/split/{split}": {
+      "get": {
+        "summary": "Get Split",
+        "parameters": [
+          {
+            "name": "R-Partner-ID",
+            "in": "header",
+            "schema": {
+              "type": "string"
+            },
+            "example": "{{partnerId}}"
+          },
+          {
+            "name": "R-Api-Key",
+            "in": "header",
+            "schema": {
+              "type": "string"
+            },
+            "example": "{{apiKey}}"
+          },
+          {
+            "name": "R-Terminal",
+            "in": "header",
+            "schema": {
+              "type": "string"
+            },
+            "example": "{{terminal}}"
+          }
+        ],
+        "responses": {},
+        "tags": [
+          "Terminal"
+        ]
+      },
+      "parameters": [
+        {
+          "name": "split",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string"
+          },
+          "example": "SP-85NaKZ4Yab"
+        }
+      ]
+    },
+    "/terminal/split/{split}/qr": {
+      "get": {
+        "summary": "Get Split QR",
+        "parameters": [
+          {
+            "name": "amount",
+            "in": "query",
+            "schema": {
+              "type": "integer"
+            },
+            "example": "100"
+          },
+          {
+            "name": "R-Partner-ID",
+            "in": "header",
+            "schema": {
+              "type": "string"
+            },
+            "example": "{{partnerId}}"
+          },
+          {
+            "name": "R-Api-Key",
+            "in": "header",
+            "schema": {
+              "type": "string"
+            },
+            "example": "{{apiKey}}"
+          },
+          {
+            "name": "R-Terminal",
+            "in": "header",
+            "schema": {
+              "type": "string"
+            },
+            "example": "{{terminal}}"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Get Split QR",
+            "headers": {
+              "Access-Control-Allow-Origin": {
+                "schema": {
+                  "type": "string"
+                },
+                "example": "*"
+              },
+              "X-RateLimit-Limit-Short": {
+                "schema": {
+                  "type": "integer"
+                },
+                "example": "50"
+              },
+              "X-RateLimit-Remaining-Short": {
+                "schema": {
+                  "type": "integer"
+                },
+                "example": "49"
+              },
+              "X-RateLimit-Reset-Short": {
+                "schema": {
+                  "type": "integer"
+                },
+                "example": "1"
+              },
+              "X-RateLimit-Limit-Medium": {
+                "schema": {
+                  "type": "integer"
+                },
+                "example": "300"
+              },
+              "X-RateLimit-Remaining-Medium": {
+                "schema": {
+                  "type": "integer"
+                },
+                "example": "299"
+              },
+              "X-RateLimit-Reset-Medium": {
+                "schema": {
+                  "type": "integer"
+                },
+                "example": "10"
+              },
+              "X-RateLimit-Limit-Long": {
+                "schema": {
+                  "type": "integer"
+                },
+                "example": "1000"
+              },
+              "X-RateLimit-Remaining-Long": {
+                "schema": {
+                  "type": "integer"
+                },
+                "example": "999"
+              },
+              "X-RateLimit-Reset-Long": {
+                "schema": {
+                  "type": "integer"
+                },
+                "example": "60"
+              },
+              "X-Frame-Options": {
+                "schema": {
+                  "type": "string"
+                },
+                "example": "DENY"
+              },
+              "Strict-Transport-Security": {
+                "schema": {
+                  "type": "string"
+                },
+                "example": "max-age=63072000; includeSubDomains; preload"
+              },
+              "Content-Security-Policy": {
+                "schema": {
+                  "type": "string"
+                },
+                "example": "default-src 'self';"
+              },
+              "Referrer-Policy": {
+                "schema": {
+                  "type": "string"
+                },
+                "example": "same-origin"
+              },
+              "Cross-Origin-Embedder-Policy": {
+                "schema": {
+                  "type": "string"
+                },
+                "example": "require-corp"
+              },
+              "Cross-Origin-Resource-Policy": {
+                "schema": {
+                  "type": "string"
+                },
+                "example": "same-origin"
+              },
+              "Cross-Origin-Opener-Policy": {
+                "schema": {
+                  "type": "string"
+                },
+                "example": "same-origin"
+              },
+              "Content-Length": {
+                "schema": {
+                  "type": "integer"
+                },
+                "example": "2503"
+              },
+              "ETag": {
+                "schema": {
+                  "type": "string"
+                },
+                "example": "W/\"9c7-W1KVtN8mMbQgX3RXcI2ZKrO/xFk\""
+              },
+              "Date": {
+                "schema": {
+                  "type": "string"
+                },
+                "example": "Tue, 19 Aug 2025 08:38:00 GMT"
+              },
+              "Connection": {
+                "schema": {
+                  "type": "string"
+                },
+                "example": "keep-alive"
+              },
+              "Keep-Alive": {
+                "schema": {
+                  "type": "string"
+                },
+                "example": "timeout=5"
+              }
+            }
+          }
+        },
+        "tags": [
+          "Terminal"
+        ]
+      },
+      "parameters": [
+        {
+          "name": "split",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string"
+          },
+          "example": "SP-85NaKZ4Yab"
+        }
+      ]
+    }
+  }
+}

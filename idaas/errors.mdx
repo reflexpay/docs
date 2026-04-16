@@ -1,0 +1,54 @@
+---
+title: Errors
+description: Error response format, common HTTP statuses, and integration handling guidance.
+---
+
+# Errors
+
+IDaaS uses structured JSON envelopes for both successful and failed responses.
+
+## Standard error shape
+
+```json
+{
+  "success": false,
+  "message": "Validation failed",
+  "errors": [
+    "tagString must be between 3 and 64 characters"
+  ],
+  "timestamp": "2026-03-24T09:01:20.853Z"
+}
+```
+
+## Common statuses
+
+| Status | Meaning |
+| --- | --- |
+| `400` | Invalid request body, malformed input, or business validation failure |
+| `401` | Missing or invalid authentication |
+| `403` | Authenticated but not authorized |
+| `404` | Resource not found |
+| `409` | Conflict such as duplicate resources or ambiguous bare tag resolution |
+| `422` | Request is syntactically valid but cannot be processed in the current state |
+| `429` | Rate limit exceeded |
+| `500` | Unexpected server-side failure |
+
+## Integration guidance
+
+- Parse both `message` and `errors`.
+- Treat `409` and `422` as business outcomes, not only transport failures.
+- Honor `Retry-After` on `429` responses.
+- Log the timestamp and request identifiers you add client-side.
+
+## Retry policy suggestions
+
+- Retry `429` after the indicated delay.
+- Retry some `5xx` responses with backoff.
+- Do not blindly retry `4xx` validation or conflict errors.
+- Use idempotency keys for retriable transaction initiation calls.
+
+## Related topics
+
+- [Authentication](/idaas/authentication)
+- [Payments](/idaas/payments)
+

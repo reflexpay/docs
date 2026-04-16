@@ -1,0 +1,61 @@
+---
+title: Encryption
+description: JWE payload encryption, key usage, and operational guidance for secure IDaaS integrations.
+---
+
+# Encryption
+
+IDaaS supports end-to-end payload encryption with JSON Web Encryption (JWE).
+
+## Algorithms
+
+The platform uses:
+
+- `ECDH-ES+A256KW` for key agreement and key wrapping
+- `A256GCM` for content encryption
+- EC P-256 keypairs for application and platform keys
+
+## How key usage works
+
+- IDaaS encrypts outbound webhook payloads with the application's public key.
+- Client applications encrypt inbound request payloads with the IDaaS public key.
+- Applications use their private key material to decrypt webhook payloads.
+
+## Key endpoints
+
+Use the API reference for the exact contract, especially:
+
+- `GET /v1/keys/idaas`
+- `POST /v1/applications/keys/rotate`
+
+## Registration-time key material
+
+When an application is registered, the response can include:
+
+- `appPublicKeyJwk`
+- `appPublicKey`
+- `appPrivateKeyWrapped`
+- `keyVersion`
+
+Store the wrapped private key securely as soon as it is returned.
+
+## Recommended flow
+
+1. Register the application.
+2. Persist the wrapped private key in a secure secret store.
+3. Fetch or cache the IDaaS public key.
+4. Encrypt sensitive request payloads before sending them.
+5. Verify webhook signatures, then decrypt webhook bodies.
+
+## Operational guidance
+
+- Rotate application keys when compromise is suspected.
+- Track `keyVersion` for all consuming systems.
+- Never expose private keys to frontend or browser clients.
+- Keep signature verification and decryption as separate steps.
+
+## Related topics
+
+- [Webhooks](/idaas/webhooks)
+- [Authentication](/idaas/authentication)
+

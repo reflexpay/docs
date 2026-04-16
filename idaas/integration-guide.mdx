@@ -1,0 +1,1700 @@
+---
+title: End-to-End Integration Guide
+description: Comprehensive IDaaS integration guide covering registration, authentication, tags, payments, webhooks, encryption, settlement, and error handling.
+---
+
+# IDaaS — Integration Guide
+
+> **Audience:** Engineers integrating a client application with the IDaaS platform.  
+> **Base URL:** `https://<your-idaas-host>/api` (all paths below omit this prefix)  
+> **Interactive docs:** `GET /swagger-ui.html` · Machine-readable spec: `GET /v3/api-docs`
+
+---
+
+## Table of Contents
+
+1. [What IDaaS Is](#1-what-idaas-is)
+2. [Core Concepts](#2-core-concepts)
+3. [How the Platform Works End to End](#3-how-the-platform-works-end-to-end)
+4. [Quick-Start Checklist](#4-quick-start-checklist)
+5. [Step 1 — Register Your Application](#5-step-1--register-your-application) ← includes `appHandle`
+6. [Step 2 — Authenticate (Get a Token)](#6-step-2--authenticate-get-a-token)
+7. [Step 3 — Create Subjects and Tags](#7-step-3--create-subjects-and-tags)
+8. [Step 4 — Initiate a Payment](#8-step-4--initiate-a-payment)
+9. [Step 5 — Receive and Handle Webhooks](#9-step-5--receive-and-handle-webhooks)
+10. [Step 6 — Accept or Reject a Transaction](#10-step-6--accept-or-reject-a-transaction)
+11. [Step 7 — Monitor Webhooks and Delivery](#11-step-7--monitor-webhooks-and-delivery)
+12. [Step 8 — Wallet and Ledger](#12-step-8--wallet-and-ledger)
+13. [Step 9 — Settlement](#13-step-9--settlement)
+14. [Payload Encryption (JWE)](#14-payload-encryption-jwe)
+15. [Webhook Signature Verification](#15-webhook-signature-verification)
+16. [Idempotency](#16-idempotency)
+17. [Rate Limiting](#17-rate-limiting)
+18. [Cross-App Tag Claims and Consent](#18-cross-app-tag-claims-and-consent)
+19. [Namespaced Tags — Onboarding Existing Tag Systems](#19-namespaced-tags--onboarding-existing-tag-systems) ← **new**
+20. [Tag Federation](#20-tag-federation)
+21. [Error Handling](#21-error-handling)
+22. [API Reference Summary](#22-api-reference-summary)
+23. [Integration Flows — Sequence Diagrams](#23-integration-flows--sequence-diagrams)
+
+---
+
+## 1. What IDaaS Is
+
+IDaaS (Identity as a Service) is a multi-tenant platform that provides:
+
+| Capability | What it means for your app |
+|---|---|
+| **Identity tags** | Every user gets a portable handle (e.g. `alice`) scoped to your app's namespace, forming a globally unique **qualified address** (`alice@walletapp`) that works across all apps on the platform |
+| **Cross-app payments** | Your app can send money to a tag on any other app, and receive money from any tag, without needing a direct integration with the other app |
+| **Consent-based claims** | If two apps both know the same user, either can request a verified link (claim) between the user's tags via owner-approved consent |
+| **Application wallets** | IDaaS maintains a single escrow wallet per application that tracks its net monetary position from all completed transactions |
+| **Double-entry ledger** | Every accepted transaction creates immutable DEBIT + CREDIT ledger entries with opening/closing balances |
+| **Settlement** | A scheduled end-of-day job (23:59 UTC) produces per-application net position reports for financial reconciliation |
+| **JWE encryption** | Every request body and webhook payload can be encrypted end-to-end using EC P-256 keypairs |
+
+Your application communicates with IDaaS exclusively via HTTPS REST APIs. All side-effects (webhook dispatch, audit logging) happen asynchronously via Kafka so API calls remain fast.
+
+---
+
+## 2. Core Concepts
+
+### Application
+The top-level entity in IDaaS — it represents your service. Each application gets:
+- A `clientId` and `clientSecret` for authentication
+- A `webhookSecret` for verifying inbound webhook signatures
+- An EC P-256 keypair for payload encryption
+- One escrow wallet for net monetary position tracking
+
+### Subject
+A user identity within your application. A subject maps your internal user ID (`externalId`) to the IDaaS system. One subject can own many tags.
+
+### Tag
+A portable identity handle (e.g. `alice`, `shop-main`) **scoped to the creating application**. Each application has a short, unique **`appHandle`** slug (e.g. `walletapp`). The tag's globally unique identifier is the **qualified address**: `localTag@appHandle` (e.g. `alice@walletapp`).
+
+This means two different applications can each have a user named `alice` without any conflict — they become `alice@walletapp` and `alice@shopapp`, clearly distinct identities.
+
+Tag rules:
+- `localTag` part: 3–64 characters, lowercase alphanumeric + hyphens, not starting or ending with a hyphen
+- `appHandle` part: 3–30 characters, lowercase alphanumeric + hyphens, not starting or ending with a hyphen; **set at registration time and immutable**
+- Tags can be resolved publicly using either the bare local name (`alice`) or the qualified address (`alice@walletapp`)
+- A bare name lookup that matches tags in more than one application returns **409 Conflict** — use the qualified address in that case
+- Can receive payments from any other tag on any application
+
+### Transaction
+A cross-application payment from one tag to another. Transactions go through a two-step lifecycle — the sending application initiates, the receiving application explicitly accepts or rejects.
+
+### Wallet
+IDaaS maintains one `ApplicationWallet` per application. It tracks the cumulative credits and debits from all completed transactions. This is an **escrow/settlement wallet**, not an end-user wallet — per-user balances remain your application's responsibility.
+
+### Webhook
+An outbound HTTP POST from IDaaS to your application notifying you of transaction events. There are two distinct notifications per transaction:
+- **RECEIVER webhook** — sent to the receiving app's `transactionWebhookUrl` when a transaction is addressed to one of its tags
+- **SENDER callback** — sent to the `callbackUrl` provided by the sending app when the transaction outcome is determined
+
+---
+
+## 3. How the Platform Works End to End
+
+```
+  App A (sender)              IDaaS                    App B (receiver)
+  ──────────────              ─────                    ────────────────
+  
+  [Registration]
+  POST /v1/applications  ───►  Create app, generate
+                               keypair, wallet          
+                        ◄───  clientId, clientSecret,
+                               webhookSecret, keys
+  
+  [Auth]
+  POST /v1/auth/token    ───►  Validate credentials
+                        ◄───  JWT Bearer token
+  
+  [Subject + Tag setup]
+  POST /v1/subjects      ───►  Create user record
+  POST /v1/tags          ───►  Create tag "alice"
+  
+  [Payment initiation]
+  POST /v1/transactions  ───►  Validate tags
+  (senderTag=alice@walletapp,    Create txn (AWAITING_ACCEPTANCE)
+   receiverTag=bob@shopapp,      Persist RECEIVER webhook record
+   amount=500)                  Publish to Kafka
+                        ◄───  TXN-xxx reference
+                                      │
+                                      │ Kafka consumer (async)
+                                      ▼
+                               POST App B's webhookUrl ───► App B
+                               {event: TRANSACTION_INITIATED,  ◄─── 200 OK
+                                transaction: {...}}
+  
+  [Acceptance]
+                                                       POST /v1/transactions/TXN-xxx/accept
+                                               ◄────  (App B authenticates with its own token)
+                               Debit App A wallet
+                               Credit App B wallet
+                               Write 2 LedgerEntry rows
+                               txn.status = COMPLETED
+                               Persist SENDER webhook record
+                               Publish sender callback to Kafka
+                        ◄───  COMPLETED transaction
+  
+                                      │ Kafka consumer (async)
+                                      ▼
+                               POST App A's callbackUrl ───► App A
+                               {event: TRANSACTION_COMPLETED,  ◄─── 200 OK
+                                transaction: {...}}
+  
+  [Daily at 23:59 UTC]
+                               Aggregate LedgerEntry rows
+                               by wallet for today
+                               Write SettlementRecord +
+                               per-app SettlementEntry rows
+                               Publish idaas.settlements event
+```
+
+---
+
+## 4. Quick-Start Checklist
+
+- [ ] **Register** your application (`POST /v1/applications`) — save `clientSecret`, `webhookSecret`, and key material; they are shown **only once**
+- [ ] **Authenticate** (`POST /v1/auth/token`) — obtain a Bearer JWT
+- [ ] **Provision wallet** (`POST /v1/wallet`) — idempotent, safe to call on every startup
+- [ ] **Create subjects** for your users (`POST /v1/subjects`)
+- [ ] **Create tags** for your users (`POST /v1/tags`)
+- [ ] **Expose a webhook endpoint** at your `transactionWebhookUrl` to receive `TRANSACTION_INITIATED` events
+- [ ] **Verify webhook signatures** using `X-IDaaS-Signature` on every inbound webhook
+- [ ] **Respond with 2xx** within 10 seconds on webhook delivery; IDaaS retries 3 times
+- [ ] **Set up a callback endpoint** for `TRANSACTION_COMPLETED` / `TRANSACTION_REJECTED` / `TRANSACTION_EXPIRED` notifications
+
+---
+
+## 5. Step 1 — Register Your Application
+
+Registration is public (no auth required). Each application registration creates an independent tenant.
+
+### Request
+
+```http
+POST /v1/applications
+Content-Type: application/json
+
+{
+  "name": "WalletApp",
+  "appHandle": "walletapp",
+  "transactionWebhookUrl": "https://wallet-app.example.com/idaas/webhook",
+  "redirectUris": "https://wallet-app.example.com/auth/callback",
+  "metadata": "{\"env\": \"production\"}"
+}
+```
+
+| Field | Required | Description |
+|---|---|---|
+| `name` | ✅ | Human-readable application name (2–150 chars) |
+| `appHandle` | ✅ | Immutable namespace slug for your tags (3–30 chars, lowercase alphanumeric + hyphens, no leading/trailing hyphen) |
+| `transactionWebhookUrl` | Recommended | Your HTTPS endpoint that IDaaS POSTs `TRANSACTION_INITIATED` events to |
+| `redirectUris` | Optional | Space-separated OAuth2 redirect URIs |
+| `metadata` | Optional | Free-form JSON string for your own use |
+
+### Response
+
+```json
+{
+  "success": true,
+  "message": "Application registered successfully. Store the clientSecret/webhookSecret/appPrivateJwk – they are shown only once.",
+  "data": {
+    "id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+    "name": "WalletApp",
+    "appHandle": "walletapp",
+    "clientId": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+    "clientSecret": "raw-secret-shown-only-once",
+    "active": true,
+    "transactionWebhookUrl": "https://wallet-app.example.com/idaas/webhook",
+    "webhookSecret": "raw-webhook-secret-shown-only-once",
+    "appPublicKeyJwk": { "kty": "EC", "crv": "P-256", "x": "...", "y": "..." },
+    "appPrivateJwk": { "kty": "EC", "crv": "P-256", "x": "...", "y": "...", "d": "..." },
+    "encryptionEnabled": true,
+    "keyVersion": 1,
+    "createdAt": "2025-03-04T10:00:00Z"
+  }
+}
+```
+
+> ⚠️ **Store immediately and securely:**
+> - `clientSecret` — used to obtain Bearer tokens; never shown again
+> - `webhookSecret` — used to verify `X-IDaaS-Signature` on every inbound webhook; never shown again
+> - `appPrivateJwk` — your application's private EC key (contains `d`); required to decrypt JWE-encrypted webhook payloads; never shown again
+> - `appHandle` — returned in the response and in `GET /v1/applications/{id}`; it is the namespace for all your tags (e.g. `alice@walletapp`). **Immutable.**
+>
+> Lose any of these and you must rotate (use key/webhook secret rotation endpoints, or deactivate + re-register).
+
+---
+
+## 6. Step 2 — Authenticate (Get a Token)
+
+All protected endpoints require a Bearer JWT. Tokens expire after 1 hour (configurable via `IDAAS_APP_TOKEN_TTL`).
+
+### Request (form-encoded)
+
+```http
+POST /v1/auth/token
+Content-Type: application/x-www-form-urlencoded
+
+client_id=a1b2c3d4-e5f6-7890-abcd-ef1234567890&client_secret=raw-secret-shown-only-once
+```
+
+### Request (JSON body)
+
+```http
+POST /v1/auth/token
+Content-Type: application/json
+
+{
+  "client_id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+  "client_secret": "raw-secret-shown-only-once"
+}
+```
+
+### Response
+
+```json
+{
+  "success": true,
+  "message": "Token issued",
+  "data": {
+    "token": "eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIzZmE4NW...",
+    "expiresAt": 1741082400,
+    "subjectId": "3fa85f64-5717-4562-b3fc-2c963f66afa6"
+  }
+}
+```
+
+### Using the token
+
+Add the JWT to every subsequent request:
+
+```http
+Authorization: Bearer eyJhbGciOiJIUzI1NiJ9...
+```
+
+> **Rate limit:** 10 requests / minute per IP. Implement token caching — refresh proactively before expiry rather than waiting for a 401.
+
+### Token refresh pattern
+
+```
+┌─────────────────────────────────────┐
+│  App startup                        │
+│  1. POST /v1/auth/token             │
+│  2. Cache token + expiresAt         │
+│  3. Schedule refresh at             │
+│     (expiresAt - 5 minutes)         │
+│                                     │
+│  On every API call:                 │
+│  if now > cached_expiry - 60s:      │
+│    refresh token before call        │
+└─────────────────────────────────────┘
+```
+
+---
+
+## 7. Step 3 — Create Subjects and Tags
+
+### 7.1 Create a Subject
+
+A subject represents one of your users inside IDaaS. Create a subject for every user who needs a tag.
+
+```http
+POST /v1/subjects
+Authorization: Bearer <token>
+Content-Type: application/json
+
+{
+  "externalId": "user-12345",
+  "displayName": "Alice Adeyemi",
+  "email": "alice@example.com",
+  "metadata": "{\"tier\": \"premium\"}"
+}
+```
+
+| Field | Required | Description |
+|---|---|---|
+| `externalId` | ✅ | Your internal user ID (max 255 chars) — must be unique within your app |
+| `displayName` | Optional | Shown on consent pages (max 150 chars) |
+| `email` | Optional | Used for consent notification delivery (max 200 chars) |
+| `metadata` | Optional | Free-form JSON string |
+
+```json
+{
+  "success": true,
+  "data": {
+    "id": "c1d2e3f4-0000-1111-2222-aabbccddeeff",
+    "externalId": "user-12345",
+    "displayName": "Alice Adeyemi",
+    "email": "alice@example.com",
+    "createdAt": "2025-03-04T10:01:00Z"
+  }
+}
+```
+
+Save the returned `id` (IDaaS subject UUID) — you need it to create a tag.
+
+### 7.2 Create a Tag
+
+```http
+POST /v1/tags
+Authorization: Bearer <token>
+Content-Type: application/json
+
+{
+  "tag": "alice",
+  "subjectId": "c1d2e3f4-0000-1111-2222-aabbccddeeff"
+}
+```
+
+| Field | Required | Validation |
+|---|---|---|
+| `tag` | ✅ | 3–64 chars; lowercase alphanumeric + hyphens; must not start or end with a hyphen |
+| `subjectId` | ✅ | IDaaS subject UUID — must belong to your application |
+
+IDaaS automatically derives the **qualified address** by appending your application's `appHandle`: `alice` → `alice@walletapp`.
+
+```json
+{
+  "success": true,
+  "data": {
+    "id": "eeee1111-2222-3333-4444-555566667777",
+    "tagString": "alice",
+    "qualifiedAddress": "alice@walletapp",
+    "status": "ACTIVE",
+    "canonicalOwner": {
+      "id": "c1d2e3f4-0000-1111-2222-aabbccddeeff",
+      "displayName": "Alice Adeyemi"
+    },
+    "createdByAppId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+    "createdByAppName": "WalletApp",
+    "createdAt": "2025-03-04T10:02:00Z"
+  }
+}
+```
+
+> The `qualifiedAddress` (`alice@walletapp`) is the canonical cross-platform identifier for this tag. Share it with other applications so they can address payments to it unambiguously.
+
+### 7.3 Resolve Any Tag (Public, Cached)
+
+Any application can look up any tag — no auth required. Results are cached for 30 seconds.
+
+You can resolve by **bare local name** or by **qualified address**:
+
+```http
+GET /v1/tags/alice@walletapp
+```
+```http
+GET /v1/tags/alice
+```
+
+> If `alice` exists on more than one application, the bare-string lookup returns **409 Conflict** with the list of qualified addresses. Use the qualified address to avoid ambiguity.
+
+```json
+{
+  "success": true,
+  "data": {
+    "tagString": "alice",
+    "qualifiedAddress": "alice@walletapp",
+    "status": "ACTIVE",
+    "canonicalOwner": { "displayName": "Alice Adeyemi" },
+    "createdByAppName": "WalletApp"
+  }
+}
+```
+
+Use this before initiating a payment to confirm the destination tag exists and is `ACTIVE`.
+
+---
+
+## 8. Step 4 — Initiate a Payment
+
+The sending application calls this endpoint to begin a cross-application payment.
+
+> **Tag addressing:** Both `senderTag` and `receiverTag` accept either a bare local name (`alice`) or a qualified address (`alice@walletapp`).  
+> Use the **qualified address whenever possible** — bare names that exist on more than one application return a **409 Conflict** asking you to specify the qualified address.
+
+```http
+POST /v1/transactions
+Authorization: Bearer <App A token>
+Content-Type: application/json
+Idempotency-Key: 550e8400-e29b-41d4-a716-446655440000
+
+{
+  "senderTag": "alice@walletapp",
+  "receiverTag": "bob@shopapp",
+  "amount": 1500.00,
+  "currency": "NGN",
+  "narration": "Payment for order #99",
+  "callbackUrl": "https://wallet-app.example.com/idaas/callback"
+}
+```
+
+| Field | Required | Description |
+|---|---|---|
+| `senderTag` | ✅ | Bare name or qualified address. Must belong to the calling application (403 otherwise). Prefer qualified address (`alice@walletapp`). |
+| `receiverTag` | ✅ | Bare name or qualified address on any application. Prefer qualified address (`bob@shopapp`). |
+| `amount` | ✅ | Positive, up to 15 integer + 4 decimal digits (e.g. `1500.0000`) |
+| `currency` | Optional | 3-letter ISO 4217 code; defaults to `NGN` |
+| `narration` | Optional | Payment note shown to both parties (max 500 chars) |
+| `callbackUrl` | Optional | Your HTTPS URL for the outcome callback — overrides your registered `transactionWebhookUrl` for this specific transaction's sender callback. If omitted, IDaaS falls back to the sending application's registered `transactionWebhookUrl`. |
+| `Idempotency-Key` header | Recommended | Unique string (UUID v4 recommended, max 64 chars); duplicate calls within 24 hours return the original response |
+
+### Response
+
+```json
+{
+  "success": true,
+  "message": "Transaction initiated – awaiting acceptance by receiving application",
+  "data": {
+    "id": "f47ac10b-58cc-4372-a567-0e02b2c3d479",
+    "reference": "TXN-9812345678-A1B2C3D4",
+    "senderTag": "alice@walletapp",
+    "senderAppName": "WalletApp",
+    "senderAppId": "3fa85f64-...",
+    "receiverTag": "bob@shopapp",
+    "receiverAppName": "ShopApp",
+    "receiverAppId": "7a9b1c2d-...",
+    "amount": 1500.0000,
+    "currency": "NGN",
+    "status": "AWAITING_ACCEPTANCE",
+    "narration": "Payment for order #99",
+    "expiresAt": "2025-03-05T10:03:00Z",
+    "createdAt": "2025-03-04T10:03:00Z"
+  }
+}
+```
+
+> Transaction responses always return **qualified addresses** in `senderTag` and `receiverTag` (e.g. `alice@walletapp`, `bob@shopapp`).
+
+### What happens next
+
+1. IDaaS persists the transaction in `AWAITING_ACCEPTANCE` state
+2. IDaaS persists a `TransactionWebhook` record (direction=`RECEIVER`, status=`PENDING`)
+3. IDaaS publishes a `WebhookDispatchEvent` to the `idaas.webhooks` Kafka topic
+4. The `WebhookDispatchConsumer` POSTs a `TRANSACTION_INITIATED` notification to the receiver app's `transactionWebhookUrl` (asynchronously)
+5. The transaction auto-expires after 24 hours if not accepted
+
+---
+
+## 9. Step 5 — Receive and Handle Webhooks
+
+IDaaS POSTs notifications to your `transactionWebhookUrl`. You must:
+1. Expose a publicly reachable HTTPS endpoint
+2. Verify the `X-IDaaS-Signature` header (see [§15](#15-webhook-signature-verification))
+3. Return `2xx` within **10 seconds**; IDaaS retries up to **3 times** (after 1 s and 2 s back-off)
+
+### 9.1 RECEIVER Webhook — `TRANSACTION_INITIATED`
+
+Sent to the receiving application when a new payment is addressed to one of its tags.
+
+```http
+POST https://shop-app.example.com/idaas/webhook
+Content-Type: application/json
+X-IDaaS-Signature: v0=3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b2c3d4
+X-IDaaS-Timestamp: 1741082580
+Content-Encryption: JWE   ← only present if encryptionEnabled=true
+
+{
+  "event": "TRANSACTION_INITIATED",
+  "transaction": {
+    "reference": "TXN-9812345678-A1B2C3D4",
+    "senderTag": "alice@walletapp",
+    "senderAppId": "3fa85f64-...",
+    "senderAppName": "WalletApp",
+    "receiverTag": "bob@shopapp",
+    "receiverAppId": "7a9b1c2d-...",
+    "receiverAppName": "ShopApp",
+    "amount": 1500.0000,
+    "currency": "NGN",
+    "narration": "Payment for order #99",
+    "expiresAt": "2025-03-05T10:03:00Z",
+    "createdAt": "2025-03-04T10:03:00Z"
+  }
+}
+```
+
+**What to do when you receive this:**
+1. Verify the signature (see §15)
+2. Parse the `reference` — this is the key you'll use to accept or reject
+3. Apply your own business logic (check funds, validate the order, etc.)
+4. Call `POST /v1/transactions/{reference}/accept` or `.../reject` within 24 hours
+5. Return `200 OK` immediately — do your business logic asynchronously if needed
+
+### 9.2 SENDER Callback — Outcome Notification
+
+Sent to the sending application's transaction-specific `callbackUrl` when provided; otherwise IDaaS falls back to the sending application's registered `transactionWebhookUrl` after the transaction outcome is determined.
+
+```http
+POST https://wallet-app.example.com/idaas/callback
+Content-Type: application/json
+X-IDaaS-Signature: v0=abc123...
+X-IDaaS-Timestamp: 1741082700
+
+{
+  "event": "TRANSACTION_COMPLETED",
+  "transaction": {
+    "reference": "TXN-9812345678-A1B2C3D4",
+    "senderTag": "alice@walletapp",
+    "receiverTag": "bob@shopapp",
+    "amount": 1500.0000,
+    "currency": "NGN",
+    "narration": "Payment for order #99",
+    "expiresAt": "2025-03-05T10:03:00Z",
+    "createdAt": "2025-03-04T10:03:00Z"
+  }
+}
+```
+
+| `event` value | Meaning |
+|---|---|
+| `TRANSACTION_COMPLETED` | Receiver accepted; wallets have been debited/credited |
+| `TRANSACTION_REJECTED` | Receiver rejected; no money moved |
+| `TRANSACTION_EXPIRED` | 24-hour window elapsed without acceptance; no money moved |
+| `TRANSACTION_UPDATED` | Intermediate state change (rare) |
+
+### 9.3 Webhook Endpoint Implementation Checklist
+
+```
+✅ Respond with 2xx within 10 seconds
+✅ Verify X-IDaaS-Signature before processing (see §15)
+✅ Reject if |now - X-IDaaS-Timestamp| > 5 minutes (replay protection)
+✅ Make your handler idempotent — webhooks may be delivered more than once
+✅ Use the `reference` field as your idempotency key
+✅ Dequeue and process asynchronously for slow operations
+✅ If encryptionEnabled=true, decrypt the JWE body first (see §14)
+```
+
+---
+
+## 10. Step 6 — Accept or Reject a Transaction
+
+Only the **receiving application** can accept or reject. IDaaS enforces this — calling accept/reject with the wrong token returns `403`.
+
+### Accept
+
+```http
+POST /v1/transactions/TXN-9812345678-A1B2C3D4/accept
+Authorization: Bearer <App B (receiver) token>
+```
+
+No request body required. On success:
+- Sender's wallet is **debited** by `amount`
+- Receiver's wallet is **credited** by `amount`
+- Two immutable `LedgerEntry` rows are written
+- Transaction status moves to `COMPLETED`
+- Sender's `callbackUrl` receives `TRANSACTION_COMPLETED` (or the sender app's `transactionWebhookUrl` if no transaction-specific callback was supplied)
+
+```json
+{
+  "success": true,
+  "message": "Transaction accepted",
+  "data": {
+    "reference": "TXN-9812345678-A1B2C3D4",
+    "status": "COMPLETED",
+    "acceptedAt": "2025-03-04T10:10:00Z",
+    ...
+  }
+}
+```
+
+### Reject
+
+```http
+POST /v1/transactions/TXN-9812345678-A1B2C3D4/reject
+Authorization: Bearer <App B (receiver) token>
+Content-Type: application/json
+
+{
+  "reason": "Insufficient items in stock"
+}
+```
+
+The `reason` field is optional (max 500 chars). On success:
+- No ledger movement
+- Transaction status moves to `REJECTED`
+- Sender's `callbackUrl` receives `TRANSACTION_REJECTED` (or the sender app's `transactionWebhookUrl` if no transaction-specific callback was supplied)
+
+### Error responses for accept/reject
+
+| Status | Meaning |
+|---|---|
+| `403` | Your application is not the receiver of this transaction |
+| `404` | Transaction reference not found |
+| `409` | Transaction is not in `AWAITING_ACCEPTANCE` state (already completed, rejected, or expired) |
+
+---
+
+## 11. Step 7 — Monitor Webhooks and Delivery
+
+### Check delivery status for a transaction
+
+```http
+GET /v1/transactions/TXN-9812345678-A1B2C3D4/webhooks
+Authorization: Bearer <token>
+```
+
+Returns up to two records — one `RECEIVER` and one `SENDER`:
+
+```json
+{
+  "data": [
+    {
+      "id": "wh-uuid-receiver",
+      "direction": "RECEIVER",
+      "eventType": "TRANSACTION_INITIATED",
+      "targetUrl": "https://shop-app.example.com/idaas/webhook",
+      "status": "DELIVERED",
+      "attempts": 1,
+      "deliveredAt": "2025-03-04T10:03:05Z"
+    },
+    {
+      "id": "wh-uuid-sender",
+      "direction": "SENDER",
+      "eventType": "TRANSACTION_COMPLETED",
+      "targetUrl": "https://wallet-app.example.com/idaas/callback",
+      "status": "DELIVERED",
+      "attempts": 1,
+      "deliveredAt": "2025-03-04T10:10:02Z"
+    }
+  ]
+}
+```
+
+### Webhook delivery statuses
+
+| Status | Meaning |
+|---|---|
+| `PENDING` | Queued, not yet attempted or in progress |
+| `DELIVERED` | HTTP 2xx received from your endpoint |
+| `FAILED` | All 3 attempts exhausted; event dead-lettered to `idaas.webhooks.dlt` |
+
+### Find all failed webhooks for your app
+
+```http
+GET /v1/webhooks/failed?page=0&size=20
+Authorization: Bearer <token>
+```
+
+Use this for operational monitoring — set up an alert if this list is non-empty.
+
+---
+
+## 12. Step 8 — Wallet and Ledger
+
+### Provision wallet (call on startup)
+
+```http
+POST /v1/wallet
+Authorization: Bearer <token>
+```
+
+Idempotent — safe to call on every application start.
+
+### Get current balance
+
+```http
+GET /v1/wallet
+Authorization: Bearer <token>
+```
+
+```json
+{
+  "data": {
+    "id": "wallet-uuid",
+    "applicationName": "WalletApp",
+    "currency": "NGN",
+    "balance": 45000.0000,
+    "totalDebited": 5000.0000,
+    "totalCredited": 50000.0000,
+    "updatedAt": "2025-03-04T10:10:00Z"
+  }
+}
+```
+
+`balance = totalCredited − totalDebited`. A positive balance means you have net received more than you sent. A negative balance means you have net sent more than you received.
+
+### Get ledger statement (paginated)
+
+```http
+GET /v1/wallet/statement?page=0&size=20
+Authorization: Bearer <token>
+```
+
+```json
+{
+  "data": {
+    "content": [
+      {
+        "id": "entry-uuid",
+        "transactionReference": "TXN-9812345678-A1B2C3D4",
+        "entryType": "CREDIT",
+        "amount": 1500.0000,
+        "currency": "NGN",
+        "openingBalance": 43500.0000,
+        "closingBalance": 45000.0000,
+        "description": "Credit from alice (WalletApp) to bob (ShopApp) — NGN 1500.0000",
+        "createdAt": "2025-03-04T10:10:00Z"
+      }
+    ],
+    "totalElements": 47,
+    "totalPages": 3
+  }
+}
+```
+
+| `entryType` | Meaning |
+|---|---|
+| `CREDIT` | Money came in (you were the receiver) |
+| `DEBIT` | Money went out (you were the sender) |
+
+---
+
+## 13. Step 9 — Settlement
+
+IDaaS automatically runs an end-of-day settlement job at **23:59 UTC** every day. It aggregates all completed transactions for the day and produces per-application net positions.
+
+### Get today's settlement (after 23:59 UTC)
+
+```http
+GET /v1/settlement/date/2025-03-04
+Authorization: Bearer <token>
+```
+
+```json
+{
+  "data": {
+    "id": "settlement-uuid",
+    "settlementDate": "2025-03-04",
+    "currency": "NGN",
+    "totalCredited": 250000.0000,
+    "totalDebited": 250000.0000,
+    "transactionCount": 183,
+    "applicationCount": 7,
+    "status": "COMPLETED",
+    "entries": [
+      {
+        "applicationId": "3fa85f64-...",
+        "applicationName": "WalletApp",
+        "totalCredited": 85000.0000,
+        "totalDebited": 12000.0000,
+        "netAmount": 73000.0000,
+        "openingBalance": 45000.0000,
+        "closingBalance": 118000.0000,
+        "transactionCount": 52
+      }
+    ]
+  }
+}
+```
+
+### Manual trigger (operational use)
+
+```http
+POST /v1/settlement/run?date=2025-03-04
+Authorization: Bearer <token>
+```
+
+Idempotent — if the date is already settled, returns the existing record.
+
+---
+
+## 14. Payload Encryption (JWE)
+
+When `encryptionEnabled=true` for your application, all request bodies must be JWE-encrypted and all webhook payloads you receive will be JWE-encrypted. This provides **end-to-end payload confidentiality** on top of TLS.
+
+### Algorithm
+
+| Parameter | Value |
+|---|---|
+| Key agreement | `ECDH-ES+A256KW` |
+| Content encryption | `A256GCM` |
+| Key type | EC P-256 (secp256r1) |
+
+### 14.1 Encrypting Requests Sent TO IDaaS
+
+```
+1. Fetch the IDaaS public key (cache it)
+2. Serialize your JSON request body to a string
+3. Encrypt using JWE (alg=ECDH-ES+A256KW, enc=A256GCM) with the IDaaS public key
+4. Set headers:
+      Content-Encryption: JWE
+      Content-Type: application/json    ← describes the decrypted type
+5. Send the JWE compact string as the request body
+```
+
+**Fetch the IDaaS public key (no auth required):**
+
+```http
+GET /v1/keys/idaas
+```
+
+```json
+{
+  "data": {
+    "algorithm": "ECDH-ES+A256KW",
+    "encAlgorithm": "A256GCM",
+    "curve": "P-256",
+    "jwk": { "kty": "EC", "crv": "P-256", "x": "...", "y": "..." },
+    "publicKeyBase64": "<Base64 X.509 DER>",
+    "usage": "Encrypt request payloads sent TO IDaaS. Set 'Content-Encryption: JWE' header."
+  }
+}
+```
+
+**Example (Java with Nimbus JOSE+JWT):**
+
+```java
+// 1. Load IDaaS public key from GET /v1/keys/idaas
+ECKey idaasPublicKey = ECKey.parse(jwkJson);
+
+// 2. Build JWE
+JWEHeader header = new JWEHeader.Builder(JWEAlgorithm.ECDH_ES_A256KW, EncryptionMethod.A256GCM)
+    .contentType("application/json")
+    .build();
+
+JWEObject jwe = new JWEObject(header, new Payload(plainJsonBody));
+jwe.encrypt(new ECDHEncrypter(idaasPublicKey));
+
+String jweCompact = jwe.serialize();
+
+// 3. Send
+HttpRequest request = HttpRequest.newBuilder()
+    .POST(HttpRequest.BodyPublishers.ofString(jweCompact))
+    .header("Content-Type", "application/json")
+    .header("Content-Encryption", "JWE")
+    .header("Authorization", "Bearer " + token)
+    .build();
+```
+
+**Example (Node.js with jose library):**
+
+```javascript
+import { CompactEncrypt, importSPKI } from 'jose';
+
+// 1. Load IDaaS public key
+const publicKey = await importSPKI(idaasPemKey, 'ECDH-ES+A256KW');
+
+// 2. Encrypt
+const jweCompact = await new CompactEncrypt(
+  new TextEncoder().encode(JSON.stringify(requestBody))
+)
+  .setProtectedHeader({ alg: 'ECDH-ES+A256KW', enc: 'A256GCM', cty: 'application/json' })
+  .encrypt(publicKey);
+
+// 3. Send
+await fetch('/v1/transactions', {
+  method: 'POST',
+  headers: {
+    'Content-Type': 'application/json',
+    'Content-Encryption': 'JWE',
+    'Authorization': `Bearer ${token}`,
+  },
+  body: jweCompact,
+});
+```
+
+**Example (Python with joserfc):**
+
+```python
+from joserfc import jwe
+from joserfc.jwk import ECKey
+import json
+
+# 1. Load IDaaS public key
+idaas_key = ECKey.import_key(jwk_dict)
+
+# 2. Encrypt
+protected = {"alg": "ECDH-ES+A256KW", "enc": "A256GCM", "cty": "application/json"}
+token = jwe.encrypt_compact(protected, json.dumps(body).encode(), idaas_key)
+
+# 3. Send
+requests.post(
+    '/v1/transactions',
+    data=token,
+    headers={
+        'Content-Type': 'application/json',
+        'Content-Encryption': 'JWE',
+        'Authorization': f'Bearer {access_token}',
+    }
+)
+```
+
+### 14.2 Decrypting Webhooks Received FROM IDaaS
+
+When `Content-Encryption: JWE` is present on an inbound webhook, the body is a JWE compact string encrypted with **your application's EC public key**. Decrypt it with your private key (`appPrivateJwk`) received once at registration/rotation.
+
+```java
+// 1. Detect encrypted webhook
+String contentEncryption = request.getHeader("Content-Encryption");
+if ("JWE".equals(contentEncryption)) {
+    // 2. Load your private key (stored securely at registration time)
+    ECKey appPrivateKey = ECKey.parse(storedPrivateKeyJson).toECKey();
+
+    // 3. Decrypt
+    JWEObject jwe = JWEObject.parse(request.getBody());
+    jwe.decrypt(new ECDHDecrypter(appPrivateKey));
+    String plainJson = jwe.getPayload().toString();
+
+    // 4. Process plain JSON payload
+    WebhookPayload payload = objectMapper.readValue(plainJson, WebhookPayload.class);
+}
+```
+
+### 14.3 Key Rotation
+
+Rotate your keypair periodically or after a key compromise:
+
+```http
+POST /v1/applications/keys/rotate
+Authorization: Bearer <token>
+```
+
+Returns a new `appPublicKeyJwk` and `appPrivateJwk` — **store the private JWK immediately, it is shown only once**.
+
+After rotation:
+- IDaaS encrypts all subsequent webhooks with the **new** public key
+- Requests encrypted with the old public key will be rejected
+- Allow a brief overlap window for in-flight messages before destroying the old private key
+
+### 14.4 Webhook Secret Rotation
+
+If your application loses its webhook secret (or suspects compromise), rotate it without re-registering:
+
+```http
+POST /v1/applications/webhook-secret/rotate
+Authorization: Bearer <token>
+```
+
+Returns a new `webhookSecret` — **store it immediately, it is shown only once**.
+
+After rotation:
+- IDaaS signs all subsequent webhooks with the **new** secret
+- Verification with the old secret fails immediately
+
+---
+
+## 15. Webhook Signature Verification
+
+Every outbound webhook POST from IDaaS includes two headers:
+
+```
+X-IDaaS-Signature: v0=3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8...
+X-IDaaS-Timestamp: 1741082580
+```
+
+### Signature algorithm
+
+```
+signed_message = "v0:" + timestamp + ":" + raw_request_body
+signature      = HMAC-SHA256(webhookSecret, signed_message)
+header_value   = "v0=" + hex(signature)
+```
+
+Where `webhookSecret` is the **raw** (unhashed) secret returned at registration.
+It can also be rotated via `POST /v1/applications/webhook-secret/rotate` if lost or compromised.
+
+### Verification (pseudo-code)
+
+```
+function verifyWebhook(request, webhookSecret):
+    timestamp = request.header("X-IDaaS-Timestamp")
+    signature = request.header("X-IDaaS-Signature")
+    body      = request.rawBody()          # must be raw bytes, not parsed JSON
+
+    # Step 1 – Replay protection
+    if abs(now() - int(timestamp)) > 300:  # 5 minutes
+        reject(401, "Timestamp too old")
+
+    # Step 2 – Recompute
+    message  = "v0:" + timestamp + ":" + body
+    expected = "v0=" + hmac_sha256_hex(webhookSecret, message)
+
+    # Step 3 – Constant-time compare (prevents timing attacks)
+    if not constant_time_equals(expected, signature):
+        reject(401, "Invalid signature")
+
+    # Step 4 – Proceed with processing
+    process(body)
+```
+
+### Implementation examples
+
+**Java:**
+
+```java
+public boolean verify(String webhookSecret, String timestamp, String signature, String body) {
+    long ts = Long.parseLong(timestamp);
+    if (Math.abs(Instant.now().getEpochSecond() - ts) > 300) return false;
+
+    String message = "v0:" + ts + ":" + body;
+    Mac mac = Mac.getInstance("HmacSHA256");
+    mac.init(new SecretKeySpec(webhookSecret.getBytes(UTF_8), "HmacSHA256"));
+    String expected = "v0=" + HexFormat.of().formatHex(mac.doFinal(message.getBytes(UTF_8)));
+
+    // Constant-time compare
+    return MessageDigest.isEqual(expected.getBytes(UTF_8), signature.getBytes(UTF_8));
+}
+```
+
+**Node.js:**
+
+```javascript
+import crypto from 'crypto';
+
+function verifyWebhook(webhookSecret, timestamp, signature, rawBody) {
+    if (Math.abs(Date.now() / 1000 - Number(timestamp)) > 300) return false;
+
+    const message = `v0:${timestamp}:${rawBody}`;
+    const expected = 'v0=' + crypto
+        .createHmac('sha256', webhookSecret)
+        .update(message)
+        .digest('hex');
+
+    // Constant-time compare
+    return crypto.timingSafeEqual(Buffer.from(expected), Buffer.from(signature));
+}
+```
+
+**Python:**
+
+```python
+import hmac, hashlib, time
+
+def verify_webhook(webhook_secret: str, timestamp: str, signature: str, raw_body: str) -> bool:
+    if abs(time.time() - int(timestamp)) > 300:
+        return False
+
+    message = f"v0:{timestamp}:{raw_body}"
+    expected = "v0=" + hmac.new(
+        webhook_secret.encode(), message.encode(), hashlib.sha256
+    ).hexdigest()
+
+    return hmac.compare_digest(expected, signature)
+```
+
+---
+
+## 16. Idempotency
+
+`POST /v1/transactions` supports the `Idempotency-Key` request header. Supplying the same key within 24 hours returns the original response without creating a duplicate transaction.
+
+```http
+POST /v1/transactions
+Authorization: Bearer <token>
+Idempotency-Key: 550e8400-e29b-41d4-a716-446655440000
+Content-Type: application/json
+
+{ ... }
+```
+
+**Best practices:**
+- Use UUID v4 as idempotency keys
+- Generate the key **before** the first attempt and store it alongside your order/payment record
+- Re-use the same key on all retries of the same logical payment
+- Do not re-use keys across different payments
+
+---
+
+## 17. Rate Limiting
+
+| Endpoint | Limit | Key |
+|---|---|---|
+| `POST /v1/auth/token` | 10 requests / min | Per IP |
+| `POST /v1/transactions` | 60 requests / min | Per application |
+| All other endpoints | 300 requests / min | Per IP |
+
+When the limit is exceeded, IDaaS returns:
+
+```http
+HTTP/1.1 429 Too Many Requests
+Content-Type: application/json
+Retry-After: 42
+X-RateLimit-Remaining: 0
+
+{
+  "success": false,
+  "message": "Rate limit exceeded. Retry after 42 seconds.",
+  "data": null
+}
+```
+
+> **`Retry-After`** — number of seconds until the bucket refills. Read this value and wait at least that long before retrying.  
+> **`X-RateLimit-Remaining`** — tokens remaining in the current window; `0` when you are throttled.
+
+**Handling 429 in your integration:**
+
+```
+On 429:
+  1. Read the Retry-After response header (seconds to wait)
+  2. If Retry-After is absent, use exponential back-off:
+     wait = min(2^attempt * 1000ms, 60000ms) + random(0, 1000ms)
+  3. Retry with the same Idempotency-Key (for POST /v1/transactions)
+```
+
+---
+
+## 18. Cross-App Tag Claims and Consent
+
+If your application needs to associate one of your users with a tag they own on **another application** (e.g. `bob` on ShopApp), you can request a claim through the consent flow.
+
+### 18.1 Request a Claim
+
+```http
+POST /v1/tags/bob/claims
+Authorization: Bearer <App A token>
+Content-Type: application/json
+
+{
+  "subjectId": "your-app-subject-uuid"
+}
+```
+
+IDaaS sends a time-limited consent notification to the tag owner. The consent token URL is:
+
+```
+GET /v1/consent/{consentToken}
+```
+
+This is the URL you can present to the tag owner (e.g. via email or in-app notification) so they can approve or deny the claim.
+
+### 18.2 Consent Approval Flow
+
+```
+App A requests claim on tag "bob"
+         │
+         ▼
+IDaaS generates consentToken
+IDaaS notifies "bob" (via email if configured)
+         │
+         ▼
+Bob visits:  GET /v1/consent/{consentToken}
+         │   (public endpoint – no auth)
+         │
+         ├── POST /v1/consent/{consentToken}/approve
+         │       └── Returns attestation JWT for App A
+         │
+         └── POST /v1/consent/{consentToken}/deny
+                 └── Claim marked DENIED
+```
+
+### 18.3 After Approval
+
+On approval, IDaaS returns an attestation JWT:
+
+```json
+{
+  "token": "eyJ...",
+  "expiresAt": 1741254000,
+  "tag": "bob",
+  "subjectId": "...",
+  "consentId": "..."
+}
+```
+
+Store this token — it proves your application has an approved link to that tag. You can verify it with the IDaaS public key.
+
+---
+
+## 19. Namespaced Tags — Onboarding Existing Tag Systems
+
+### The problem
+
+Many applications that integrate IDaaS already run their own tag / username system. When they onboard their users onto IDaaS, tag collisions are inevitable: *WalletApp* may already have a user `alice`, and so does *ShopApp* — completely different people.
+
+A single global `UNIQUE(tag_string)` constraint would block one application from onboarding. IDaaS solves this with **qualified addressing**.
+
+### How it works
+
+Every application registers with a short, unique **`appHandle`** slug (e.g. `walletapp`). Every tag automatically derives a **qualified address** `localTag@appHandle`:
+
+| App | Local tag | Qualified address |
+|---|---|---|
+| WalletApp (`appHandle = walletapp`) | `alice` | `alice@walletapp` |
+| ShopApp (`appHandle = shopapp`) | `alice` | `alice@shopapp` |
+
+These are **different identities** sharing a local name — IDaaS tracks them separately with no constraint conflict.
+
+### What stays the same for the host app
+
+Your application continues to use its own tag system internally. IDaaS only requires that you **onboard the tags you want to be discoverable cross-platform**:
+
+1. Register on IDaaS with your `appHandle`
+2. Create a Subject for each user: `POST /v1/subjects`
+3. Create a Tag for each user you want discoverable: `POST /v1/tags` with `{"tag": "alice", "subjectId": "..."}`
+4. IDaaS records `alice@walletapp` as the globally unique qualified address
+5. Other applications discover your users via `GET /v1/tags/alice@walletapp`
+6. Payments are routed to `alice@walletapp` — your internal tag system is unaffected
+
+Tags that are **not onboarded** are simply not discoverable via IDaaS. This is intentional — you control which users participate in the cross-platform network.
+
+### Address resolution behaviour
+
+| What you send | Behaviour |
+|---|---|
+| `alice@walletapp` | Looks up by qualified address — fast, unambiguous, **always recommended** |
+| `alice` | Looks up by bare local name — succeeds only if exactly one application has a tag named `alice`; returns **409 Conflict** with the list of available qualified addresses if more than one app does |
+
+### Example: sending a payment to a user on another app
+
+```http
+POST /v1/transactions
+Authorization: Bearer <WalletApp token>
+Content-Type: application/json
+
+{
+  "senderTag": "alice@walletapp",
+  "receiverTag": "bob@shopapp",
+  "amount": 500.00,
+  "currency": "NGN"
+}
+```
+
+```http
+POST /v1/transactions
+Authorization: Bearer <WalletApp token>
+Content-Type: application/json
+
+{
+  "senderTag": "alice",
+  "receiverTag": "bob",
+  "amount": 500.00,
+  "currency": "NGN"
+}
+```
+
+The second form works only when `alice` is unique on the platform and `bob` is unique on the platform. If either is ambiguous, IDaaS returns **409** and lists the qualified addresses to use.
+
+### `appHandle` rules
+
+| Rule | Detail |
+|---|---|
+| Length | 3–30 characters |
+| Characters | Lowercase letters, digits, hyphens — no spaces or special characters |
+| Position | Must not start or end with a hyphen |
+| Uniqueness | Must be globally unique across all applications |
+| Immutability | **Cannot be changed after registration.** Changing it would break all published qualified addresses. |
+
+---
+
+## 20. Tag Federation
+
+Federation links a tag to an identity on an external identity provider (e.g. "alice on WalletApp is the same person as alice@github.com"). This is for advanced cross-platform identity scenarios.
+
+```http
+POST /v1/tags/alice/federation
+Authorization: Bearer <token>
+Content-Type: application/json
+
+{
+  "provider": "github",
+  "externalIdentifier": "alice-github-username"
+}
+```
+
+IDaaS issues a challenge; your application must verify ownership on the external provider, then call:
+
+```http
+POST /v1/federation/verify/{challenge}
+Authorization: Bearer <token>
+```
+
+---
+
+## 21. Error Handling
+
+All IDaaS responses use a consistent `ApiResponse<T>` envelope:
+
+```json
+{
+  "success": false,
+  "message": "Validation failed",
+  "errorCode": "IDAAS-VALID-2001",
+  "errors": ["amount must be greater than 0", "currency is required"],
+  "timestamp": "2026-03-27T11:45:12.772Z"
+}
+```
+
+`errorCode` is the stable machine-readable identifier (for example `IDAAS-AUTH-1002`).
+Client applications should branch handling logic by `errorCode`, not by free-text `message`.
+
+### Complete error code catalog
+
+All IDaaS errors are returned with a stable error code in the `errorCode` field. Client applications should parse and branch on this code rather than free-text messages, enabling reliable structured error handling.
+
+#### Authentication & Authorization (1000–1999)
+
+| Code | HTTP | Message | Cause | Resolution |
+|------|------|---------|-------|------------|
+| `IDAAS-AUTH-1001` | 401 | Authentication required | Missing/invalid `Authorization` header | Provide Bearer token: `Authorization: Bearer <token>` |
+| `IDAAS-AUTH-1002` | 401 | Invalid JWT | Token is malformed, expired, or has invalid signature | Re-authenticate via `POST /v1/auth/token` |
+| `IDAAS-AUTH-1003` | 401 | Token has been revoked | Application was deactivated after token issuance | Re-authenticate with active application credentials |
+| `IDAAS-AUTH-1004` | 401 | Authentication failed | Client ID/secret mismatch, malformed Basic auth | Verify credentials and application is active |
+| `IDAAS-AUTH-1005` | 401 | Application not found | Application in JWT subject does not exist | Verify application ID and registration status |
+| `IDAAS-AUTH-1006` | 403 | Access denied | Authenticated but unauthorized for this operation | Use correct role/credentials for operation |
+| `IDAAS-AUTH-1007` | 403 | Transaction is not addressed to the calling application | Receiver attempting to act on sender's transaction | Use credentials of the receiving application |
+| `IDAAS-AUTH-1008` | 403 | Identity link is not associated with the calling application | Application does not own this resource | Use credentials of the owning application |
+
+#### Validation Errors (2000–2999)
+
+| Code | HTTP | Message | Cause | Resolution |
+|------|------|---------|-------|------------|
+| `IDAAS-VALID-2001` | 400 | Validation failed | Field-level validation errors (required fields, format, length, etc.) | Fix request payload per `errors` list and retry |
+| `IDAAS-VALID-2002` | 400 | keyword is required | Search endpoint called without `keyword` query param | Provide non-empty `keyword` parameter |
+| `IDAAS-VALID-2003` | 400 | keyword must be at least 2 characters | Search keyword is too short | Use `keyword` with ≥ 2 characters |
+| `IDAAS-VALID-2004` | 415 | Unsupported media type | `Content-Type` not `application/json`, or JWE payload misformatted | Send JSON with `Content-Type: application/json`; for JWE set `Content-Encryption: JWE` |
+| `IDAAS-VALID-2005` | 400 | Decryption failed | JWE payload could not be decrypted or is malformed | Verify encryption key and payload format |
+
+#### Resource Not Found (3000–3999)
+
+| Code | HTTP | Message | Cause | Resolution |
+|------|------|---------|-------|------------|
+| `IDAAS-RES-3001` | 404 | Application not found | Application UUID does not exist | Verify application UUID; register if needed |
+| `IDAAS-RES-3002` | 404 | Subject not found | Subject UUID does not exist in calling application | Verify subject ID; create via `POST /v1/subjects` if needed |
+| `IDAAS-RES-3003` | 404 | Subject not found with external ID | Subject with given external ID does not exist | Verify external ID; create subject if needed |
+| `IDAAS-RES-3004` | 404 | Tag not found | Tag (qualified address or bare name) cannot be resolved | Verify tag exists; use qualified address `tag@appHandle` if bare name is ambiguous |
+| `IDAAS-RES-3005` | 404 | Claim not found | Claim UUID does not exist | Verify claim ID |
+| `IDAAS-RES-3006` | 404 | Claim not found with consent token | Consent token is invalid or expired | Request a new claim to get fresh consent token |
+| `IDAAS-RES-3007` | 404 | IdentityLink not found | Identity link UUID does not exist or was revoked | Verify identity link ID |
+| `IDAAS-RES-3008` | 404 | IdentityLink not found with challenge token | Challenge token is invalid, expired, or already used | Request new federated identity challenge |
+| `IDAAS-RES-3009` | 404 | FederatedIdentity not found | No federated identity exists for this tag | Create federated identity via `POST /v1/identities/federate` |
+| `IDAAS-RES-3010` | 404 | Transaction not found | Transaction reference does not exist | Verify transaction reference |
+| `IDAAS-RES-3011` | 404 | ApplicationWallet not found | Application wallet not auto-provisioned (rare) | Contact support; wallet should auto-create on first transaction |
+| `IDAAS-RES-3012` | 404 | Resource not found | Invalid endpoint path | Verify endpoint path matches API documentation |
+
+#### Resource Conflicts (4000–4999)
+
+| Code | HTTP | Message | Cause | Resolution |
+|------|------|---------|-------|------------|
+| `IDAAS-CONF-4001` | 409 | Tag already exists | Tag with this qualified address already exists globally | Use different tag name in your application |
+| `IDAAS-CONF-4002` | 409 | Your application already has a tag with this name | Tag string already exists in your application | Use different tag name or reuse existing |
+| `IDAAS-CONF-4003` | 409 | Subject already exists with this external ID | Subject with this external ID already exists in app | Use unique external ID or fetch existing subject |
+| `IDAAS-CONF-4004` | 409 | Subject already has an active claim on this tag | Subject is already linked to tag via active claim | Revoke existing claim if you need to re-link |
+| `IDAAS-CONF-4005` | 409 | A pending claim for this subject/tag already exists | Pending consent request for this subject/tag in progress | Wait for pending claim to be approved/denied or revoke it |
+
+#### Invalid State / Business Logic (5000–5999)
+
+| Code | HTTP | Message | Cause | Resolution |
+|------|------|---------|-------|------------|
+| `IDAAS-STATE-5001` | 422 | Cannot claim a disabled tag | Attempting to claim a tag with `status = DISABLED` | Enable tag via `PATCH /v1/tags/{tag}/enable` or use active tag |
+| `IDAAS-STATE-5002` | 422 | Subject does not belong to the calling application | Subject is owned by a different application | Use a subject owned by your application |
+| `IDAAS-STATE-5003` | 422 | Consent token has expired | Consent token is past expiration (default: 48 hours) | Request new claim for fresh consent token |
+| `IDAAS-STATE-5004` | 422 | Challenge is no longer valid | Identity link challenge in terminal state (USED, DENIED, EXPIRED) | Request new federated identity challenge |
+| `IDAAS-STATE-5005` | 422 | Only ACTIVE or PENDING claims can be revoked | Attempting to revoke claim in REVOKED or DENIED state | Only active/pending claims can be revoked |
+| `IDAAS-STATE-5006` | 422 | New owner must have an active claim on this tag before transfer | Tag transfer target does not have active claim | Ensure new owner has approved claim before transferring |
+| `IDAAS-STATE-5007` | 409 | Transaction is not in AWAITING_ACCEPTANCE state | Attempting to accept/reject transaction not pending | Check transaction status; only AWAITING_ACCEPTANCE can be acted on |
+| `IDAAS-STATE-5008` | 422 | Transaction has expired | Attempting to accept transaction past expiration time | Transaction cannot be acted on; check with receiver if needed |
+
+#### Rate Limiting (6000–6999)
+
+| Code | HTTP | Message | Cause | Resolution |
+|------|------|---------|-------|------------|
+| `IDAAS-RATE-6001` | 429 | Rate limit exceeded. Retry after [N] seconds. | Too many requests for this endpoint/IP/app | Use `Retry-After` header for exponential backoff; default limits: 10 req/min on `/v1/auth/token`, 60 req/min on `/v1/transactions`, 300 req/min on others |
+
+#### System / Internal Errors (9000–9999)
+
+| Code | HTTP | Message | Cause | Resolution |
+|------|------|---------|-------|------------|
+| `IDAAS-SYS-9001` | 500 | An unexpected error occurred | Unhandled exception in application logic | Retry with exponential backoff; contact support if persistent |
+| `IDAAS-SYS-9002` | 400 | JWE decryption error | JWE payload is malformed or uses wrong encryption parameters | Verify encryption key and payload format |
+
+#### Error Code Categories
+
+| Category | Code Range | Description |
+|----------|-----------|---|
+| **AUTH** | 1000–1999 | Authentication & Authorization failures |
+| **VALID** | 2000–2999 | Request validation & bad input |
+| **RES** | 3000–3999 | Resource not found / lookup failures |
+| **CONF** | 4000–4999 | Resource conflicts & duplicates |
+| **STATE** | 5000–5999 | Invalid state transitions & business logic |
+| **RATE** | 6000–6999 | Rate limiting & throttling |
+| **SYS** | 9000–9999 | System/Internal errors |
+
+**Total: 41 documented error codes** – all error responses include `errorCode` and `message`.
+
+### HTTP status codes
+
+| Code | Meaning | Action |
+|---|---|---|
+| `200` / `201` | Success | Process normally |
+| `400` | Validation error | Fix request body; check `message` for field details |
+| `401` | Missing or invalid token | Re-authenticate with `POST /v1/auth/token` |
+| `403` | Forbidden — wrong application | Verify you're using the correct token for this operation |
+| `404` | Resource not found | Check the reference/ID |
+| `409` | Conflict — duplicate or invalid state | e.g. tag already exists, transaction already completed |
+| `429` | Rate limit exceeded | Back off and retry with exponential delay |
+| `500` | Server error | Retry with back-off; contact IDaaS support if persistent |
+
+### Validation error example
+
+```json
+{
+  "success": false,
+  "message": "Validation failed",
+  "errorCode": "IDAAS-VALID-2001",
+  "errors": [
+    "amount must be greater than zero",
+    "senderTag is required"
+  ],
+  "timestamp": "2026-03-27T11:45:12.772Z"
+}
+```
+
+---
+
+## 22. API Reference Summary
+
+> Base path for all endpoints: `/api/v1`  
+> All protected endpoints require: `Authorization: Bearer <token>`
+
+### Applications & Authentication
+
+| Method | Path | Auth | Description |
+|---|---|---|---|
+| `POST` | `/v1/applications` | Public | Register application — `appHandle` required; secrets returned **once** |
+| `GET` | `/v1/applications` | Bearer | List all applications |
+| `GET` | `/v1/applications/{id}` | Bearer | Get application by UUID (includes `appHandle`) |
+| `PATCH` | `/v1/applications/{id}/deactivate` | Bearer | Deactivate application + blacklist tokens |
+| `POST` | `/v1/auth/token` | Public | Exchange credentials for JWT (rate: 10/min/IP) |
+| `POST` | `/v1/applications/keys/rotate` | Bearer | Rotate EC keypair — new private key returned **once** |
+| `POST` | `/v1/applications/webhook-secret/rotate` | Bearer | Rotate webhook signing secret — new secret returned **once** |
+
+### Encryption Key Management
+
+| Method | Path | Auth | Description |
+|---|---|---|---|
+| `GET` | `/v1/keys/idaas` | Public | IDaaS public key (JWK + Base64 DER) |
+
+### Subjects
+
+| Method | Path | Auth | Description |
+|---|---|---|---|
+| `POST` | `/v1/subjects` | Bearer | Create a subject (user) |
+| `GET` | `/v1/subjects` | Bearer | List all subjects for calling app |
+| `GET` | `/v1/subjects/{id}` | Bearer | Get subject by UUID |
+| `GET` | `/v1/subjects/{id}/tags` | Bearer | List tags owned by a subject |
+
+### Tags
+
+| Method | Path | Auth | Description |
+|---|---|---|---|
+| `POST` | `/v1/tags` | Bearer | Create a tag (qualified address `localTag@appHandle` derived automatically) |
+| `GET` | `/v1/tags` | Bearer | List tags for calling app |
+| `GET` | `/v1/tags/{tag}` | **Public** | Resolve tag by bare name or qualified address `tag@appHandle` (cached 30 s; 409 if bare name is ambiguous) |
+| `PATCH` | `/v1/tags/{tag}/disable` | Bearer | Disable a tag |
+| `POST` | `/v1/tags/{tag}/transfer` | Bearer | Transfer tag ownership |
+| `POST` | `/v1/tags/{tag}/claims` | Bearer | Request a cross-app claim |
+| `GET` | `/v1/tags/{tag}/claims` | Bearer | List claims on a tag |
+| `POST` | `/v1/tags/{tag}/federation` | Bearer | Initiate federation |
+| `GET` | `/v1/tags/{tag}/federation` | Bearer | Get federation info |
+
+### Transactions
+
+| Method | Path | Auth | Description |
+|---|---|---|---|
+| `POST` | `/v1/transactions` | Bearer | Initiate payment; `senderTag`/`receiverTag` accept bare name or qualified address (rate: 60/min/app) |
+| `GET` | `/v1/transactions/{reference}` | Bearer | Get transaction + webhook delivery status |
+| `GET` | `/v1/transactions/sent` | Bearer | Paginated sent transactions |
+| `GET` | `/v1/transactions/received` | Bearer | Paginated received transactions |
+| `GET` | `/v1/transactions/pending` | Bearer | Paginated acceptance queue |
+| `POST` | `/v1/transactions/{reference}/accept` | Bearer | Accept (receiver app only) |
+| `POST` | `/v1/transactions/{reference}/reject` | Bearer | Reject (receiver app only) |
+
+### Wallet & Ledger
+
+| Method | Path | Auth | Description |
+|---|---|---|---|
+| `POST` | `/v1/wallet` | Bearer | Provision wallet (idempotent) |
+| `GET` | `/v1/wallet` | Bearer | Get wallet balance |
+| `GET` | `/v1/wallet/statement` | Bearer | Paginated ledger statement |
+
+### Settlement
+
+| Method | Path | Auth | Description |
+|---|---|---|---|
+| `GET` | `/v1/settlement` | Bearer | List settlement batches (paginated) |
+| `GET` | `/v1/settlement/{id}` | Bearer | Get batch by UUID |
+| `GET` | `/v1/settlement/date/{date}` | Bearer | Get batch by date (YYYY-MM-DD) |
+| `POST` | `/v1/settlement/run` | Bearer | Manually trigger settlement |
+
+### Webhooks
+
+| Method | Path | Auth | Description |
+|---|---|---|---|
+| `GET` | `/v1/transactions/{reference}/webhooks` | Bearer | All webhook records for a transaction |
+| `GET` | `/v1/transactions/{reference}/webhooks/receiver` | Bearer | RECEIVER webhook record |
+| `GET` | `/v1/transactions/{reference}/webhooks/sender` | Bearer | SENDER webhook record |
+| `GET` | `/v1/webhooks/{id}` | Bearer | Single webhook record by UUID |
+| `GET` | `/v1/webhooks/failed` | Bearer | All FAILED webhooks for calling app |
+
+### Consent (Public)
+
+| Method | Path | Auth | Description |
+|---|---|---|---|
+| `GET` | `/v1/consent/{token}` | Public | View consent request details |
+| `POST` | `/v1/consent/{token}/approve` | Public | Approve claim |
+| `POST` | `/v1/consent/{token}/deny` | Public | Deny claim |
+
+### Claims
+
+| Method | Path | Auth | Description |
+|---|---|---|---|
+| `POST` | `/v1/claims/{id}/revoke` | Bearer | Revoke an active claim |
+
+### Federation
+
+| Method | Path | Auth | Description |
+|---|---|---|---|
+| `POST` | `/v1/federation/verify/{challenge}` | Bearer | Verify federation challenge |
+
+### Actuator
+
+| Path | Auth | Description |
+|---|---|---|
+| `/actuator/health` | Public | Health check (DB + Redis) |
+| `/actuator/info` | Public | App info |
+
+---
+
+## 23. Integration Flows — Sequence Diagrams
+
+### Flow A: Two-App Payment (Happy Path)
+
+```
+App A (sender)           IDaaS                    App B (receiver)
+──────────────           ─────                    ────────────────
+
+─── Onboarding ──────────────────────────────────────────────────
+
+POST /v1/applications ──► Register App A (appHandle="walletapp")
+                    ◄──  clientId, clientSecret, webhookSecret, keys
+
+POST /v1/auth/token ──►  Issue JWT
+                    ◄──  Bearer token (1 h)
+
+POST /v1/subjects ────►  Create subject (Alice)
+POST /v1/tags ────────►  Create tag "alice" → qualified: alice@walletapp
+POST /v1/wallet ──────►  Provision wallet (idempotent)
+
+                                           POST /v1/applications ──► Register App B (appHandle="shopapp")
+                                                               ◄──  credentials, keys
+                                           POST /v1/auth/token ──►  Issue JWT
+                                           POST /v1/subjects ────►  Create subject (Bob)
+                                           POST /v1/tags ────────►  Create tag "bob" → qualified: bob@shopapp
+                                           POST /v1/wallet ──────►  Provision wallet
+
+─── Payment ─────────────────────────────────────────────────────
+
+POST /v1/transactions ──► Validate alice@walletapp ∈ App A ✓
+(senderTag=alice@walletapp, Validate bob@shopapp exists ✓
+ receiverTag=bob@shopapp,   Create txn (AWAITING_ACCEPTANCE)
+ amount=500)                Persist RECEIVER webhook row
+                    ◄──   TXN-xxx (AWAITING_ACCEPTANCE)
+                           │
+                           │ Kafka async
+                           ▼
+                    POST /idaas/webhook ───────────────────────►
+                    {event: TRANSACTION_INITIATED,               200 OK
+                     X-IDaaS-Signature: v0=...,            ◄────
+                     transaction: {ref, senderTag: alice@walletapp,
+                                   receiverTag: bob@shopapp, amount, ...}}
+                                                           Verify signature ✓
+                                                           Check business logic ✓
+                                                           POST /v1/transactions/TXN-xxx/accept
+                                                    ◄────  (App B's Bearer token)
+                           Debit App A wallet
+                           Credit App B wallet
+                           Write 2 LedgerEntry rows
+                           txn.status = COMPLETED
+                           Persist SENDER webhook row
+                    ◄──────────────────────────────────────────  COMPLETED
+                           │
+                           │ Kafka async
+                           ▼
+                    POST App A callbackUrl ──────────────────►
+                    {event: TRANSACTION_COMPLETED,              200 OK
+                     X-IDaaS-Signature: v0=...}           ◄────
+App A: update your
+internal order status ✓
+```
+
+### Flow B: Transaction Rejected
+
+```
+App A sends TXN-yyy (amount=200)
+         │
+         ▼ IDaaS webhooks App B: TRANSACTION_INITIATED
+                   │
+                   ▼ App B reviews and decides to reject
+         POST /v1/transactions/TXN-yyy/reject
+         { "reason": "Service not available" }
+                   │
+                   ▼ IDaaS: txn.status = REJECTED
+                     No wallet movement
+                     Notify App A: TRANSACTION_REJECTED
+                   │
+                   ▼ App A callbackUrl
+         { "event": "TRANSACTION_REJECTED",
+           "transaction": { "reference": "TXN-yyy", ... } }
+```
+
+### Flow C: Transaction Expired
+
+```
+App A sends TXN-zzz
+         │
+         ▼ IDaaS webhooks App B: TRANSACTION_INITIATED
+         App B does not respond within 24 hours
+                   │
+                   ▼ IDaaS scheduled job (every 5 min)
+                     Finds AWAITING_ACCEPTANCE txns past expiresAt
+                     Sets txn.status = EXPIRED
+                     No wallet movement
+                     Notify App A: TRANSACTION_EXPIRED
+                   │
+                   ▼ App A callbackUrl
+         { "event": "TRANSACTION_EXPIRED",
+           "transaction": { "reference": "TXN-zzz", ... } }
+```
+
+### Flow D: Encrypted Payment
+
+```
+App A (encryptionEnabled=true)         IDaaS
+──────────────────────────────         ─────
+
+GET /v1/keys/idaas ────────────────►
+                   ◄────────────────  IDaaS public key JWK
+
+Serialize request body to JSON
+Encrypt with IDaaS public key (JWE)
+POST /v1/transactions ─────────────►
+  Headers:
+    Content-Encryption: JWE
+    Authorization: Bearer <token>
+  Body: eyJ...JWE compact string...
+                                      JweRequestDecryptionFilter:
+                                        detects Content-Encryption: JWE
+                                        decrypts with IDaaS private key
+                                        passes plain JSON to controller
+                   ◄────────────────  TXN reference (AWAITING_ACCEPTANCE)
+                   │
+                   │ Kafka async
+                   ▼
+                   JWE-encrypt payload with App B's EC public key
+                   POST App B webhookUrl:
+                     Content-Encryption: JWE
+                     X-IDaaS-Signature: v0=...
+                     Body: eyJ...JWE compact string...
+
+                   App B:
+                     Verify signature ✓
+                     Detect Content-Encryption: JWE
+                     Decrypt with own private key
+                     Process plain JSON payload
+```
+
+---

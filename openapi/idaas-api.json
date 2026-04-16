@@ -1,0 +1,3983 @@
+{
+  "openapi": "3.0.1",
+  "info": {
+    "title": "IDaaS – Identity as a Service API",
+    "description": "## Overview\nIDaaS provides globally unique, portable identity **tags** that travel with users across applications.  Each tag is a short handle (e.g. `@alice`) that can carry verified claims, participate in cross-application payments, and be federated to external identity providers.\n\n## Key Capabilities\n- **Tags** – create, transfer, disable, and attach claims to identity handles.\n- **Cross-application payments** – send money from any tag on Application A   to any tag on Application B; each application has a single escrow wallet   tracked for end-of-day settlement.\n- **Webhooks** – real-time callbacks with HMAC-SHA256 signatures and   automatic retry (up to 3 attempts with exponential back-off).\n- **Settlement** – a scheduled end-of-day job aggregates daily wallet   movements and emits `SETTLEMENT_BATCH` Kafka events.\n\n## Authentication\n1. Register an application: `POST /v1/applications`\n2. Exchange credentials for a JWT: `POST /v1/auth/token`\n3. Include the JWT as `Authorization: Bearer <token>` on all protected calls.\n\n## Rate Limits\n| Endpoint | Limit |\n|---|---|\n| `POST /v1/auth/token` | 10 req / min per IP |\n| `POST /v1/transactions` | 60 req / min per application |\n| All other | 300 req / min per IP |\n",
+    "contact": {
+      "name": "ReflexPay Platform Team",
+      "url": "https://yourflexpay.com",
+      "email": "integration@yourflexpay.com"
+    },
+    "license": {
+      "name": "Proprietary",
+      "url": "https://yourflexpay.com/terms"
+    },
+    "version": "1.0.0"
+  },
+  "externalDocs": {
+    "description": "IDaaS GitHub Repository",
+    "url": "https://github.com/flex/idaas"
+  },
+  "servers": [
+    {
+      "url": "https://idaas.yourflexpay.com/api/v1",
+      "description": "Production"
+    },
+    {
+      "url": "https://staging-idaas.yourflexpay.com/api/v1",
+      "description": "Staging"
+    }
+  ],
+  "security": [
+    {
+      "bearerAuth": []
+    }
+  ],
+  "tags": [
+    {
+      "name": "Authentication",
+      "description": "Exchange client credentials for a JWT access token."
+    },
+    {
+      "name": "Applications",
+      "description": "Register and manage API client applications (tenants)"
+    },
+    {
+      "name": "Claims",
+      "description": "Attach and revoke verifiable claims on tags."
+    },
+    {
+      "name": "Encryption",
+      "description": "JWE payload encryption – end-to-end security for API request bodies and webhook payloads.\nEach application receives an EC P-256 keypair at registration:\n- IDaaS encrypts **outbound webhooks** with the application's public key.\n- Applications encrypt **inbound request bodies** with the IDaaS public key.\nAlgorithm: ECDH-ES+A256KW + A256GCM (JSON Web Encryption, RFC 7516).\nUse `GET /v1/keys/idaas` to fetch the IDaaS public key.\nUse `POST /v1/applications/keys/rotate` to rotate your application keypair.\n"
+    },
+    {
+      "name": "Settlement",
+      "description": "Query end-of-day settlement batches and per-application net positions."
+    },
+    {
+      "name": "Subjects",
+      "description": "Manage the real-world entities (users / organisations) behind tags."
+    },
+    {
+      "name": "Webhooks",
+      "description": "Inspect outbound webhook delivery records for transactions. Each transaction has at most two webhook records: one RECEIVER (sent on initiation) and one SENDER (sent on acceptance/rejection/expiry)."
+    },
+    {
+      "name": "Admin",
+      "description": "Privileged cross-entity administration endpoints for operators."
+    },
+    {
+      "name": "Webhooks",
+      "description": "Inspect outbound webhook delivery records (RECEIVER and SENDER) for transactions."
+    },
+    {
+      "name": "Wallet",
+      "description": "View application escrow wallet balance and paginated ledger statement."
+    },
+    {
+      "name": "Wallet",
+      "description": "View application escrow wallet balance and paginated ledger statement (DEBIT / CREDIT entries)."
+    },
+    {
+      "name": "Encryption",
+      "description": "Public key distribution and keypair management for JWE payload encryption."
+    },
+    {
+      "name": "Consent",
+      "description": "Issue and manage user consent tokens for claim federation."
+    },
+    {
+      "name": "Transactions",
+      "description": "Initiate, accept/reject, and query cross-application tag-to-tag payments."
+    },
+    {
+      "name": "Applications",
+      "description": "Register and manage API client applications (tenants)."
+    },
+    {
+      "name": "Admin",
+      "description": "Administrative APIs for cross-entity management"
+    },
+    {
+      "name": "Tags",
+      "description": "Create, transfer, disable and resolve globally unique identity tags."
+    }
+  ],
+  "paths": {
+    "/v1/wallet": {
+      "get": {
+        "tags": [
+          "Wallet"
+        ],
+        "summary": "Get the calling application's wallet",
+        "description": "Returns the current escrow wallet for the authenticated application including:\n- `balance` – net position (credits − debits for all completed transactions)\n- `totalDebited` – running sum of all outgoing accepted payments\n- `totalCredited` – running sum of all incoming accepted payments\n\nThe wallet is auto-provisioned on the first transaction so calling this endpoint\nbefore any transaction is initiated will return a 404 until the wallet exists.\nCall `POST /v1/wallet` to provision it eagerly.\n",
+        "operationId": "getWallet",
+        "responses": {
+          "200": {
+            "description": "Wallet returned",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseApplicationWalletResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Wallet not yet provisioned for this application",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseApplicationWalletResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Wallet"
+        ],
+        "summary": "Provision the calling application's wallet",
+        "description": "Idempotent – safe to call on every application start-up. Creates the wallet if it does not exist and returns the current state.",
+        "operationId": "provisionWallet",
+        "responses": {
+          "200": {
+            "description": "Wallet provisioned or already exists",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseApplicationWalletResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/transactions": {
+      "post": {
+        "tags": [
+          "Transactions"
+        ],
+        "summary": "Initiate a tag-to-tag payment",
+        "description": "Creates a new cross-application payment from a tag owned by the calling application\nto any tag on any application.  The transaction starts in `AWAITING_ACCEPTANCE` state.\n\nThe receiving application is notified via webhook and must call\n`POST /v1/transactions/{reference}/accept` or `.../reject`.\n\n**Idempotency**: Supply a unique `Idempotency-Key` header; duplicate calls within\n24 hours return the original response without creating a new transaction.\n\n**Rate limited to 60 requests per minute per application.**\n",
+        "operationId": "initiate",
+        "parameters": [
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "description": "Optional idempotency key (UUID or any unique string, max 128 chars). Duplicate calls with the same key within 24 hours return the original response.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/InitiateTransactionRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Transaction initiated successfully",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseTransactionResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation error (invalid tags, zero amount, etc.)",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid bearer token",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseTransactionResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Sender tag does not belong to the calling application",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseTransactionResponse"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limit exceeded",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseTransactionResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/transactions/{reference}/reject": {
+      "post": {
+        "tags": [
+          "Transactions"
+        ],
+        "summary": "Reject a pending transaction",
+        "description": "The **receiving application** calls this to reject an `AWAITING_ACCEPTANCE` transaction.\n\nNo ledger movement occurs on rejection – nothing was debited at initiation.\nTransaction status moves to `REJECTED`.\nSender is notified via webhook callback URL with the rejection reason.\n",
+        "operationId": "reject",
+        "parameters": [
+          {
+            "name": "reference",
+            "in": "path",
+            "description": "Transaction reference",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RejectTransactionRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Transaction rejected",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseTransactionResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Calling application is not the receiver",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseTransactionResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Transaction not found",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseTransactionResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Transaction is not in AWAITING_ACCEPTANCE state",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseTransactionResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/transactions/{reference}/accept": {
+      "post": {
+        "tags": [
+          "Transactions"
+        ],
+        "summary": "Accept a pending transaction",
+        "description": "The **receiving application** calls this to accept an `AWAITING_ACCEPTANCE` transaction.\n\nOn acceptance:\n- Sender application's escrow wallet is **debited**.\n- Receiver application's escrow wallet is **credited**.\n- Two immutable `LedgerEntry` rows are written (DEBIT + CREDIT).\n- Transaction status moves to `COMPLETED`.\n- Sender is notified via webhook callback URL.\n",
+        "operationId": "accept",
+        "parameters": [
+          {
+            "name": "reference",
+            "in": "path",
+            "description": "Transaction reference",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Transaction accepted and completed",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseTransactionResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Calling application is not the receiver",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseTransactionResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Transaction not found",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseTransactionResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Transaction is not in AWAITING_ACCEPTANCE state or has expired",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseTransactionResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/tags": {
+      "get": {
+        "tags": [
+          "Tags"
+        ],
+        "operationId": "listTags",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseListTagResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Tags"
+        ],
+        "operationId": "createTag",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateTagRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseTagResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/tags/{tag}/transfer": {
+      "post": {
+        "tags": [
+          "Tags"
+        ],
+        "operationId": "transfer",
+        "parameters": [
+          {
+            "name": "tag",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TransferTagRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseTagResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/tags/{tag}/federation": {
+      "get": {
+        "tags": [
+          "Tags"
+        ],
+        "operationId": "getFederation",
+        "parameters": [
+          {
+            "name": "tag",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseFederatedIdentityResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Tags"
+        ],
+        "operationId": "initiateFederation",
+        "parameters": [
+          {
+            "name": "tag",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/InitiateFederationRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseFederatedIdentityResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/tags/{tag}/claims": {
+      "get": {
+        "tags": [
+          "Tags"
+        ],
+        "operationId": "getClaimsForTag",
+        "parameters": [
+          {
+            "name": "tag",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseListClaimResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Tags"
+        ],
+        "operationId": "requestClaim",
+        "parameters": [
+          {
+            "name": "tag",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateClaimRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseClaimResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/subjects": {
+      "get": {
+        "tags": [
+          "Subjects"
+        ],
+        "operationId": "listAll",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseListSubjectResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Subjects"
+        ],
+        "operationId": "create",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateSubjectRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseSubjectResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/settlement/run": {
+      "post": {
+        "tags": [
+          "Settlement"
+        ],
+        "summary": "Manually trigger a settlement run",
+        "description": "Runs the end-of-day settlement for a specified date on demand.\nThis is idempotent – if the date has already been successfully settled,\nthe existing record is returned without reprocessing.\n\n**Use cases**:\n- Re-running a failed batch (e.g. after a database outage).\n- Settling a back-date after delayed transaction processing.\n- Smoke-testing the settlement pipeline in staging.\n\nThe scheduled job automatically covers yesterday at 23:59 UTC;\nthis endpoint is for operational override only.\n",
+        "operationId": "triggerSettlement",
+        "parameters": [
+          {
+            "name": "date",
+            "in": "query",
+            "description": "Date to settle (ISO-8601 format, e.g. 2025-03-03). Defaults to yesterday UTC if omitted.",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "date"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Settlement run completed (or already completed for this date)",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseSettlementRecordResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid date format",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseSettlementRecordResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Settlement run failed – error details in response",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseSettlementRecordResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/federation/verify/{challengeToken}": {
+      "post": {
+        "tags": [
+          "Claims"
+        ],
+        "operationId": "verifyFederationLink",
+        "parameters": [
+          {
+            "name": "challengeToken",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseFederatedIdentityResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/consent/{consentToken}/deny": {
+      "post": {
+        "tags": [
+          "Consent"
+        ],
+        "operationId": "deny",
+        "parameters": [
+          {
+            "name": "consentToken",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseClaimResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/consent/{consentToken}/approve": {
+      "post": {
+        "tags": [
+          "Consent"
+        ],
+        "operationId": "approve",
+        "parameters": [
+          {
+            "name": "consentToken",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseAttestationTokenResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/claims/{claimId}/revoke": {
+      "post": {
+        "tags": [
+          "Claims"
+        ],
+        "operationId": "revoke",
+        "parameters": [
+          {
+            "name": "claimId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseClaimResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/auth/token": {
+      "post": {
+        "tags": [
+          "Applications",
+          "Authentication"
+        ],
+        "summary": "Exchange credentials for a JWT",
+        "description": "Issues a signed HS256 JWT access token valid for the configured TTL (default 1 hour).\nAccepts either `application/x-www-form-urlencoded` query parameters or a JSON body\nwith `client_id` and `client_secret` fields.\n\n**Rate limited to 10 requests per minute per IP.**\n",
+        "operationId": "token",
+        "parameters": [
+          {
+            "name": "client_id",
+            "in": "query",
+            "description": "Client ID (query param or JSON field)",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "client_secret",
+            "in": "query",
+            "description": "Client secret (query param or JSON field)",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Token issued",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseAttestationTokenResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Invalid credentials",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseAttestationTokenResponse"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limit exceeded",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseAttestationTokenResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": []
+      }
+    },
+    "/v1/applications": {
+      "get": {
+        "tags": [
+          "Applications"
+        ],
+        "summary": "List all applications",
+        "description": "Returns all registered applications. Requires an authenticated application token.",
+        "operationId": "listAll_2",
+        "responses": {
+          "200": {
+            "description": "List of applications",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseListApplicationResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid bearer token",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseListApplicationResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Applications"
+        ],
+        "summary": "Register a new application",
+        "description": "Creates a new API client application (tenant) in IDaaS.\nReturns a `clientId` and `clientSecret` – **the secret is shown only once**,\nstore it securely and use it with `POST /v1/auth/token`.\n",
+        "operationId": "register",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateApplicationRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Application registered successfully",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseApplicationResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Application name already exists",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": []
+      }
+    },
+    "/v1/applications/keys/rotate": {
+      "post": {
+        "tags": [
+          "Applications",
+          "Encryption"
+        ],
+        "summary": "Rotate the calling application's EC keypair",
+        "description": "Generates a fresh EC P-256 keypair for the authenticated application and\nreturns the new public key (JWK + Base64 DER) and the private key JWK (`appPrivateJwk`).\n\nAfter rotation:\n- IDaaS will encrypt all outbound webhooks with the **new** public key.\n- Requests encrypted with the **old** public key will be rejected (Content-Encryption: JWE decryption will fail).\n- Allow a brief migration window for in-flight messages before destroying the old private key material.\n\nThe `keyVersion` field is incremented on each rotation.\n",
+        "operationId": "rotateKeys",
+        "responses": {
+          "200": {
+            "description": "Keypair rotated – new key material returned",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseApplicationResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid bearer token",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseApplicationResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Keypair rotation failed",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseApplicationResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/tags/{tag}/disable": {
+      "patch": {
+        "tags": [
+          "Tags"
+        ],
+        "operationId": "disableTag",
+        "parameters": [
+          {
+            "name": "tag",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseVoid"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/applications/{id}/deactivate": {
+      "patch": {
+        "tags": [
+          "Applications"
+        ],
+        "summary": "Deactivate an application",
+        "description": "Marks an application as inactive. The application's JWT tokens are immediately blacklisted.",
+        "operationId": "deactivate",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Application UUID",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Application deactivated",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseVoid"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Application not found",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseVoid"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/admin/entities/{entity}/{id}": {
+      "get": {
+        "tags": [
+          "Admin"
+        ],
+        "summary": "Get a single record by UUID",
+        "operationId": "getById_4",
+        "parameters": [
+          {
+            "name": "entity",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "applications"
+          },
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "example": "2c63eb32-1791-46f8-b1fb-c6d9f77ad2c8"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Record returned",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseMapStringObject"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Record not found",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseMapStringObject"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Admin"
+        ],
+        "summary": "Delete a record by UUID",
+        "operationId": "delete",
+        "parameters": [
+          {
+            "name": "entity",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "transactions"
+          },
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "example": "2c63eb32-1791-46f8-b1fb-c6d9f77ad2c8"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Record deleted",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseVoid"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Record not found",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseVoid"
+                }
+              }
+            }
+          }
+        }
+      },
+      "patch": {
+        "tags": [
+          "Admin"
+        ],
+        "summary": "Patch scalar fields on a record",
+        "description": "Only per-entity allowlisted scalar fields can be patched. Nested objects are rejected.",
+        "operationId": "patch",
+        "parameters": [
+          {
+            "name": "entity",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "applications"
+          },
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "example": "2c63eb32-1791-46f8-b1fb-c6d9f77ad2c8"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": {
+                  "type": "object"
+                }
+              },
+              "examples": {
+                "applicationPatch": {
+                  "description": "applicationPatch",
+                  "value": {
+                    "active": true,
+                    "transactionWebhookUrl": "https://example.com/hook",
+                    "metadata": "{\"tier\":\"gold\"}"
+                  }
+                }
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Record updated",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseMapStringObject"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Disallowed field(s) or invalid value",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseMapStringObject"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Record not found",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseMapStringObject"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/webhooks/{id}": {
+      "get": {
+        "tags": [
+          "Webhooks"
+        ],
+        "summary": "Get a single webhook record by UUID",
+        "description": "Returns the full webhook delivery record including payload JSON and all attempt history.",
+        "operationId": "getById",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Webhook record UUID",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Webhook record found",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseTransactionWebhookResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Webhook record not found",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseTransactionWebhookResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/webhooks/failed": {
+      "get": {
+        "tags": [
+          "Webhooks"
+        ],
+        "summary": "List all FAILED webhooks for the calling application",
+        "description": "Returns all webhook delivery records in `FAILED` status where the\ntarget URL belongs to the calling application.  Use this to identify\nevents that need to be replayed after fixing an endpoint outage.\nPaginated, newest first.\n",
+        "operationId": "listFailed",
+        "parameters": [
+          {
+            "name": "pageable",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/Pageable"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Paginated list of FAILED webhook records",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponsePageTransactionWebhookResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/wallet/statement": {
+      "get": {
+        "tags": [
+          "Wallet"
+        ],
+        "summary": "Get the paginated ledger statement",
+        "description": "Returns DEBIT and CREDIT entries for the calling application's wallet in\nreverse-chronological order.  Each entry includes:\n- `entryType` – `DEBIT` (outgoing) or `CREDIT` (incoming)\n- `amount`, `currency`\n- `openingBalance` / `closingBalance` – wallet balance before/after the movement\n- `description` – human-readable summary referencing the transaction\n- `createdAt` – when the ledger line was written\n",
+        "operationId": "getStatement",
+        "parameters": [
+          {
+            "name": "pageable",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/Pageable"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Paginated ledger statement",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponsePageLedgerEntryResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Wallet not yet provisioned",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponsePageLedgerEntryResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/transactions/{reference}": {
+      "get": {
+        "tags": [
+          "Transactions"
+        ],
+        "summary": "Get a transaction by reference",
+        "description": "Retrieves the full transaction details including status, webhook delivery status, and timestamps.",
+        "operationId": "getOne",
+        "parameters": [
+          {
+            "name": "reference",
+            "in": "path",
+            "description": "Transaction reference (e.g. TXN-16820000-AB1C2D3E)",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Transaction found",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseTransactionResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Transaction not found",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseTransactionResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/transactions/{reference}/webhooks": {
+      "get": {
+        "tags": [
+          "Webhooks"
+        ],
+        "summary": "List all webhook records for a transaction",
+        "description": "Returns all outbound webhook delivery records for a transaction,\nordered by creation time.  Typically returns 0–2 records:\n- `RECEIVER` – notification to the receiving application on initiation.\n- `SENDER`   – callback to the sending application on outcome.\nEach record shows the delivery status, attempt count, last error,\nand the full event type sent.\n",
+        "operationId": "listByTransaction",
+        "parameters": [
+          {
+            "name": "reference",
+            "in": "path",
+            "description": "Transaction reference",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Webhook records returned",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseListTransactionWebhookResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Transaction not found",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseListTransactionWebhookResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/transactions/{reference}/webhooks/sender": {
+      "get": {
+        "tags": [
+          "Webhooks"
+        ],
+        "summary": "Get the SENDER webhook record",
+        "description": "Returns the outbound callback record for the sending application (posted after acceptance/rejection/expiry).",
+        "operationId": "getSenderWebhook",
+        "parameters": [
+          {
+            "name": "reference",
+            "in": "path",
+            "description": "Transaction reference",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Webhook record found",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseTransactionWebhookResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Transaction or sender webhook not yet created (outcome not yet determined)",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseTransactionWebhookResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/transactions/{reference}/webhooks/receiver": {
+      "get": {
+        "tags": [
+          "Webhooks"
+        ],
+        "summary": "Get the RECEIVER webhook record",
+        "description": "Returns the outbound webhook record for the receiving application (TRANSACTION_INITIATED notification).",
+        "operationId": "getReceiverWebhook",
+        "parameters": [
+          {
+            "name": "reference",
+            "in": "path",
+            "description": "Transaction reference",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Webhook record found",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseTransactionWebhookResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Transaction or webhook record not found",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseTransactionWebhookResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/transactions/sent": {
+      "get": {
+        "tags": [
+          "Transactions"
+        ],
+        "summary": "List transactions sent by the calling application",
+        "description": "Returns all transactions where the sender tag belongs to the calling application. Sorted by `createdAt` descending.",
+        "operationId": "listSent",
+        "parameters": [
+          {
+            "name": "pageable",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/Pageable"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Paginated list of sent transactions",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponsePageTransactionResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/transactions/received": {
+      "get": {
+        "tags": [
+          "Transactions"
+        ],
+        "summary": "List transactions received by the calling application",
+        "description": "Returns all transactions where the receiver tag belongs to the calling application. Sorted by `createdAt` descending.",
+        "operationId": "listReceived",
+        "parameters": [
+          {
+            "name": "pageable",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/Pageable"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Paginated list of received transactions",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponsePageTransactionResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/transactions/pending": {
+      "get": {
+        "tags": [
+          "Transactions"
+        ],
+        "summary": "List transactions pending acceptance",
+        "description": "Returns transactions addressed to the calling application that are in `AWAITING_ACCEPTANCE` state. These require an explicit accept or reject action.",
+        "operationId": "listPendingAcceptance",
+        "parameters": [
+          {
+            "name": "pageable",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/Pageable"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Paginated acceptance queue",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponsePageTransactionResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/tags/{tag}": {
+      "get": {
+        "tags": [
+          "Tags"
+        ],
+        "operationId": "resolveTag",
+        "parameters": [
+          {
+            "name": "tag",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseTagResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/subjects/{id}": {
+      "get": {
+        "tags": [
+          "Subjects"
+        ],
+        "operationId": "getById_1",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseSubjectResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/subjects/{id}/tags": {
+      "get": {
+        "tags": [
+          "Subjects"
+        ],
+        "operationId": "getTagsForSubject",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseListTagResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/settlement": {
+      "get": {
+        "tags": [
+          "Settlement"
+        ],
+        "summary": "List all settlement batches",
+        "description": "Returns a paginated list of settlement batches in reverse-chronological order.\nEach record contains aggregate totals; individual per-application entries are\nomitted in the list view for performance. Use `GET /v1/settlement/{id}` for\nfull details including per-application net positions.\n",
+        "operationId": "listAll_1",
+        "parameters": [
+          {
+            "name": "pageable",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/Pageable"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Paginated list of settlement records",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponsePageSettlementRecordResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/settlement/{id}": {
+      "get": {
+        "tags": [
+          "Settlement"
+        ],
+        "summary": "Get a settlement batch by ID",
+        "description": "Returns the full settlement record including all per-application net position entries.",
+        "operationId": "getById_2",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Settlement record UUID",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Settlement record found",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseSettlementRecordResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Settlement record not found",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseSettlementRecordResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/settlement/date/{date}": {
+      "get": {
+        "tags": [
+          "Settlement"
+        ],
+        "summary": "Get a settlement batch by date",
+        "description": "Returns the settlement record for a specific calendar date (ISO-8601 format: `YYYY-MM-DD`).",
+        "operationId": "getByDate",
+        "parameters": [
+          {
+            "name": "date",
+            "in": "path",
+            "description": "Settlement date in ISO-8601 format (e.g. 2025-03-03)",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "date"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Settlement record found",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseSettlementRecordResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No settlement found for the specified date",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseSettlementRecordResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/keys/idaas": {
+      "get": {
+        "tags": [
+          "Encryption"
+        ],
+        "summary": "Get the IDaaS public encryption key",
+        "description": "Returns the IDaaS EC P-256 public key in two formats:\n- **`jwk`** – JSON Web Key (JWK) format; import directly into any JOSE library.\n- **`publicKeyBase64`** – Base64-encoded X.509 (SubjectPublicKeyInfo) DER; use with\n  `KeyFactory.getInstance(\"EC\").generatePublic(new X509EncodedKeySpec(decoded))` in Java.\n\nUse this key to **encrypt request payloads** before sending them to IDaaS:\n```\n1. Serialize your JSON request body.\n2. Encrypt with JWE (alg=ECDH-ES+A256KW, enc=A256GCM) using this public key.\n3. Set header: Content-Encryption: JWE\n4. Send the JWE compact string as the request body.\n```\n\nThis endpoint is **unauthenticated** – public keys are safe to distribute.\nCache the response; refresh only if you encounter a JWE decryption error (HTTP 400).\n",
+        "operationId": "getIdaasPublicKey",
+        "responses": {
+          "200": {
+            "description": "IDaaS public key returned",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseMapStringObject"
+                }
+              }
+            }
+          }
+        },
+        "security": []
+      }
+    },
+    "/v1/consent/{consentToken}": {
+      "get": {
+        "tags": [
+          "Consent"
+        ],
+        "operationId": "getConsentPage",
+        "parameters": [
+          {
+            "name": "consentToken",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseConsentResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/applications/{id}": {
+      "get": {
+        "tags": [
+          "Applications"
+        ],
+        "summary": "Get application by ID",
+        "description": "Returns a single application by its UUID.",
+        "operationId": "getById_3",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Application UUID",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Application found",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseApplicationResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Application not found",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseApplicationResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/admin/entities": {
+      "get": {
+        "tags": [
+          "Admin"
+        ],
+        "summary": "List manageable entities",
+        "description": "Returns the entity keys accepted by /v1/admin/entities/{entity}.",
+        "operationId": "entities",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseSetString"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/admin/entities/{entity}": {
+      "get": {
+        "tags": [
+          "Admin"
+        ],
+        "summary": "List records for an entity",
+        "description": "Paged cross-tenant listing for one entity type. Example: entity=applications",
+        "operationId": "list",
+        "parameters": [
+          {
+            "name": "entity",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "applications"
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 0
+            },
+            "example": 0
+          },
+          {
+            "name": "size",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 20
+            },
+            "example": 20
+          },
+          {
+            "name": "sort",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "default": "createdAt,desc"
+            },
+            "example": "createdAt,desc"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Records returned",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponsePageMapStringObject"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid entity or paging request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponsePageMapStringObject"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Admin role required",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponsePageMapStringObject"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/federation/links/{linkId}": {
+      "delete": {
+        "tags": [
+          "Claims"
+        ],
+        "operationId": "revokeIdentityLink",
+        "parameters": [
+          {
+            "name": "linkId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseVoid"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "ApiResponseApplicationWalletResponse": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/ApplicationWalletResponse"
+          },
+          "errors": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "timestamp": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "ApplicationWalletResponse": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "applicationId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "applicationName": {
+            "type": "string"
+          },
+          "currency": {
+            "type": "string"
+          },
+          "balance": {
+            "type": "number"
+          },
+          "totalDebited": {
+            "type": "number"
+          },
+          "totalCredited": {
+            "type": "number"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "InitiateTransactionRequest": {
+        "required": [
+          "amount",
+          "receiverTag",
+          "senderTag"
+        ],
+        "type": "object",
+        "properties": {
+          "senderTag": {
+            "type": "string",
+            "description": "The sender's tag handle (must belong to the calling application)",
+            "example": "@alice"
+          },
+          "receiverTag": {
+            "type": "string",
+            "description": "The recipient's tag handle (can belong to any application)",
+            "example": "@bob"
+          },
+          "amount": {
+            "minimum": 0.0001,
+            "exclusiveMinimum": false,
+            "type": "number",
+            "description": "Positive payment amount with up to 4 decimal places",
+            "example": 1500
+          },
+          "currency": {
+            "pattern": "^[A-Z]{3}$",
+            "type": "string",
+            "description": "ISO 4217 currency code (defaults to NGN)",
+            "example": "NGN"
+          },
+          "narration": {
+            "maxLength": 500,
+            "minLength": 0,
+            "type": "string",
+            "description": "Optional human-readable payment note",
+            "example": "School fees payment"
+          },
+          "callbackUrl": {
+            "maxLength": 500,
+            "minLength": 0,
+            "type": "string",
+            "description": "Optional HTTPS URL that IDaaS will POST the final transaction status to once accepted or rejected",
+            "example": "https://my-app.example.com/webhooks/transactions"
+          },
+          "idempotencyKey": {
+            "maxLength": 64,
+            "minLength": 0,
+            "type": "string",
+            "description": "Client-supplied idempotency key (UUID v4 recommended). Duplicate calls within 24 hours return the original response.",
+            "example": "550e8400-e29b-41d4-a716-446655440000"
+          }
+        },
+        "description": "Request body for initiating a cross-application tag-to-tag payment"
+      },
+      "ApiResponse": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "type": "object"
+          },
+          "errors": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "timestamp": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "ApiResponseTransactionResponse": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/TransactionResponse"
+          },
+          "errors": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "timestamp": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "TransactionResponse": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Unique transaction ID",
+            "format": "uuid",
+            "example": "3fa85f64-5717-4562-b3fc-2c963f66afa6"
+          },
+          "reference": {
+            "type": "string",
+            "description": "Human-readable unique reference for the transaction",
+            "example": "TXN-16820000-AB1C2D3E"
+          },
+          "senderTag": {
+            "type": "string",
+            "description": "Sender tag handle",
+            "example": "@alice"
+          },
+          "senderAppName": {
+            "type": "string",
+            "description": "Name of the sender's application",
+            "example": "WalletApp"
+          },
+          "senderAppId": {
+            "type": "string",
+            "description": "UUID of the sender's application",
+            "format": "uuid"
+          },
+          "receiverTag": {
+            "type": "string",
+            "description": "Receiver tag handle",
+            "example": "@bob"
+          },
+          "receiverAppName": {
+            "type": "string",
+            "description": "Name of the receiver's application",
+            "example": "PaymentsApp"
+          },
+          "receiverAppId": {
+            "type": "string",
+            "description": "UUID of the receiver's application",
+            "format": "uuid"
+          },
+          "amount": {
+            "type": "number",
+            "description": "Payment amount (DECIMAL 19,4)",
+            "example": 1500
+          },
+          "currency": {
+            "type": "string",
+            "description": "ISO 4217 currency code",
+            "example": "NGN"
+          },
+          "status": {
+            "type": "string",
+            "description": "Transaction lifecycle status",
+            "example": "AWAITING_ACCEPTANCE",
+            "enum": [
+              "AWAITING_ACCEPTANCE",
+              "COMPLETED",
+              "REJECTED",
+              "EXPIRED"
+            ]
+          },
+          "narration": {
+            "type": "string",
+            "description": "Human-readable payment note",
+            "example": "School fees payment"
+          },
+          "expiresAt": {
+            "type": "string",
+            "description": "ISO-8601 timestamp after which the transaction auto-expires if not accepted",
+            "format": "date-time"
+          },
+          "acceptedAt": {
+            "type": "string",
+            "description": "ISO-8601 timestamp when the transaction was accepted (null until COMPLETED)",
+            "format": "date-time"
+          },
+          "rejectedAt": {
+            "type": "string",
+            "description": "ISO-8601 timestamp when the transaction was rejected (null unless REJECTED)",
+            "format": "date-time"
+          },
+          "rejectionReason": {
+            "type": "string",
+            "description": "Rejection reason supplied by the receiving application (null unless REJECTED)"
+          },
+          "createdAt": {
+            "type": "string",
+            "description": "ISO-8601 creation timestamp",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "description": "ISO-8601 last-update timestamp",
+            "format": "date-time"
+          },
+          "webhooks": {
+            "type": "array",
+            "description": "Outbound webhook delivery records (RECEIVER and/or SENDER). Included in single-transaction GET; omitted in list responses.",
+            "items": {
+              "$ref": "#/components/schemas/TransactionWebhookResponse"
+            }
+          }
+        },
+        "description": "Full details of a cross-application tag-to-tag payment transaction"
+      },
+      "TransactionWebhookResponse": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Unique webhook record ID",
+            "format": "uuid"
+          },
+          "transactionId": {
+            "type": "string",
+            "description": "UUID of the parent transaction",
+            "format": "uuid"
+          },
+          "transactionReference": {
+            "type": "string",
+            "description": "Transaction reference",
+            "example": "TXN-16820000-AB1C2D3E"
+          },
+          "applicationId": {
+            "type": "string",
+            "description": "UUID of the target application (receiver or sender)",
+            "format": "uuid"
+          },
+          "applicationName": {
+            "type": "string",
+            "description": "Name of the target application"
+          },
+          "direction": {
+            "type": "string",
+            "description": "Which side this webhook notifies",
+            "enum": [
+              "RECEIVER",
+              "SENDER"
+            ]
+          },
+          "targetUrl": {
+            "type": "string",
+            "description": "HTTP endpoint that was (or will be) called",
+            "example": "https://app-b.example.com/webhooks/transactions"
+          },
+          "eventType": {
+            "type": "string",
+            "description": "Event name included in the webhook body",
+            "example": "TRANSACTION_INITIATED",
+            "enum": [
+              "TRANSACTION_INITIATED",
+              "TRANSACTION_COMPLETED",
+              "TRANSACTION_REJECTED",
+              "TRANSACTION_EXPIRED"
+            ]
+          },
+          "status": {
+            "type": "string",
+            "description": "Current delivery status",
+            "enum": [
+              "PENDING",
+              "DELIVERED",
+              "FAILED"
+            ]
+          },
+          "attempts": {
+            "type": "integer",
+            "description": "Total number of HTTP delivery attempts made (max 3)",
+            "format": "int32"
+          },
+          "lastError": {
+            "type": "string",
+            "description": "HTTP status code or exception message from the most recent attempt"
+          },
+          "lastAttemptAt": {
+            "type": "string",
+            "description": "ISO-8601 timestamp of the most recent delivery attempt",
+            "format": "date-time"
+          },
+          "deliveredAt": {
+            "type": "string",
+            "description": "ISO-8601 timestamp when delivery was confirmed (HTTP 2xx). Null until delivered.",
+            "format": "date-time"
+          },
+          "createdAt": {
+            "type": "string",
+            "description": "ISO-8601 creation timestamp (when the webhook was first queued)",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "description": "ISO-8601 last-update timestamp",
+            "format": "date-time"
+          }
+        },
+        "description": "Outbound webhook delivery record for a transaction"
+      },
+      "RejectTransactionRequest": {
+        "type": "object",
+        "properties": {
+          "reason": {
+            "maxLength": 500,
+            "minLength": 0,
+            "type": "string"
+          }
+        }
+      },
+      "CreateTagRequest": {
+        "required": [
+          "subjectId",
+          "tag"
+        ],
+        "type": "object",
+        "properties": {
+          "tag": {
+            "maxLength": 64,
+            "minLength": 3,
+            "pattern": "^[a-z0-9]([a-z0-9\\-]*[a-z0-9])?$",
+            "type": "string"
+          },
+          "subjectId": {
+            "type": "string",
+            "format": "uuid"
+          }
+        }
+      },
+      "ApiResponseTagResponse": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/TagResponse"
+          },
+          "errors": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "timestamp": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "ClaimResponse": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "tagId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "tagString": {
+            "type": "string"
+          },
+          "subjectId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "subjectExternalId": {
+            "type": "string"
+          },
+          "requestedByAppId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "requestedByAppName": {
+            "type": "string"
+          },
+          "state": {
+            "type": "string",
+            "enum": [
+              "PENDING",
+              "ACTIVE",
+              "REVOKED",
+              "DENIED"
+            ]
+          },
+          "requestedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "approvedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "revokedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "consentToken": {
+            "type": "string"
+          },
+          "approvalUrl": {
+            "type": "string"
+          },
+          "tokenExpiresAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "SubjectResponse": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "applicationId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "applicationName": {
+            "type": "string"
+          },
+          "externalId": {
+            "type": "string"
+          },
+          "displayName": {
+            "type": "string"
+          },
+          "email": {
+            "type": "string"
+          },
+          "metadata": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "object"
+            }
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "TagResponse": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "tagString": {
+            "type": "string"
+          },
+          "qualifiedAddress": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "ACTIVE",
+              "DISABLED"
+            ]
+          },
+          "canonicalOwner": {
+            "$ref": "#/components/schemas/SubjectResponse"
+          },
+          "createdByAppId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "createdByAppName": {
+            "type": "string"
+          },
+          "activeClaims": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ClaimResponse"
+            }
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "TransferTagRequest": {
+        "required": [
+          "newOwnerSubjectId"
+        ],
+        "type": "object",
+        "properties": {
+          "newOwnerSubjectId": {
+            "type": "string",
+            "format": "uuid"
+          }
+        }
+      },
+      "InitiateFederationRequest": {
+        "required": [
+          "secondaryTag",
+          "verificationMethod"
+        ],
+        "type": "object",
+        "properties": {
+          "secondaryTag": {
+            "type": "string"
+          },
+          "verificationMethod": {
+            "type": "string"
+          }
+        }
+      },
+      "ApiResponseFederatedIdentityResponse": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/FederatedIdentityResponse"
+          },
+          "errors": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "timestamp": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "FederatedIdentityResponse": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "primaryTag": {
+            "type": "string"
+          },
+          "links": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/IdentityLinkInfo"
+            }
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "IdentityLinkInfo": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "linkedTag": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "PENDING",
+              "VERIFIED",
+              "REVOKED"
+            ]
+          },
+          "verifiedBy": {
+            "type": "string"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "CreateClaimRequest": {
+        "required": [
+          "subjectId"
+        ],
+        "type": "object",
+        "properties": {
+          "subjectId": {
+            "type": "string",
+            "format": "uuid"
+          }
+        }
+      },
+      "ApiResponseClaimResponse": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/ClaimResponse"
+          },
+          "errors": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "timestamp": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "CreateSubjectRequest": {
+        "required": [
+          "externalId"
+        ],
+        "type": "object",
+        "properties": {
+          "externalId": {
+            "maxLength": 255,
+            "minLength": 0,
+            "type": "string"
+          },
+          "displayName": {
+            "maxLength": 150,
+            "minLength": 0,
+            "type": "string"
+          },
+          "email": {
+            "maxLength": 200,
+            "minLength": 0,
+            "type": "string"
+          },
+          "metadata": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "object"
+            }
+          }
+        }
+      },
+      "ApiResponseSubjectResponse": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/SubjectResponse"
+          },
+          "errors": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "timestamp": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "ApiResponseSettlementRecordResponse": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/SettlementRecordResponse"
+          },
+          "errors": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "timestamp": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "SettlementEntryResponse": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Unique entry ID",
+            "format": "uuid"
+          },
+          "applicationId": {
+            "type": "string",
+            "description": "UUID of the application",
+            "format": "uuid"
+          },
+          "applicationName": {
+            "type": "string",
+            "description": "Name of the application",
+            "example": "WalletApp"
+          },
+          "walletId": {
+            "type": "string",
+            "description": "UUID of the application's escrow wallet",
+            "format": "uuid"
+          },
+          "currency": {
+            "type": "string",
+            "description": "ISO 4217 currency code",
+            "example": "NGN"
+          },
+          "totalCredited": {
+            "type": "number",
+            "description": "Total incoming accepted payments for the settlement period",
+            "example": 150000
+          },
+          "totalDebited": {
+            "type": "number",
+            "description": "Total outgoing accepted payments for the settlement period",
+            "example": 100000
+          },
+          "netAmount": {
+            "type": "number",
+            "description": "Net position (totalCredited − totalDebited). Positive = net creditor.",
+            "example": 50000
+          },
+          "openingBalance": {
+            "type": "number",
+            "description": "Wallet balance at the start of the settlement date"
+          },
+          "closingBalance": {
+            "type": "number",
+            "description": "Wallet balance at the end of the settlement date"
+          },
+          "transactionCount": {
+            "type": "integer",
+            "description": "Number of completed transactions included in this entry",
+            "format": "int32"
+          },
+          "createdAt": {
+            "type": "string",
+            "description": "ISO-8601 timestamp when this entry was created",
+            "format": "date-time"
+          }
+        },
+        "description": "Per-application net position within an end-of-day settlement batch"
+      },
+      "SettlementRecordResponse": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Unique settlement record ID",
+            "format": "uuid"
+          },
+          "settlementDate": {
+            "type": "string",
+            "description": "Calendar date (UTC) covered by this settlement batch",
+            "format": "date",
+            "example": "2025-03-03"
+          },
+          "currency": {
+            "type": "string",
+            "description": "ISO 4217 currency code",
+            "example": "NGN"
+          },
+          "totalCredited": {
+            "type": "number",
+            "description": "Total amount credited across all applications on this date",
+            "example": 250000
+          },
+          "totalDebited": {
+            "type": "number",
+            "description": "Total amount debited across all applications on this date",
+            "example": 250000
+          },
+          "transactionCount": {
+            "type": "integer",
+            "description": "Total count of completed transactions included in this batch",
+            "format": "int32"
+          },
+          "applicationCount": {
+            "type": "integer",
+            "description": "Number of application wallets included in this batch",
+            "format": "int32"
+          },
+          "status": {
+            "type": "string",
+            "description": "Lifecycle status of this batch",
+            "enum": [
+              "PENDING",
+              "COMPLETED",
+              "FAILED"
+            ]
+          },
+          "errorMessage": {
+            "type": "string",
+            "description": "Error message if the batch failed (null when COMPLETED)"
+          },
+          "createdAt": {
+            "type": "string",
+            "description": "ISO-8601 creation timestamp",
+            "format": "date-time"
+          },
+          "entries": {
+            "type": "array",
+            "description": "Per-application net position lines",
+            "items": {
+              "$ref": "#/components/schemas/SettlementEntryResponse"
+            }
+          }
+        },
+        "description": "End-of-day settlement batch aggregating all completed transaction movements"
+      },
+      "ApiResponseAttestationTokenResponse": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/AttestationTokenResponse"
+          },
+          "errors": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "timestamp": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "AttestationTokenResponse": {
+        "type": "object",
+        "properties": {
+          "token": {
+            "type": "string"
+          },
+          "expiresAt": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "tag": {
+            "type": "string"
+          },
+          "subjectId": {
+            "type": "string"
+          },
+          "consentId": {
+            "type": "string"
+          }
+        }
+      },
+      "CreateApplicationRequest": {
+        "required": [
+          "appHandle",
+          "name"
+        ],
+        "type": "object",
+        "properties": {
+          "name": {
+            "maxLength": 150,
+            "minLength": 2,
+            "type": "string"
+          },
+          "appHandle": {
+            "maxLength": 30,
+            "minLength": 3,
+            "pattern": "^[a-z0-9]([a-z0-9\\-]*[a-z0-9])?$",
+            "type": "string"
+          },
+          "redirectUris": {
+            "maxLength": 2000,
+            "minLength": 0,
+            "type": "string"
+          },
+          "transactionWebhookUrl": {
+            "maxLength": 500,
+            "minLength": 0,
+            "type": "string"
+          },
+          "metadata": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "object"
+            }
+          }
+        }
+      },
+      "ApiResponseApplicationResponse": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/ApplicationResponse"
+          },
+          "errors": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "timestamp": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "ApplicationResponse": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Application UUID",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string",
+            "description": "Human-readable application name"
+          },
+          "appHandle": {
+            "type": "string",
+            "description": "Short unique slug used as the tag namespace for this application (e.g. 'walletapp'). Tags are addressed as 'localTag@appHandle' across the platform. Immutable once set.",
+            "example": "walletapp"
+          },
+          "clientId": {
+            "type": "string",
+            "description": "OAuth2-style client identifier (public)"
+          },
+          "clientSecret": {
+            "type": "string",
+            "description": "Raw client secret – returned ONLY on first registration; never stored in plaintext",
+            "readOnly": true
+          },
+          "active": {
+            "type": "boolean",
+            "description": "Whether this application can still use IDaaS"
+          },
+          "redirectUris": {
+            "type": "string",
+            "description": "Space-separated list of allowed redirect URIs"
+          },
+          "transactionWebhookUrl": {
+            "type": "string",
+            "description": "URL that IDaaS POSTs transaction notifications to"
+          },
+          "webhookSecret": {
+            "type": "string",
+            "description": "Raw webhook signing secret – returned ONLY on first registration. Used to verify X-IDaaS-Signature headers on inbound webhooks via HMAC-SHA256.",
+            "readOnly": true
+          },
+          "metadata": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "object",
+              "description": "Optional free-form metadata (JSON string)"
+            },
+            "description": "Optional free-form metadata (JSON string)"
+          },
+          "appPublicKeyJwk": {
+            "$ref": "#/components/schemas/JwkDto"
+          },
+          "appPublicKey": {
+            "type": "string",
+            "description": "EC P-256 public key as Base64-encoded X.509 DER. Alternative to appPublicKeyJwk – use whichever format your JOSE library prefers.",
+            "readOnly": true
+          },
+          "appPrivateJwk": {
+            "$ref": "#/components/schemas/JwkDto"
+          },
+          "encryptionEnabled": {
+            "type": "boolean",
+            "description": "Whether JWE payload encryption is enabled for this application. When true, IDaaS requires encrypted inbound request bodies and encrypts outbound webhooks."
+          },
+          "keyVersion": {
+            "type": "integer",
+            "description": "Current keypair version. Incremented on each rotation.",
+            "format": "int32",
+            "example": 1
+          },
+          "createdAt": {
+            "type": "string",
+            "description": "ISO-8601 creation timestamp",
+            "format": "date-time"
+          }
+        },
+        "description": "Registered application (tenant) details"
+      },
+      "JwkDto": {
+        "type": "object",
+        "properties": {
+          "kty": {
+            "type": "string"
+          },
+          "crv": {
+            "type": "string"
+          },
+          "x": {
+            "type": "string"
+          },
+          "y": {
+            "type": "string"
+          },
+          "use": {
+            "type": "string"
+          },
+          "alg": {
+            "type": "string"
+          }
+        },
+        "description": "EC P-256 public key in JWK format. Use this to encrypt payloads sent TO IDaaS (ECDH-ES+A256KW+A256GCM). Returned on registration and on key rotation.",
+        "readOnly": true
+      },
+      "ApiResponseVoid": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "type": "object"
+          },
+          "errors": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "timestamp": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "ApiResponseMapStringObject": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "object"
+            }
+          },
+          "errors": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "timestamp": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "ApiResponseTransactionWebhookResponse": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/TransactionWebhookResponse"
+          },
+          "errors": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "timestamp": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "Pageable": {
+        "type": "object",
+        "properties": {
+          "page": {
+            "minimum": 0,
+            "type": "integer",
+            "format": "int32"
+          },
+          "size": {
+            "minimum": 1,
+            "type": "integer",
+            "format": "int32"
+          },
+          "sort": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "ApiResponsePageTransactionWebhookResponse": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/PageTransactionWebhookResponse"
+          },
+          "errors": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "timestamp": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "PageTransactionWebhookResponse": {
+        "type": "object",
+        "properties": {
+          "totalElements": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "totalPages": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "first": {
+            "type": "boolean"
+          },
+          "last": {
+            "type": "boolean"
+          },
+          "size": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "content": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TransactionWebhookResponse"
+            }
+          },
+          "number": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "sort": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SortObject"
+            }
+          },
+          "numberOfElements": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "pageable": {
+            "$ref": "#/components/schemas/PageableObject"
+          },
+          "empty": {
+            "type": "boolean"
+          }
+        }
+      },
+      "PageableObject": {
+        "type": "object",
+        "properties": {
+          "offset": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "sort": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SortObject"
+            }
+          },
+          "paged": {
+            "type": "boolean"
+          },
+          "unpaged": {
+            "type": "boolean"
+          },
+          "pageNumber": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "pageSize": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
+      "SortObject": {
+        "type": "object",
+        "properties": {
+          "direction": {
+            "type": "string"
+          },
+          "nullHandling": {
+            "type": "string"
+          },
+          "ascending": {
+            "type": "boolean"
+          },
+          "property": {
+            "type": "string"
+          },
+          "ignoreCase": {
+            "type": "boolean"
+          }
+        }
+      },
+      "ApiResponsePageLedgerEntryResponse": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/PageLedgerEntryResponse"
+          },
+          "errors": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "timestamp": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "LedgerEntryResponse": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "transactionReference": {
+            "type": "string"
+          },
+          "entryType": {
+            "type": "string"
+          },
+          "amount": {
+            "type": "number"
+          },
+          "currency": {
+            "type": "string"
+          },
+          "openingBalance": {
+            "type": "number"
+          },
+          "closingBalance": {
+            "type": "number"
+          },
+          "description": {
+            "type": "string"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "PageLedgerEntryResponse": {
+        "type": "object",
+        "properties": {
+          "totalElements": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "totalPages": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "first": {
+            "type": "boolean"
+          },
+          "last": {
+            "type": "boolean"
+          },
+          "size": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "content": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/LedgerEntryResponse"
+            }
+          },
+          "number": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "sort": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SortObject"
+            }
+          },
+          "numberOfElements": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "pageable": {
+            "$ref": "#/components/schemas/PageableObject"
+          },
+          "empty": {
+            "type": "boolean"
+          }
+        }
+      },
+      "ApiResponseListTransactionWebhookResponse": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TransactionWebhookResponse"
+            }
+          },
+          "errors": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "timestamp": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "ApiResponsePageTransactionResponse": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/PageTransactionResponse"
+          },
+          "errors": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "timestamp": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "PageTransactionResponse": {
+        "type": "object",
+        "properties": {
+          "totalElements": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "totalPages": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "first": {
+            "type": "boolean"
+          },
+          "last": {
+            "type": "boolean"
+          },
+          "size": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "content": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TransactionResponse"
+            }
+          },
+          "number": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "sort": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SortObject"
+            }
+          },
+          "numberOfElements": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "pageable": {
+            "$ref": "#/components/schemas/PageableObject"
+          },
+          "empty": {
+            "type": "boolean"
+          }
+        }
+      },
+      "ApiResponseListTagResponse": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TagResponse"
+            }
+          },
+          "errors": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "timestamp": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "ApiResponseListClaimResponse": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ClaimResponse"
+            }
+          },
+          "errors": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "timestamp": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "ApiResponseListSubjectResponse": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SubjectResponse"
+            }
+          },
+          "errors": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "timestamp": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "ApiResponsePageSettlementRecordResponse": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/PageSettlementRecordResponse"
+          },
+          "errors": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "timestamp": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "PageSettlementRecordResponse": {
+        "type": "object",
+        "properties": {
+          "totalElements": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "totalPages": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "first": {
+            "type": "boolean"
+          },
+          "last": {
+            "type": "boolean"
+          },
+          "size": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "content": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SettlementRecordResponse"
+            }
+          },
+          "number": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "sort": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SortObject"
+            }
+          },
+          "numberOfElements": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "pageable": {
+            "$ref": "#/components/schemas/PageableObject"
+          },
+          "empty": {
+            "type": "boolean"
+          }
+        }
+      },
+      "ApiResponseConsentResponse": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/ConsentResponse"
+          },
+          "errors": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "timestamp": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "ConsentResponse": {
+        "type": "object",
+        "properties": {
+          "consentToken": {
+            "type": "string"
+          },
+          "tagString": {
+            "type": "string"
+          },
+          "requestingAppName": {
+            "type": "string"
+          },
+          "requestingSubjectDisplay": {
+            "type": "string"
+          },
+          "ownerDisplay": {
+            "type": "string"
+          },
+          "tokenExpiresAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "expired": {
+            "type": "boolean"
+          },
+          "claimState": {
+            "type": "string"
+          }
+        }
+      },
+      "ApiResponseListApplicationResponse": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ApplicationResponse"
+            }
+          },
+          "errors": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "timestamp": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "ApiResponseSetString": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "uniqueItems": true,
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "errors": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "timestamp": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "ApiResponsePageMapStringObject": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/PageMapStringObject"
+          },
+          "errors": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "timestamp": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "PageMapStringObject": {
+        "type": "object",
+        "properties": {
+          "totalElements": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "totalPages": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "first": {
+            "type": "boolean"
+          },
+          "last": {
+            "type": "boolean"
+          },
+          "size": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "content": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": {
+                "type": "object"
+              }
+            }
+          },
+          "number": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "sort": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SortObject"
+            }
+          },
+          "numberOfElements": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "pageable": {
+            "$ref": "#/components/schemas/PageableObject"
+          },
+          "empty": {
+            "type": "boolean"
+          }
+        }
+      }
+    },
+    "securitySchemes": {
+      "bearerAuth": {
+        "type": "http",
+        "description": "Obtain a token from `POST /v1/auth/token` using your `client_id` and `client_secret`, then enter `Bearer <token>` here.\n",
+        "scheme": "bearer",
+        "bearerFormat": "JWT"
+      }
+    }
+  }
+}

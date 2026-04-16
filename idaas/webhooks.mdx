@@ -1,0 +1,66 @@
+---
+title: Webhooks
+description: Delivery model, signature verification, retries, and receiver responsibilities for IDaaS webhook events.
+---
+
+# Webhooks
+
+IDaaS sends outbound HTTP callbacks for transaction events.
+
+## Webhook types
+
+Each transaction can produce two independent notifications:
+
+- **Receiver webhook** to the receiving application's `transactionWebhookUrl`
+- **Sender callback** to the `callbackUrl` supplied when the transaction was initiated
+
+## Signature verification
+
+Every outbound webhook includes:
+
+- `X-IDaaS-Timestamp`
+- `X-IDaaS-Signature`
+
+Signature format:
+
+```text
+v0=<hex(HMAC-SHA256(webhookSecret, "v0:" + timestamp + ":" + body))>
+```
+
+## Verification flow
+
+1. Read the raw request body exactly as received.
+2. Reject stale timestamps.
+3. Recompute the HMAC with your `webhookSecret`.
+4. Compare signatures in constant time.
+5. Return a `2xx` response within your processing timeout.
+
+## Delivery expectations
+
+- IDaaS retries failed webhook deliveries up to 3 times.
+- Retry backoff is exponential.
+- Failed deliveries can be inspected later through webhook-related endpoints.
+
+## Operational recommendations
+
+- Treat webhook handling as idempotent.
+- Persist delivery attempts by event reference.
+- Verify the signature before parsing business data.
+- If encryption is enabled, decrypt after signature validation.
+
+## Typical receiver flow
+
+```text
+Receive TRANSACTION_INITIATED webhook
+  -> verify signature
+  -> decrypt if required
+  -> validate business rules
+  -> call accept or reject endpoint
+  -> return 2xx promptly
+```
+
+## Related topics
+
+- [Encryption](/idaas/encryption)
+- [Payments](/idaas/payments)
+

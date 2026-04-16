@@ -1,0 +1,63 @@
+---
+title: Architecture
+description: High-level architecture and runtime behavior of the IDaaS platform.
+---
+
+# Architecture
+
+IDaaS is built as a Spring Boot API with asynchronous side effects handled through Kafka consumers.
+
+## Request path
+
+```text
+HTTP Request
+  -> RateLimitFilter
+  -> ApplicationAuthFilter
+  -> JweRequestDecryptionFilter
+  -> Controller
+  -> Service layer
+  -> Database transaction
+  -> Domain event publication
+  -> HTTP response
+```
+
+## Event-driven responsibilities
+
+| Component | Responsibility |
+| --- | --- |
+| API controllers | Validate requests and map them to service operations |
+| Service layer | Apply business rules and persist state changes |
+| Kafka producers | Publish audit, transaction, webhook, wallet, and settlement events |
+| Kafka consumers | Dispatch webhooks, write audits, and process asynchronous work |
+| MySQL | Primary transactional store |
+| Redis | Cache, rate limiting, idempotency keys, and token blacklist |
+
+## Tag addressing model
+
+IDaaS supports namespaced tags to prevent collisions between applications.
+
+- `alice@walletapp` and `alice@shopapp` are different identities.
+- Bare lookups such as `alice` are allowed only when the name is unambiguous.
+- Qualified addresses are the preferred form for transactions and public resolution.
+
+## Transaction lifecycle
+
+```text
+AWAITING_ACCEPTANCE
+  -> COMPLETED
+  -> REJECTED
+  -> EXPIRED
+```
+
+A transaction is only settled when the receiver explicitly accepts it.
+
+## Security model
+
+- Bearer JWTs for protected APIs
+- HMAC-SHA256 webhook signatures
+- Optional JWE request and webhook payload encryption
+- Distributed Redis-backed rate limiting
+- Hardened security headers and stateless request processing
+
+For implementation details, continue with [Authentication](/idaas/authentication), [Payments](/idaas/payments), and [Encryption](/idaas/encryption).
+

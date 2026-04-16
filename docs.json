@@ -14,35 +14,17 @@
         "tab": "Guides",
         "groups": [
           {
-            "group": "Getting started",
+            "group": "IDAAS",
             "pages": [
-              "index",
-              "quickstart",
-              "development"
-            ]
-          },
-          {
-            "group": "Customization",
-            "pages": [
-              "essentials/settings",
-              "essentials/navigation"
-            ]
-          },
-          {
-            "group": "Writing content",
-            "pages": [
-              "essentials/markdown",
-              "essentials/code",
-              "essentials/images",
-              "essentials/reusable-snippets"
-            ]
-          },
-          {
-            "group": "AI tools",
-            "pages": [
-              "ai-tools/cursor",
-              "ai-tools/claude-code",
-              "ai-tools/windsurf"
+              "idaas/index",
+              "idaas/quickstart",
+              "idaas/architecture",
+              "idaas/authentication",
+              "idaas/encryption",
+              "idaas/integration-guide",
+              "idaas/payments",
+              "idaas/webhooks",
+              "idaas/errors"
             ]
           }
         ]
@@ -51,19 +33,12 @@
         "tab": "API reference",
         "groups": [
           {
-            "group": "API documentation",
-            "pages": [
-              "api-reference/introduction"
-            ]
+            "group": "IDAAS API",
+            "openapi": "openapi/idaas-api.json"
           },
           {
-            "group": "Endpoint examples",
-            "pages": [
-              "api-reference/endpoint/get",
-              "api-reference/endpoint/create",
-              "api-reference/endpoint/delete",
-              "api-reference/endpoint/webhook"
-            ]
+            "group": "Merchant API",
+            "openapi": "openapi/merchant-api.json"
           }
         ]
       }
@@ -71,13 +46,13 @@
     "global": {
       "anchors": [
         {
-          "anchor": "Documentation",
-          "href": "https://mintlify.com/docs",
+          "anchor": "FLEX",
+          "href": "https://www.yourflexpay.com/",
           "icon": "book-open-cover"
         },
         {
           "anchor": "Blog",
-          "href": "https://mintlify.com/blog",
+          "href": "https://www.yourflexpay.com/blog",
           "icon": "newspaper"
         }
       ]

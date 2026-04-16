@@ -1,0 +1,68 @@
+---
+title: Authentication
+description: How applications authenticate and call protected IDaaS endpoints.
+---
+
+# Authentication
+
+Most IDaaS endpoints require an application-scoped Bearer token.
+
+## Token exchange
+
+`POST /v1/auth/token` exchanges your `clientId` and `clientSecret` for a JWT.
+
+### JSON request
+
+```bash
+curl -X POST https://staging-idaas.yourflexpay.com/api/v1/auth/token \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "client_id": "<clientId>",
+    "client_secret": "<clientSecret>"
+  }'
+```
+
+### Form request
+
+```bash
+curl -X POST https://staging-idaas.yourflexpay.com/api/v1/auth/token \
+  -H 'Content-Type: application/x-www-form-urlencoded' \
+  --data-urlencode 'client_id=<clientId>' \
+  --data-urlencode 'client_secret=<clientSecret>'
+```
+
+## Using the token
+
+```text
+Authorization: Bearer <token>
+```
+
+Use the token on protected endpoints such as:
+
+- `POST /v1/subjects`
+- `POST /v1/tags`
+- `POST /v1/transactions`
+- `GET /v1/wallet`
+
+## Public endpoints
+
+These endpoints do not require prior authentication:
+
+- `POST /v1/applications`
+- `POST /v1/auth/token`
+- `GET /v1/tags/{tag}`
+- `GET /v1/consent/**`
+- `POST /v1/consent/**`
+- `GET /v1/keys/idaas`
+
+## Admin endpoints
+
+Admin endpoints are under `/v1/admin/**` and require the `ROLE_ADMIN` mapping for the calling application.
+
+## Operational guidance
+
+- Treat `clientSecret` as a long-lived credential.
+- Rotate compromised credentials immediately.
+- Cache the JWT only until it expires.
+- Never expose application secrets in client-side code.
+

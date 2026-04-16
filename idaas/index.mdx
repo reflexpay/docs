@@ -1,0 +1,38 @@
+---
+title: IDaaS Documentation
+description: Integration guides and API reference for the ReflexPay Identity as a Service platform.
+---
+
+# IDaaS Documentation
+
+IDaaS is a multi-tenant Identity as a Service platform for portable tags, consent-based identity federation, cross-application payments, settlement, and webhook-driven integrations.
+
+## What you can do with IDaaS
+
+- Register an application and receive API credentials.
+- Create subjects and portable tags such as `alice@walletapp`.
+- Initiate and accept cross-application transactions.
+- Verify webhook signatures and optionally decrypt JWE payloads.
+- Track wallet balances, ledger entries, and settlement batches.
+
+## Base URLs
+
+- **Staging API:** `https://staging-idaas.yourflexpay.com/api`
+- **Machine-readable OpenAPI:** `https://staging-idaas.yourflexpay.com/api/v3/api-docs`
+
+## Start here
+
+1. Read the [Quickstart](/idaas/quickstart).
+2. Follow the full [End-to-End Integration Guide](/idaas/integration-guide).
+3. Review the [Authentication](/idaas/authentication) flow.
+4. Set up [Webhooks](/idaas/webhooks) before you process transactions.
+
+## Core capabilities
+
+| Capability | Summary |
+| --- | --- |
+| Identity tags | Portable, application-scoped tags with globally unique qualified addresses such as `alice@walletapp` |
+| Transactions | Tag-to-tag payments that require receiver acceptance or rejection |
+| Wallets and ledger | Per-application escrow wallet plus immutable DEBIT/CREDIT ledger entries |
+| Settlement | End-of-day net position generation for reconciliation |
+| Security | JWT auth, JWE payload encryption, HMAC webhook signatures, and rate limiting |

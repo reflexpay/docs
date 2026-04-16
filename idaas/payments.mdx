@@ -1,0 +1,77 @@
+---
+title: Payments
+description: How cross-application transactions move from initiation to completion, rejection, or expiry.
+---
+
+# Payments
+
+IDaaS transactions are cross-application tag-to-tag payments.
+
+## Transaction states
+
+A transaction moves through one of these paths:
+
+```text
+AWAITING_ACCEPTANCE -> COMPLETED
+AWAITING_ACCEPTANCE -> REJECTED
+AWAITING_ACCEPTANCE -> EXPIRED
+```
+
+A payment only affects wallet balances when it becomes `COMPLETED`.
+
+## Initiate a payment
+
+`POST /v1/transactions`
+
+```bash
+curl -X POST https://staging-idaas.yourflexpay.com/api/v1/transactions \
+  -H 'Authorization: Bearer <token>' \
+  -H 'Content-Type: application/json' \
+  -H 'Idempotency-Key: txn-001' \
+  -d '{
+    "senderTag": "alice@walletapp",
+    "receiverTag": "bob@shopapp",
+    "amount": 500,
+    "currency": "NGN",
+    "callbackUrl": "https://wallet-app.example.com/idaas/callback"
+  }'
+```
+
+## Best practices
+
+- Prefer qualified tag addresses such as `alice@walletapp`.
+- Always send an `Idempotency-Key` for retriable requests.
+- Expect an asynchronous webhook to the receiver application.
+- Do not treat initiation as settlement; settlement occurs after acceptance.
+
+## Accept a transaction
+
+The receiving application accepts the transaction with:
+
+`POST /v1/transactions/{reference}/accept`
+
+On success, IDaaS:
+
+- marks the transaction as `COMPLETED`
+- debits the sender wallet
+- credits the receiver wallet
+- writes immutable ledger entries
+- sends the sender callback asynchronously
+
+## Reject a transaction
+
+The receiving application rejects the transaction with:
+
+`POST /v1/transactions/{reference}/reject`
+
+Rejections do not create ledger movements.
+
+## Expiry behavior
+
+Transactions that stay in `AWAITING_ACCEPTANCE` beyond the configured window are expired by a scheduled job.
+
+## Related topics
+
+- [Webhooks](/idaas/webhooks)
+- [Errors](/idaas/errors)
+
