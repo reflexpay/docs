@@ -20,11 +20,11 @@
   },
   "servers": [
     {
-      "url": "https://idaas.yourflexpay.com/api/v1",
+      "url": "https://idaas.yourflexpay.com/api",
       "description": "Production"
     },
     {
-      "url": "https://staging-idaas.yourflexpay.com/api/v1",
+      "url": "https://staging-idaas.yourflexpay.com/api",
       "description": "Staging"
     }
   ],
