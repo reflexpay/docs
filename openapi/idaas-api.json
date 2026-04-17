@@ -2,7 +2,7 @@
   "openapi": "3.0.1",
   "info": {
     "title": "IDaaS – Identity as a Service API",
-    "description": "## Overview\nIDaaS provides globally unique, portable identity **tags** that travel with users across applications.  Each tag is a short handle (e.g. `@alice`) that can carry verified claims, participate in cross-application payments, and be federated to external identity providers.\n\n## Key Capabilities\n- **Tags** – create, transfer, disable, and attach claims to identity handles.\n- **Cross-application payments** – send money from any tag on Application A   to any tag on Application B; each application has a single escrow wallet   tracked for end-of-day settlement.\n- **Webhooks** – real-time callbacks with HMAC-SHA256 signatures and   automatic retry (up to 3 attempts with exponential back-off).\n- **Settlement** – a scheduled end-of-day job aggregates daily wallet   movements and emits `SETTLEMENT_BATCH` Kafka events.\n\n## Authentication\n1. Register an application: `POST /v1/applications`\n2. Exchange credentials for a JWT: `POST /v1/auth/token`\n3. Include the JWT as `Authorization: Bearer <token>` on all protected calls.\n\n## Rate Limits\n| Endpoint | Limit |\n|---|---|\n| `POST /v1/auth/token` | 10 req / min per IP |\n| `POST /v1/transactions` | 60 req / min per application |\n| All other | 300 req / min per IP |\n",
+    "description": "## Overview\nIDaaS provides globally unique, portable identity **tags** that travel with users across applications.  Each tag is a short handle (e.g. `@alice`) that can carry verified claims, participate in cross-application payments, and be federated to external identity providers.\n\n## Key Capabilities\n- **Tags** – create, transfer, disable, and attach claims to identity handles.\n- **Cross-application payments** – send money from any tag on Application A   to any tag on Application B; each application has a single escrow wallet   tracked for end-of-day settlement.\n- **Ledger** – every completed payment produces an immutable double-entry   `DEBIT` / `CREDIT` pair recorded against application wallets.\n- **Webhooks** – real-time callbacks with HMAC-SHA256 signatures and   automatic retry (up to 3 attempts with exponential back-off).\n- **Settlement** – a scheduled end-of-day job aggregates daily wallet   movements and emits `SETTLEMENT_BATCH` Kafka events.\n\n## Authentication\n1. Register an application: `POST /v1/applications`\n2. Exchange credentials for a JWT: `POST /v1/auth/token`\n3. Include the JWT as `Authorization: Bearer \u003Ctoken\u003E` on all protected calls.\n\n## Rate Limits\n| Endpoint | Limit |\n|---|---|\n| `POST /v1/auth/token` | 10 req / min per IP |\n| `POST /v1/transactions` | 60 req / min per application |\n| All other | 300 req / min per IP |\n",
     "contact": {
       "name": "ReflexPay Platform Team",
       "url": "https://yourflexpay.com",
@@ -16,7 +16,7 @@
   },
   "externalDocs": {
     "description": "IDaaS GitHub Repository",
-    "url": "https://github.com/flex/idaas"
+    "url": "https://github.com/reflexpay/idaas"
   },
   "servers": [
     {
@@ -39,12 +39,12 @@
       "description": "Exchange client credentials for a JWT access token."
     },
     {
-      "name": "Applications",
-      "description": "Register and manage API client applications (tenants)"
-    },
-    {
       "name": "Claims",
       "description": "Attach and revoke verifiable claims on tags."
+    },
+    {
+      "name": "Authentication",
+      "description": "Exchange credentials for access tokens and rotate integration credentials"
     },
     {
       "name": "Encryption",
@@ -93,10 +93,6 @@
     {
       "name": "Applications",
       "description": "Register and manage API client applications (tenants)."
-    },
-    {
-      "name": "Admin",
-      "description": "Administrative APIs for cross-entity management"
     },
     {
       "name": "Tags",
@@ -186,26 +182,6 @@
           "required": true
         },
         "responses": {
-          "201": {
-            "description": "Transaction initiated successfully",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResponseTransactionResponse"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Validation error (invalid tags, zero amount, etc.)",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResponse"
-                }
-              }
-            }
-          },
           "401": {
             "description": "Missing or invalid bearer token",
             "content": {
@@ -226,12 +202,32 @@
               }
             }
           },
+          "201": {
+            "description": "Transaction initiated successfully",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseTransactionResponse"
+                }
+              }
+            }
+          },
           "429": {
             "description": "Rate limit exceeded",
             "content": {
               "*/*": {
                 "schema": {
                   "$ref": "#/components/schemas/ApiResponseTransactionResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation error (invalid tags, zero amount, etc.)",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse"
                 }
               }
             }
@@ -278,16 +274,6 @@
               }
             }
           },
-          "403": {
-            "description": "Calling application is not the receiver",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResponseTransactionResponse"
-                }
-              }
-            }
-          },
           "404": {
             "description": "Transaction not found",
             "content": {
@@ -300,6 +286,16 @@
           },
           "409": {
             "description": "Transaction is not in AWAITING_ACCEPTANCE state",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseTransactionResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Calling application is not the receiver",
             "content": {
               "*/*": {
                 "schema": {
@@ -331,26 +327,6 @@
           }
         ],
         "responses": {
-          "200": {
-            "description": "Transaction accepted and completed",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResponseTransactionResponse"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "Calling application is not the receiver",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResponseTransactionResponse"
-                }
-              }
-            }
-          },
           "404": {
             "description": "Transaction not found",
             "content": {
@@ -370,6 +346,26 @@
                 }
               }
             }
+          },
+          "200": {
+            "description": "Transaction accepted and completed",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseTransactionResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Calling application is not the receiver",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseTransactionResponse"
+                }
+              }
+            }
           }
         }
       }
@@ -379,6 +375,8 @@
         "tags": [
           "Tags"
         ],
+        "summary": "List application tags",
+        "description": "Returns all tags created by the authenticated application.",
         "operationId": "listTags",
         "responses": {
           "200": {
@@ -397,6 +395,8 @@
         "tags": [
           "Tags"
         ],
+        "summary": "Create a new tag",
+        "description": "Creates a globally unique tag for a subject owned by the authenticated application.",
         "operationId": "createTag",
         "requestBody": {
           "content": {
@@ -427,6 +427,8 @@
         "tags": [
           "Tags"
         ],
+        "summary": "Transfer tag ownership",
+        "description": "Transfers a tag from the current application-owned subject to another target subject.",
         "operationId": "transfer",
         "parameters": [
           {
@@ -467,6 +469,8 @@
         "tags": [
           "Tags"
         ],
+        "summary": "Get federated identity",
+        "description": "Retrieves federated identity linkage details for the specified tag.",
         "operationId": "getFederation",
         "parameters": [
           {
@@ -495,6 +499,8 @@
         "tags": [
           "Tags"
         ],
+        "summary": "Initiate tag federation",
+        "description": "Starts federated identity linking for a tag by issuing a challenge for cross-application verification.",
         "operationId": "initiateFederation",
         "parameters": [
           {
@@ -535,6 +541,8 @@
         "tags": [
           "Tags"
         ],
+        "summary": "List tag claims",
+        "description": "Returns all claims currently recorded for a tag, scoped to the authenticated application context.",
         "operationId": "getClaimsForTag",
         "parameters": [
           {
@@ -563,6 +571,8 @@
         "tags": [
           "Tags"
         ],
+        "summary": "Request tag claim",
+        "description": "Requests a claim to link the requesting application's subject identity to an existing tag.",
         "operationId": "requestClaim",
         "parameters": [
           {
@@ -603,10 +613,22 @@
         "tags": [
           "Subjects"
         ],
+        "summary": "List subjects",
+        "description": "Lists all subjects that belong to the authenticated application.",
         "operationId": "listAll",
         "responses": {
+          "401": {
+            "description": "Missing or invalid bearer token",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseListSubjectResponse"
+                }
+              }
+            }
+          },
           "200": {
-            "description": "OK",
+            "description": "Subjects returned",
             "content": {
               "*/*": {
                 "schema": {
@@ -621,6 +643,8 @@
         "tags": [
           "Subjects"
         ],
+        "summary": "Create subject",
+        "description": "Creates a new subject within the authenticated application's tenant scope.",
         "operationId": "create",
         "requestBody": {
           "content": {
@@ -633,8 +657,28 @@
           "required": true
         },
         "responses": {
-          "200": {
-            "description": "OK",
+          "201": {
+            "description": "Subject created",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseSubjectResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request payload",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseSubjectResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid bearer token",
             "content": {
               "*/*": {
                 "schema": {
@@ -667,8 +711,8 @@
           }
         ],
         "responses": {
-          "200": {
-            "description": "Settlement run completed (or already completed for this date)",
+          "500": {
+            "description": "Settlement run failed – error details in response",
             "content": {
               "*/*": {
                 "schema": {
@@ -687,8 +731,8 @@
               }
             }
           },
-          "500": {
-            "description": "Settlement run failed – error details in response",
+          "200": {
+            "description": "Settlement run completed (or already completed for this date)",
             "content": {
               "*/*": {
                 "schema": {
@@ -705,6 +749,8 @@
         "tags": [
           "Claims"
         ],
+        "summary": "Verify federation link",
+        "description": "Verifies a federation challenge token and finalizes cross-application identity linking.",
         "operationId": "verifyFederationLink",
         "parameters": [
           {
@@ -718,7 +764,27 @@
         ],
         "responses": {
           "200": {
-            "description": "OK",
+            "description": "Federation link verified",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseFederatedIdentityResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Challenge token is not in a verifiable state",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseFederatedIdentityResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Challenge token not found or expired",
             "content": {
               "*/*": {
                 "schema": {
@@ -735,6 +801,8 @@
         "tags": [
           "Consent"
         ],
+        "summary": "Deny consent request",
+        "description": "Denies a pending consent token and marks the related claim request as rejected.",
         "operationId": "deny",
         "parameters": [
           {
@@ -748,7 +816,27 @@
         ],
         "responses": {
           "200": {
-            "description": "OK",
+            "description": "Consent denied",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseClaimResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Consent token not found or expired",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseClaimResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Consent is no longer pending",
             "content": {
               "*/*": {
                 "schema": {
@@ -765,6 +853,8 @@
         "tags": [
           "Consent"
         ],
+        "summary": "Approve consent request",
+        "description": "Approves a pending consent token and returns an attestation token for the requesting application.",
         "operationId": "approve",
         "parameters": [
           {
@@ -777,8 +867,28 @@
           }
         ],
         "responses": {
+          "404": {
+            "description": "Consent token not found or expired",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseAttestationTokenResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Consent is no longer pending",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseAttestationTokenResponse"
+                }
+              }
+            }
+          },
           "200": {
-            "description": "OK",
+            "description": "Consent approved and attestation token issued",
             "content": {
               "*/*": {
                 "schema": {
@@ -795,6 +905,8 @@
         "tags": [
           "Claims"
         ],
+        "summary": "Revoke a claim",
+        "description": "Revokes a previously approved claim for the authenticated application so it is no longer considered valid.",
         "operationId": "revoke",
         "parameters": [
           {
@@ -808,8 +920,38 @@
           }
         ],
         "responses": {
+          "401": {
+            "description": "Missing or invalid bearer token",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseClaimResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Claim not found",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseClaimResponse"
+                }
+              }
+            }
+          },
           "200": {
-            "description": "OK",
+            "description": "Claim revoked",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseClaimResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Claim is not in a revocable state",
             "content": {
               "*/*": {
                 "schema": {
@@ -824,7 +966,6 @@
     "/v1/auth/token": {
       "post": {
         "tags": [
-          "Applications",
           "Authentication"
         ],
         "summary": "Exchange credentials for a JWT",
@@ -861,16 +1002,6 @@
               }
             }
           },
-          "401": {
-            "description": "Invalid credentials",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResponseAttestationTokenResponse"
-                }
-              }
-            }
-          },
           "429": {
             "description": "Rate limit exceeded",
             "content": {
@@ -880,104 +1011,74 @@
                 }
               }
             }
+          },
+          "401": {
+            "description": "Invalid credentials",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseAttestationTokenResponse"
+                }
+              }
+            }
           }
         },
         "security": []
       }
     },
-    "/v1/applications": {
-      "get": {
+    "/v1/applications/webhook-secret/rotate": {
+      "post": {
         "tags": [
-          "Applications"
+          "Authentication",
+          "Encryption"
         ],
-        "summary": "List all applications",
-        "description": "Returns all registered applications. Requires an authenticated application token.",
-        "operationId": "listAll_2",
+        "summary": "Rotate the calling application's webhook signing secret",
+        "description": "Generates a new webhook signing secret for the authenticated application,\nstores only its hash, and returns the raw secret once.\n\nUse the returned `webhookSecret` to verify `X-IDaaS-Signature` on inbound webhooks.\nThe previous webhook secret becomes invalid immediately.\n",
+        "operationId": "rotateWebhookSecret",
         "responses": {
-          "200": {
-            "description": "List of applications",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResponseListApplicationResponse"
-                }
-              }
-            }
-          },
           "401": {
             "description": "Missing or invalid bearer token",
             "content": {
               "*/*": {
                 "schema": {
-                  "$ref": "#/components/schemas/ApiResponseListApplicationResponse"
+                  "$ref": "#/components/schemas/ApiResponseApplicationResponse"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "Webhook secret rotated - new secret returned once",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseApplicationResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Application not found",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseApplicationResponse"
                 }
               }
             }
           }
         }
-      },
-      "post": {
-        "tags": [
-          "Applications"
-        ],
-        "summary": "Register a new application",
-        "description": "Creates a new API client application (tenant) in IDaaS.\nReturns a `clientId` and `clientSecret` – **the secret is shown only once**,\nstore it securely and use it with `POST /v1/auth/token`.\n",
-        "operationId": "register",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/CreateApplicationRequest"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "201": {
-            "description": "Application registered successfully",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResponseApplicationResponse"
-                }
-              }
-            }
-          },
-          "409": {
-            "description": "Application name already exists",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResponse"
-                }
-              }
-            }
-          }
-        },
-        "security": []
       }
     },
     "/v1/applications/keys/rotate": {
       "post": {
         "tags": [
-          "Applications",
+          "Authentication",
           "Encryption"
         ],
         "summary": "Rotate the calling application's EC keypair",
-        "description": "Generates a fresh EC P-256 keypair for the authenticated application and\nreturns the new public key (JWK + Base64 DER) and the private key JWK (`appPrivateJwk`).\n\nAfter rotation:\n- IDaaS will encrypt all outbound webhooks with the **new** public key.\n- Requests encrypted with the **old** public key will be rejected (Content-Encryption: JWE decryption will fail).\n- Allow a brief migration window for in-flight messages before destroying the old private key material.\n\nThe `keyVersion` field is incremented on each rotation.\n",
+        "description": "Generates a fresh EC P-256 keypair for the authenticated application and\nreturns the new public key (JWK) and private key material (`appPrivateJwk`).\n\n**The private JWK is returned only once** - store it securely.\nAfter rotation:\n- IDaaS will encrypt all outbound webhooks with the **new** public key.\n- Requests encrypted with the **old** public key will be rejected (Content-Encryption: JWE decryption will fail).\n- Allow a brief migration window for in-flight messages before destroying the old private key.\n\nThe `keyVersion` field is incremented on each rotation.\n",
         "operationId": "rotateKeys",
         "responses": {
-          "200": {
-            "description": "Keypair rotated – new key material returned",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResponseApplicationResponse"
-                }
-              }
-            }
-          },
           "401": {
             "description": "Missing or invalid bearer token",
             "content": {
@@ -997,6 +1098,16 @@
                 }
               }
             }
+          },
+          "200": {
+            "description": "Keypair rotated - new key material returned",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseApplicationResponse"
+                }
+              }
+            }
           }
         }
       }
@@ -1006,6 +1117,8 @@
         "tags": [
           "Tags"
         ],
+        "summary": "Disable tag",
+        "description": "Disables a tag owned by the authenticated application so it can no longer be used for new operations.",
         "operationId": "disableTag",
         "parameters": [
           {
@@ -1031,67 +1144,15 @@
         }
       }
     },
-    "/v1/applications/{id}/deactivate": {
-      "patch": {
-        "tags": [
-          "Applications"
-        ],
-        "summary": "Deactivate an application",
-        "description": "Marks an application as inactive. The application's JWT tokens are immediately blacklisted.",
-        "operationId": "deactivate",
-        "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "description": "Application UUID",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Application deactivated",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResponseVoid"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Application not found",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResponseVoid"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/v1/admin/entities/{entity}/{id}": {
+    "/v1/subjects/{id}": {
       "get": {
         "tags": [
-          "Admin"
+          "Subjects"
         ],
-        "summary": "Get a single record by UUID",
-        "operationId": "getById_4",
+        "summary": "Get subject by ID",
+        "description": "Returns one subject by UUID.",
+        "operationId": "getById_1",
         "parameters": [
-          {
-            "name": "entity",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            },
-            "example": "applications"
-          },
           {
             "name": "id",
             "in": "path",
@@ -1099,77 +1160,26 @@
             "schema": {
               "type": "string",
               "format": "uuid"
-            },
-            "example": "2c63eb32-1791-46f8-b1fb-c6d9f77ad2c8"
+            }
           }
         ],
         "responses": {
           "200": {
-            "description": "Record returned",
+            "description": "Subject returned",
             "content": {
               "*/*": {
                 "schema": {
-                  "$ref": "#/components/schemas/ApiResponseMapStringObject"
+                  "$ref": "#/components/schemas/ApiResponseSubjectResponse"
                 }
               }
             }
           },
           "404": {
-            "description": "Record not found",
+            "description": "Subject not found",
             "content": {
               "*/*": {
                 "schema": {
-                  "$ref": "#/components/schemas/ApiResponseMapStringObject"
-                }
-              }
-            }
-          }
-        }
-      },
-      "delete": {
-        "tags": [
-          "Admin"
-        ],
-        "summary": "Delete a record by UUID",
-        "operationId": "delete",
-        "parameters": [
-          {
-            "name": "entity",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            },
-            "example": "transactions"
-          },
-          {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            },
-            "example": "2c63eb32-1791-46f8-b1fb-c6d9f77ad2c8"
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Record deleted",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResponseVoid"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Record not found",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResponseVoid"
+                  "$ref": "#/components/schemas/ApiResponseSubjectResponse"
                 }
               }
             }
@@ -1178,21 +1188,12 @@
       },
       "patch": {
         "tags": [
-          "Admin"
+          "Subjects"
         ],
-        "summary": "Patch scalar fields on a record",
-        "description": "Only per-entity allowlisted scalar fields can be patched. Nested objects are rejected.",
-        "operationId": "patch",
+        "summary": "Patch subject",
+        "description": "Applies partial updates to a subject record owned by the authenticated application.",
+        "operationId": "patchById",
         "parameters": [
-          {
-            "name": "entity",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            },
-            "example": "applications"
-          },
           {
             "name": "id",
             "in": "path",
@@ -1200,60 +1201,56 @@
             "schema": {
               "type": "string",
               "format": "uuid"
-            },
-            "example": "2c63eb32-1791-46f8-b1fb-c6d9f77ad2c8"
+            }
           }
         ],
         "requestBody": {
           "content": {
             "application/json": {
               "schema": {
-                "type": "object",
-                "additionalProperties": {
-                  "type": "object"
-                }
-              },
-              "examples": {
-                "applicationPatch": {
-                  "description": "applicationPatch",
-                  "value": {
-                    "active": true,
-                    "transactionWebhookUrl": "https://example.com/hook",
-                    "metadata": "{\"tier\":\"gold\"}"
-                  }
-                }
+                "$ref": "#/components/schemas/PatchSubjectRequest"
               }
             }
           },
           "required": true
         },
         "responses": {
-          "200": {
-            "description": "Record updated",
+          "400": {
+            "description": "Invalid request payload",
             "content": {
               "*/*": {
                 "schema": {
-                  "$ref": "#/components/schemas/ApiResponseMapStringObject"
+                  "$ref": "#/components/schemas/ApiResponseSubjectResponse"
                 }
               }
             }
           },
-          "400": {
-            "description": "Disallowed field(s) or invalid value",
+          "401": {
+            "description": "Missing or invalid bearer token",
             "content": {
               "*/*": {
                 "schema": {
-                  "$ref": "#/components/schemas/ApiResponseMapStringObject"
+                  "$ref": "#/components/schemas/ApiResponseSubjectResponse"
                 }
               }
             }
           },
           "404": {
-            "description": "Record not found",
+            "description": "Subject not found",
             "content": {
               "*/*": {
                 "schema": {
-                  "$ref": "#/components/schemas/ApiResponseMapStringObject"
+                  "$ref": "#/components/schemas/ApiResponseSubjectResponse"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "Subject updated",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseSubjectResponse"
                 }
               }
             }
@@ -1399,8 +1396,8 @@
           }
         ],
         "responses": {
-          "200": {
-            "description": "Transaction found",
+          "404": {
+            "description": "Transaction not found",
             "content": {
               "*/*": {
                 "schema": {
@@ -1409,8 +1406,8 @@
               }
             }
           },
-          "404": {
-            "description": "Transaction not found",
+          "200": {
+            "description": "Transaction found",
             "content": {
               "*/*": {
                 "schema": {
@@ -1442,8 +1439,8 @@
           }
         ],
         "responses": {
-          "200": {
-            "description": "Webhook records returned",
+          "404": {
+            "description": "Transaction not found",
             "content": {
               "*/*": {
                 "schema": {
@@ -1452,8 +1449,8 @@
               }
             }
           },
-          "404": {
-            "description": "Transaction not found",
+          "200": {
+            "description": "Webhook records returned",
             "content": {
               "*/*": {
                 "schema": {
@@ -1652,6 +1649,8 @@
         "tags": [
           "Tags"
         ],
+        "summary": "Resolve tag",
+        "description": "Resolves a tag to its canonical profile and ownership details. This endpoint is public.",
         "operationId": "resolveTag",
         "parameters": [
           {
@@ -1677,20 +1676,29 @@
         }
       }
     },
-    "/v1/subjects/{id}": {
+    "/v1/tags/search": {
       "get": {
         "tags": [
-          "Subjects"
+          "Tags"
         ],
-        "operationId": "getById_1",
+        "summary": "Search tags",
+        "description": "Searches tags by keyword and optionally narrows results to a specific application handle.",
+        "operationId": "searchTags",
         "parameters": [
           {
-            "name": "id",
-            "in": "path",
+            "name": "keyword",
+            "in": "query",
             "required": true,
             "schema": {
-              "type": "string",
-              "format": "uuid"
+              "type": "string"
+            }
+          },
+          {
+            "name": "appHandle",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
             }
           }
         ],
@@ -1700,7 +1708,7 @@
             "content": {
               "*/*": {
                 "schema": {
-                  "$ref": "#/components/schemas/ApiResponseSubjectResponse"
+                  "$ref": "#/components/schemas/ApiResponseListTagResponse"
                 }
               }
             }
@@ -1713,6 +1721,8 @@
         "tags": [
           "Subjects"
         ],
+        "summary": "List subject tags",
+        "description": "Returns all tags currently linked to a subject.",
         "operationId": "getTagsForSubject",
         "parameters": [
           {
@@ -1727,11 +1737,73 @@
         ],
         "responses": {
           "200": {
-            "description": "OK",
+            "description": "Subject tags returned",
             "content": {
               "*/*": {
                 "schema": {
                   "$ref": "#/components/schemas/ApiResponseListTagResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Subject not found",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseListTagResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/subjects/external/{externalId}": {
+      "get": {
+        "tags": [
+          "Subjects"
+        ],
+        "summary": "Get subject by external ID",
+        "description": "Looks up a subject by the external identifier in the authenticated application's namespace.",
+        "operationId": "getByExternalId",
+        "parameters": [
+          {
+            "name": "externalId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "401": {
+            "description": "Missing or invalid bearer token",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseSubjectResponse"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "Subject returned",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseSubjectResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Subject not found",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseSubjectResponse"
                 }
               }
             }
@@ -1887,6 +1959,8 @@
         "tags": [
           "Consent"
         ],
+        "summary": "Get consent details",
+        "description": "Returns consent request details for a consent token so a user can review and decide to approve or deny.",
         "operationId": "getConsentPage",
         "parameters": [
           {
@@ -1900,7 +1974,7 @@
         ],
         "responses": {
           "200": {
-            "description": "OK",
+            "description": "Consent details returned",
             "content": {
               "*/*": {
                 "schema": {
@@ -1908,154 +1982,13 @@
                 }
               }
             }
-          }
-        }
-      }
-    },
-    "/v1/applications/{id}": {
-      "get": {
-        "tags": [
-          "Applications"
-        ],
-        "summary": "Get application by ID",
-        "description": "Returns a single application by its UUID.",
-        "operationId": "getById_3",
-        "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "description": "Application UUID",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Application found",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResponseApplicationResponse"
-                }
-              }
-            }
           },
           "404": {
-            "description": "Application not found",
+            "description": "Consent token not found or expired",
             "content": {
               "*/*": {
                 "schema": {
-                  "$ref": "#/components/schemas/ApiResponseApplicationResponse"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/v1/admin/entities": {
-      "get": {
-        "tags": [
-          "Admin"
-        ],
-        "summary": "List manageable entities",
-        "description": "Returns the entity keys accepted by /v1/admin/entities/{entity}.",
-        "operationId": "entities",
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResponseSetString"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/v1/admin/entities/{entity}": {
-      "get": {
-        "tags": [
-          "Admin"
-        ],
-        "summary": "List records for an entity",
-        "description": "Paged cross-tenant listing for one entity type. Example: entity=applications",
-        "operationId": "list",
-        "parameters": [
-          {
-            "name": "entity",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            },
-            "example": "applications"
-          },
-          {
-            "name": "page",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "type": "integer",
-              "format": "int32",
-              "default": 0
-            },
-            "example": 0
-          },
-          {
-            "name": "size",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "type": "integer",
-              "format": "int32",
-              "default": 20
-            },
-            "example": 20
-          },
-          {
-            "name": "sort",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "type": "string",
-              "default": "createdAt,desc"
-            },
-            "example": "createdAt,desc"
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Records returned",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResponsePageMapStringObject"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Invalid entity or paging request",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResponsePageMapStringObject"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "Admin role required",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResponsePageMapStringObject"
+                  "$ref": "#/components/schemas/ApiResponseConsentResponse"
                 }
               }
             }
@@ -2068,6 +2001,8 @@
         "tags": [
           "Claims"
         ],
+        "summary": "Revoke federated identity link",
+        "description": "Revokes an existing federated identity link owned by the authenticated application.",
         "operationId": "revokeIdentityLink",
         "parameters": [
           {
@@ -2082,7 +2017,27 @@
         ],
         "responses": {
           "200": {
-            "description": "OK",
+            "description": "Federated identity link revoked",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseVoid"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Federated identity link not found",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseVoid"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid bearer token",
             "content": {
               "*/*": {
                 "schema": {
@@ -2104,6 +2059,9 @@
             "type": "boolean"
           },
           "message": {
+            "type": "string"
+          },
+          "errorCode": {
             "type": "string"
           },
           "data": {
@@ -2221,6 +2179,9 @@
           "message": {
             "type": "string"
           },
+          "errorCode": {
+            "type": "string"
+          },
           "data": {
             "type": "object"
           },
@@ -2243,6 +2204,9 @@
             "type": "boolean"
           },
           "message": {
+            "type": "string"
+          },
+          "errorCode": {
             "type": "string"
           },
           "data": {
@@ -2499,6 +2463,9 @@
           "message": {
             "type": "string"
           },
+          "errorCode": {
+            "type": "string"
+          },
           "data": {
             "$ref": "#/components/schemas/TagResponse"
           },
@@ -2598,6 +2565,9 @@
           "email": {
             "type": "string"
           },
+          "imageUrl": {
+            "type": "string"
+          },
           "metadata": {
             "type": "object",
             "additionalProperties": {
@@ -2688,6 +2658,9 @@
           "message": {
             "type": "string"
           },
+          "errorCode": {
+            "type": "string"
+          },
           "data": {
             "$ref": "#/components/schemas/FederatedIdentityResponse"
           },
@@ -2773,6 +2746,9 @@
           "message": {
             "type": "string"
           },
+          "errorCode": {
+            "type": "string"
+          },
           "data": {
             "$ref": "#/components/schemas/ClaimResponse"
           },
@@ -2814,6 +2790,11 @@
             "additionalProperties": {
               "type": "object"
             }
+          },
+          "imageUrl": {
+            "maxLength": 1000,
+            "minLength": 0,
+            "type": "string"
           }
         }
       },
@@ -2824,6 +2805,9 @@
             "type": "boolean"
           },
           "message": {
+            "type": "string"
+          },
+          "errorCode": {
             "type": "string"
           },
           "data": {
@@ -2848,6 +2832,9 @@
             "type": "boolean"
           },
           "message": {
+            "type": "string"
+          },
+          "errorCode": {
             "type": "string"
           },
           "data": {
@@ -3005,6 +2992,9 @@
           "message": {
             "type": "string"
           },
+          "errorCode": {
+            "type": "string"
+          },
           "data": {
             "$ref": "#/components/schemas/AttestationTokenResponse"
           },
@@ -3041,42 +3031,6 @@
           }
         }
       },
-      "CreateApplicationRequest": {
-        "required": [
-          "appHandle",
-          "name"
-        ],
-        "type": "object",
-        "properties": {
-          "name": {
-            "maxLength": 150,
-            "minLength": 2,
-            "type": "string"
-          },
-          "appHandle": {
-            "maxLength": 30,
-            "minLength": 3,
-            "pattern": "^[a-z0-9]([a-z0-9\\-]*[a-z0-9])?$",
-            "type": "string"
-          },
-          "redirectUris": {
-            "maxLength": 2000,
-            "minLength": 0,
-            "type": "string"
-          },
-          "transactionWebhookUrl": {
-            "maxLength": 500,
-            "minLength": 0,
-            "type": "string"
-          },
-          "metadata": {
-            "type": "object",
-            "additionalProperties": {
-              "type": "object"
-            }
-          }
-        }
-      },
       "ApiResponseApplicationResponse": {
         "type": "object",
         "properties": {
@@ -3084,6 +3038,9 @@
             "type": "boolean"
           },
           "message": {
+            "type": "string"
+          },
+          "errorCode": {
             "type": "string"
           },
           "data": {
@@ -3152,13 +3109,12 @@
             },
             "description": "Optional free-form metadata (JSON string)"
           },
+          "logoUrl": {
+            "type": "string",
+            "description": "Optional URL of the application logo image"
+          },
           "appPublicKeyJwk": {
             "$ref": "#/components/schemas/JwkDto"
-          },
-          "appPublicKey": {
-            "type": "string",
-            "description": "EC P-256 public key as Base64-encoded X.509 DER. Alternative to appPublicKeyJwk – use whichever format your JOSE library prefers.",
-            "readOnly": true
           },
           "appPrivateJwk": {
             "$ref": "#/components/schemas/JwkDto"
@@ -3201,9 +3157,12 @@
           },
           "alg": {
             "type": "string"
+          },
+          "d": {
+            "type": "string"
           }
         },
-        "description": "EC P-256 public key in JWK format. Use this to encrypt payloads sent TO IDaaS (ECDH-ES+A256KW+A256GCM). Returned on registration and on key rotation.",
+        "description": "EC P-256 private key in JWK format (includes 'd'). Returned ONLY on registration and on key rotation. Store securely – this can decrypt payloads encrypted for your application.",
         "readOnly": true
       },
       "ApiResponseVoid": {
@@ -3213,6 +3172,9 @@
             "type": "boolean"
           },
           "message": {
+            "type": "string"
+          },
+          "errorCode": {
             "type": "string"
           },
           "data": {
@@ -3230,30 +3192,29 @@
           }
         }
       },
-      "ApiResponseMapStringObject": {
+      "PatchSubjectRequest": {
         "type": "object",
         "properties": {
-          "success": {
-            "type": "boolean"
-          },
-          "message": {
+          "displayName": {
+            "maxLength": 150,
+            "minLength": 0,
             "type": "string"
           },
-          "data": {
+          "email": {
+            "maxLength": 200,
+            "minLength": 0,
+            "type": "string"
+          },
+          "imageUrl": {
+            "maxLength": 1000,
+            "minLength": 0,
+            "type": "string"
+          },
+          "metadata": {
             "type": "object",
             "additionalProperties": {
               "type": "object"
             }
-          },
-          "errors": {
-            "type": "array",
-            "items": {
-              "type": "string"
-            }
-          },
-          "timestamp": {
-            "type": "string",
-            "format": "date-time"
           }
         }
       },
@@ -3264,6 +3225,9 @@
             "type": "boolean"
           },
           "message": {
+            "type": "string"
+          },
+          "errorCode": {
             "type": "string"
           },
           "data": {
@@ -3309,6 +3273,9 @@
             "type": "boolean"
           },
           "message": {
+            "type": "string"
+          },
+          "errorCode": {
             "type": "string"
           },
           "data": {
@@ -3433,6 +3400,9 @@
           "message": {
             "type": "string"
           },
+          "errorCode": {
+            "type": "string"
+          },
           "data": {
             "$ref": "#/components/schemas/PageLedgerEntryResponse"
           },
@@ -3540,6 +3510,9 @@
           "message": {
             "type": "string"
           },
+          "errorCode": {
+            "type": "string"
+          },
           "data": {
             "type": "array",
             "items": {
@@ -3565,6 +3538,9 @@
             "type": "boolean"
           },
           "message": {
+            "type": "string"
+          },
+          "errorCode": {
             "type": "string"
           },
           "data": {
@@ -3640,6 +3616,9 @@
           "message": {
             "type": "string"
           },
+          "errorCode": {
+            "type": "string"
+          },
           "data": {
             "type": "array",
             "items": {
@@ -3665,6 +3644,9 @@
             "type": "boolean"
           },
           "message": {
+            "type": "string"
+          },
+          "errorCode": {
             "type": "string"
           },
           "data": {
@@ -3694,6 +3676,9 @@
           "message": {
             "type": "string"
           },
+          "errorCode": {
+            "type": "string"
+          },
           "data": {
             "type": "array",
             "items": {
@@ -3719,6 +3704,9 @@
             "type": "boolean"
           },
           "message": {
+            "type": "string"
+          },
+          "errorCode": {
             "type": "string"
           },
           "data": {
@@ -3785,6 +3773,36 @@
           }
         }
       },
+      "ApiResponseMapStringObject": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "message": {
+            "type": "string"
+          },
+          "errorCode": {
+            "type": "string"
+          },
+          "data": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "object"
+            }
+          },
+          "errors": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "timestamp": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
       "ApiResponseConsentResponse": {
         "type": "object",
         "properties": {
@@ -3792,6 +3810,9 @@
             "type": "boolean"
           },
           "message": {
+            "type": "string"
+          },
+          "errorCode": {
             "type": "string"
           },
           "data": {
@@ -3838,143 +3859,12 @@
             "type": "string"
           }
         }
-      },
-      "ApiResponseListApplicationResponse": {
-        "type": "object",
-        "properties": {
-          "success": {
-            "type": "boolean"
-          },
-          "message": {
-            "type": "string"
-          },
-          "data": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/ApplicationResponse"
-            }
-          },
-          "errors": {
-            "type": "array",
-            "items": {
-              "type": "string"
-            }
-          },
-          "timestamp": {
-            "type": "string",
-            "format": "date-time"
-          }
-        }
-      },
-      "ApiResponseSetString": {
-        "type": "object",
-        "properties": {
-          "success": {
-            "type": "boolean"
-          },
-          "message": {
-            "type": "string"
-          },
-          "data": {
-            "uniqueItems": true,
-            "type": "array",
-            "items": {
-              "type": "string"
-            }
-          },
-          "errors": {
-            "type": "array",
-            "items": {
-              "type": "string"
-            }
-          },
-          "timestamp": {
-            "type": "string",
-            "format": "date-time"
-          }
-        }
-      },
-      "ApiResponsePageMapStringObject": {
-        "type": "object",
-        "properties": {
-          "success": {
-            "type": "boolean"
-          },
-          "message": {
-            "type": "string"
-          },
-          "data": {
-            "$ref": "#/components/schemas/PageMapStringObject"
-          },
-          "errors": {
-            "type": "array",
-            "items": {
-              "type": "string"
-            }
-          },
-          "timestamp": {
-            "type": "string",
-            "format": "date-time"
-          }
-        }
-      },
-      "PageMapStringObject": {
-        "type": "object",
-        "properties": {
-          "totalElements": {
-            "type": "integer",
-            "format": "int64"
-          },
-          "totalPages": {
-            "type": "integer",
-            "format": "int32"
-          },
-          "first": {
-            "type": "boolean"
-          },
-          "last": {
-            "type": "boolean"
-          },
-          "size": {
-            "type": "integer",
-            "format": "int32"
-          },
-          "content": {
-            "type": "array",
-            "items": {
-              "type": "object",
-              "additionalProperties": {
-                "type": "object"
-              }
-            }
-          },
-          "number": {
-            "type": "integer",
-            "format": "int32"
-          },
-          "sort": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/SortObject"
-            }
-          },
-          "numberOfElements": {
-            "type": "integer",
-            "format": "int32"
-          },
-          "pageable": {
-            "$ref": "#/components/schemas/PageableObject"
-          },
-          "empty": {
-            "type": "boolean"
-          }
-        }
       }
     },
     "securitySchemes": {
       "bearerAuth": {
         "type": "http",
-        "description": "Obtain a token from `POST /v1/auth/token` using your `client_id` and `client_secret`, then enter `Bearer <token>` here.\n",
+        "description": "Obtain a token from `POST /v1/auth/token` using your `client_id` and `client_secret`, then enter `Bearer \u003Ctoken\u003E` here.\n",
         "scheme": "bearer",
         "bearerFormat": "JWT"
       }
