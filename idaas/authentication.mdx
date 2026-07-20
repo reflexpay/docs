@@ -1,6 +1,6 @@
 ---
-title: Authentication
-description: How applications authenticate and call protected IDaaS endpoints.
+title: "Authentication"
+description: "How applications authenticate and call protected IDaaS endpoints."
 ---
 
 # Authentication
@@ -52,12 +52,6 @@ These endpoints do not require prior authentication:
 - `POST /v1/auth/token`
 - `GET /v1/tags/{tag}`
 - `GET /v1/consent/**`
-- `POST /v1/consent/**`
-- `GET /v1/keys/idaas`
-
-## Admin endpoints
-
-Admin endpoints are under `/v1/admin/**` and require the `ROLE_ADMIN` mapping for the calling application.
 
 ## Operational guidance
 
@@ -65,4 +59,3 @@ Admin endpoints are under `/v1/admin/**` and require the `ROLE_ADMIN` mapping fo
 - Rotate compromised credentials immediately.
 - Cache the JWT only until it expires.
 - Never expose application secrets in client-side code.
-
