@@ -99,7 +99,7 @@
       },
       "get": {
         "tags": [
-          "Payment Request"
+          "Merchant Payment Request"
         ],
         "summary": "List payment requests",
         "parameters": [
