@@ -1,7 +1,7 @@
 {
   "openapi": "3.0.3",
   "info": {
-    "title": "Flex SSO Module API",
+    "title": "Wallet SSO API",
     "version": "1.0.0",
     "description": "OpenAPI specification for the Wallet service API."
   },
@@ -37,12 +37,8 @@
   ],
   "security": [
     {
-      "PartnerIdHeader": [
-
-      ],
-      "PartnerApiKeyHeader": [
-
-      ]
+      "PartnerIdHeader": [],
+      "PartnerApiKeyHeader": []
     }
   ],
   "paths": {
@@ -54,12 +50,8 @@
         "summary": "Authorize a customer and return redirect URL with auth-code",
         "security": [
           {
-            "PartnerIdHeader": [
-
-            ],
-            "PartnerApiKeyHeader": [
-
-            ]
+            "ClientIdHeader": [],
+            "ApiKeyHeader": []
           }
         ],
         "parameters": [
@@ -108,12 +100,8 @@
         "summary": "Exchange auth-code for customer token",
         "security": [
           {
-            "PartnerIdHeader": [
-
-            ],
-            "PartnerApiKeyHeader": [
-
-            ]
+            "ClientIdHeader": [],
+            "ApiKeyHeader": []
           }
         ],
         "parameters": [
@@ -148,12 +136,8 @@
         "summary": "Verify paytag availability",
         "security": [
           {
-            "PartnerIdHeader": [
-
-            ],
-            "PartnerApiKeyHeader": [
-
-            ]
+            "ClientIdHeader": [],
+            "ApiKeyHeader": []
           }
         ],
         "parameters": [
@@ -188,12 +172,8 @@
         "summary": "Initiate customer onboarding for tag creation",
         "security": [
           {
-            "PartnerIdHeader": [
-
-            ],
-            "PartnerApiKeyHeader": [
-
-            ]
+            "ClientIdHeader": [],
+            "ApiKeyHeader": []
           }
         ],
         "parameters": [
@@ -238,12 +218,8 @@
         "summary": "Get onboarding payload",
         "security": [
           {
-            "PartnerIdHeader": [
-
-            ],
-            "PartnerApiKeyHeader": [
-
-            ]
+            "ClientIdHeader": [],
+            "ApiKeyHeader": []
           }
         ],
         "responses": {
@@ -268,12 +244,8 @@
         "summary": "Send onboarding OTP",
         "security": [
           {
-            "PartnerIdHeader": [
-
-            ],
-            "PartnerApiKeyHeader": [
-
-            ]
+            "ClientIdHeader": [],
+            "ApiKeyHeader": []
           }
         ],
         "parameters": [
@@ -327,12 +299,8 @@
         "summary": "Validate onboarding OTP",
         "security": [
           {
-            "PartnerIdHeader": [
-
-            ],
-            "PartnerApiKeyHeader": [
-
-            ]
+            "ClientIdHeader": [],
+            "ApiKeyHeader": []
           }
         ],
         "parameters": [
@@ -385,12 +353,8 @@
         "summary": "Complete onboarding and create SSO customer",
         "security": [
           {
-            "PartnerIdHeader": [
-
-            ],
-            "PartnerApiKeyHeader": [
-
-            ]
+            "ClientIdHeader": [],
+            "ApiKeyHeader": []
           }
         ],
         "parameters": [
@@ -435,15 +399,9 @@
         "summary": "Get or create partner-scoped wallet for authenticated customer",
         "security": [
           {
-            "PartnerIdHeader": [
-
-            ],
-            "PartnerApiKeyHeader": [
-
-            ],
-            "BearerAuth": [
-
-            ]
+            "ClientIdHeader": [],
+            "ApiKeyHeader": [],
+            "BearerAuth": []
           }
         ],
         "parameters": [
@@ -478,15 +436,9 @@
         "summary": "Get wallet history",
         "security": [
           {
-            "PartnerIdHeader": [
-
-            ],
-            "PartnerApiKeyHeader": [
-
-            ],
-            "BearerAuth": [
-
-            ]
+            "ClientIdHeader": [],
+            "ApiKeyHeader": [],
+            "BearerAuth": []
           }
         ],
         "parameters": [
@@ -560,15 +512,9 @@
         "summary": "Get wallet histories by reference",
         "security": [
           {
-            "PartnerIdHeader": [
-
-            ],
-            "PartnerApiKeyHeader": [
-
-            ],
-            "BearerAuth": [
-
-            ]
+            "ClientIdHeader": [],
+            "ApiKeyHeader": [],
+            "BearerAuth": []
           }
         ],
         "parameters": [
@@ -606,15 +552,9 @@
         "summary": "Get wallet summary",
         "security": [
           {
-            "PartnerIdHeader": [
-
-            ],
-            "PartnerApiKeyHeader": [
-
-            ],
-            "BearerAuth": [
-
-            ]
+            "ClientIdHeader": [],
+            "ApiKeyHeader": [],
+            "BearerAuth": []
           }
         ],
         "responses": {
@@ -642,15 +582,9 @@
         "summary": "Get daily transaction limit and spend",
         "security": [
           {
-            "PartnerIdHeader": [
-
-            ],
-            "PartnerApiKeyHeader": [
-
-            ],
-            "BearerAuth": [
-
-            ]
+            "ClientIdHeader": [],
+            "ApiKeyHeader": [],
+            "BearerAuth": []
           }
         ],
         "parameters": [
@@ -696,15 +630,9 @@
         "summary": "Get wallet virtual accounts (creates one if none exists)",
         "security": [
           {
-            "PartnerIdHeader": [
-
-            ],
-            "PartnerApiKeyHeader": [
-
-            ],
-            "BearerAuth": [
-
-            ]
+            "ClientIdHeader": [],
+            "ApiKeyHeader": [],
+            "BearerAuth": []
           }
         ],
         "responses": {
@@ -732,15 +660,9 @@
         "summary": "Withdraw from customer wallet to bank account number",
         "security": [
           {
-            "PartnerIdHeader": [
-
-            ],
-            "PartnerApiKeyHeader": [
-
-            ],
-            "BearerAuth": [
-
-            ]
+            "ClientIdHeader": [],
+            "ApiKeyHeader": [],
+            "BearerAuth": []
           }
         ],
         "requestBody": {
@@ -790,15 +712,9 @@
         "summary": "Transfer from customer wallet to another paytag",
         "security": [
           {
-            "PartnerIdHeader": [
-
-            ],
-            "PartnerApiKeyHeader": [
-
-            ],
-            "BearerAuth": [
-
-            ]
+            "ClientIdHeader": [],
+            "ApiKeyHeader": [],
+            "BearerAuth": []
           }
         ],
         "requestBody": {
@@ -851,15 +767,9 @@
         "summary": "Bank transfer from customer wallet",
         "security": [
           {
-            "PartnerIdHeader": [
-
-            ],
-            "PartnerApiKeyHeader": [
-
-            ],
-            "BearerAuth": [
-
-            ]
+            "ClientIdHeader": [],
+            "ApiKeyHeader": [],
+            "BearerAuth": []
           }
         ],
         "requestBody": {
@@ -910,15 +820,9 @@
         "summary": "Get statement URL or trigger async statement generation",
         "security": [
           {
-            "PartnerIdHeader": [
-
-            ],
-            "PartnerApiKeyHeader": [
-
-            ],
-            "BearerAuth": [
-
-            ]
+            "ClientIdHeader": [],
+            "ApiKeyHeader": [],
+            "BearerAuth": []
           }
         ],
         "parameters": [
@@ -966,15 +870,9 @@
         "summary": "Get customer wallet transactions",
         "security": [
           {
-            "PartnerIdHeader": [
-
-            ],
-            "PartnerApiKeyHeader": [
-
-            ],
-            "BearerAuth": [
-
-            ]
+            "ClientIdHeader": [],
+            "ApiKeyHeader": [],
+            "BearerAuth": []
           }
         ],
         "parameters": [
@@ -1048,15 +946,9 @@
         "summary": "Get transaction by reference",
         "security": [
           {
-            "PartnerIdHeader": [
-
-            ],
-            "PartnerApiKeyHeader": [
-
-            ],
-            "BearerAuth": [
-
-            ]
+            "ClientIdHeader": [],
+            "ApiKeyHeader": [],
+            "BearerAuth": []
           }
         ],
         "parameters": [
@@ -1091,15 +983,9 @@
         "summary": "Create payment request",
         "security": [
           {
-            "PartnerIdHeader": [
-
-            ],
-            "PartnerApiKeyHeader": [
-
-            ],
-            "BearerAuth": [
-
-            ]
+            "ClientIdHeader": [],
+            "ApiKeyHeader": [],
+            "BearerAuth": []
           }
         ],
         "requestBody": {
@@ -1147,15 +1033,9 @@
         "summary": "List payment requests",
         "security": [
           {
-            "PartnerIdHeader": [
-
-            ],
-            "PartnerApiKeyHeader": [
-
-            ],
-            "BearerAuth": [
-
-            ]
+            "ClientIdHeader": [],
+            "ApiKeyHeader": [],
+            "BearerAuth": []
           }
         ],
         "parameters": [
@@ -1206,15 +1086,9 @@
         "summary": "Get payment request by id",
         "security": [
           {
-            "PartnerIdHeader": [
-
-            ],
-            "PartnerApiKeyHeader": [
-
-            ],
-            "BearerAuth": [
-
-            ]
+            "ClientIdHeader": [],
+            "ApiKeyHeader": [],
+            "BearerAuth": []
           }
         ],
         "parameters": [
@@ -1249,15 +1123,9 @@
         "summary": "Accept payment request and execute transfer",
         "security": [
           {
-            "PartnerIdHeader": [
-
-            ],
-            "PartnerApiKeyHeader": [
-
-            ],
-            "BearerAuth": [
-
-            ]
+            "ClientIdHeader": [],
+            "ApiKeyHeader": [],
+            "BearerAuth": []
           }
         ],
         "parameters": [
@@ -1292,15 +1160,9 @@
         "summary": "Cancel payment request",
         "security": [
           {
-            "PartnerIdHeader": [
-
-            ],
-            "PartnerApiKeyHeader": [
-
-            ],
-            "BearerAuth": [
-
-            ]
+            "ClientIdHeader": [],
+            "ApiKeyHeader": [],
+            "BearerAuth": []
           }
         ],
         "parameters": [
@@ -1335,15 +1197,9 @@
         "summary": "Decline payment request",
         "security": [
           {
-            "PartnerIdHeader": [
-
-            ],
-            "PartnerApiKeyHeader": [
-
-            ],
-            "BearerAuth": [
-
-            ]
+            "ClientIdHeader": [],
+            "ApiKeyHeader": [],
+            "BearerAuth": []
           }
         ],
         "parameters": [
@@ -1378,15 +1234,9 @@
         "summary": "Search paytags",
         "security": [
           {
-            "PartnerIdHeader": [
-
-            ],
-            "PartnerApiKeyHeader": [
-
-            ],
-            "BearerAuth": [
-
-            ]
+            "ClientIdHeader": [],
+            "ApiKeyHeader": [],
+            "BearerAuth": []
           }
         ],
         "parameters": [
@@ -1421,15 +1271,9 @@
         "summary": "Resolve paytag details",
         "security": [
           {
-            "PartnerIdHeader": [
-
-            ],
-            "PartnerApiKeyHeader": [
-
-            ],
-            "BearerAuth": [
-
-            ]
+            "ClientIdHeader": [],
+            "ApiKeyHeader": [],
+            "BearerAuth": []
           }
         ],
         "parameters": [
@@ -1464,15 +1308,9 @@
         "summary": "List partners connected to paytag through wallet provisioning",
         "security": [
           {
-            "PartnerIdHeader": [
-
-            ],
-            "PartnerApiKeyHeader": [
-
-            ],
-            "BearerAuth": [
-
-            ]
+            "ClientIdHeader": [],
+            "ApiKeyHeader": [],
+            "BearerAuth": []
           }
         ],
         "parameters": [
@@ -1510,15 +1348,9 @@
         "summary": "Save paytag beneficiary",
         "security": [
           {
-            "PartnerIdHeader": [
-
-            ],
-            "PartnerApiKeyHeader": [
-
-            ],
-            "BearerAuth": [
-
-            ]
+            "ClientIdHeader": [],
+            "ApiKeyHeader": [],
+            "BearerAuth": []
           }
         ],
         "requestBody": {
@@ -1559,15 +1391,9 @@
         "summary": "Get paytag beneficiaries",
         "security": [
           {
-            "PartnerIdHeader": [
-
-            ],
-            "PartnerApiKeyHeader": [
-
-            ],
-            "BearerAuth": [
-
-            ]
+            "ClientIdHeader": [],
+            "ApiKeyHeader": [],
+            "BearerAuth": []
           }
         ],
         "responses": {
@@ -1593,15 +1419,9 @@
         "summary": "Remove paytag beneficiary",
         "security": [
           {
-            "PartnerIdHeader": [
-
-            ],
-            "PartnerApiKeyHeader": [
-
-            ],
-            "BearerAuth": [
-
-            ]
+            "ClientIdHeader": [],
+            "ApiKeyHeader": [],
+            "BearerAuth": []
           }
         ],
         "requestBody": {
@@ -1639,15 +1459,15 @@
   },
   "components": {
     "securitySchemes": {
-      "PartnerIdHeader": {
+      "ClientIdHeader": {
         "type": "apiKey",
         "in": "header",
-        "name": "r-partner-id"
+        "name": "x-client-id"
       },
-      "PartnerApiKeyHeader": {
+      "ApiKeyHeader": {
         "type": "apiKey",
         "in": "header",
-        "name": "r-api-key"
+        "name": "x-api-key"
       },
       "BearerAuth": {
         "type": "http",

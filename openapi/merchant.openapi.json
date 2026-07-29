@@ -1,764 +1,475 @@
 {
-  "openapi": "3.0.0",
+  "openapi": "3.0.3",
   "info": {
-    "title": "Flex Merchant API",
+    "title": "Merchant API",
     "version": "1.0.0",
-    "description": ""
+    "description": "OpenAPI spec for Merchant API"
   },
-  "servers": [
+  "tags": [
     {
-      "url": "https://api.yourflexpay.com/v2",
-      "description": "Production"
+      "name": "Payment Request"
     },
     {
-      "url": "https://staging-api.yourflexpay.com/v2",
-      "description": "Staging"
+      "name": "QR"
     }
   ],
   "paths": {
     "/merchant/payment-request": {
       "post": {
-        "summary": "Request Payment",
-        "parameters": [
-          {
-            "name": "R-Merchant-ID",
-            "in": "header",
-            "required": false,
-            "deprecated": false,
-            "schema": {},
-            "example": "{{merchantId}}"
-          },
-          {
-            "name": "R-Api-Key",
-            "in": "header",
-            "required": false,
-            "deprecated": false,
-            "schema": {},
-            "example": "{{apiKey}}"
-          }
+        "tags": [
+          "Payment Request"
         ],
-        "responses": {
-          "201": {
-            "description": "Request Payment",
-            "headers": {
-              "Access-Control-Allow-Origin": {
-                "schema": {
-                  "type": "string"
-                },
-                "example": "*"
-              },
-              "X-RateLimit-Limit-Short": {
-                "schema": {
-                  "type": "integer"
-                },
-                "example": "50"
-              },
-              "X-RateLimit-Remaining-Short": {
-                "schema": {
-                  "type": "integer"
-                },
-                "example": "49"
-              },
-              "X-RateLimit-Reset-Short": {
-                "schema": {
-                  "type": "integer"
-                },
-                "example": "1"
-              },
-              "X-RateLimit-Limit-Medium": {
-                "schema": {
-                  "type": "integer"
-                },
-                "example": "300"
-              },
-              "X-RateLimit-Remaining-Medium": {
-                "schema": {
-                  "type": "integer"
-                },
-                "example": "299"
-              },
-              "X-RateLimit-Reset-Medium": {
-                "schema": {
-                  "type": "integer"
-                },
-                "example": "10"
-              },
-              "X-RateLimit-Limit-Long": {
-                "schema": {
-                  "type": "integer"
-                },
-                "example": "1000"
-              },
-              "X-RateLimit-Remaining-Long": {
-                "schema": {
-                  "type": "integer"
-                },
-                "example": "997"
-              },
-              "X-RateLimit-Reset-Long": {
-                "schema": {
-                  "type": "integer"
-                },
-                "example": "16"
-              },
-              "X-Frame-Options": {
-                "schema": {
-                  "type": "string"
-                },
-                "example": "DENY"
-              },
-              "Strict-Transport-Security": {
-                "schema": {
-                  "type": "string"
-                },
-                "example": "max-age=63072000; includeSubDomains; preload"
-              },
-              "Content-Security-Policy": {
-                "schema": {
-                  "type": "string"
-                },
-                "example": "default-src 'self';"
-              },
-              "Referrer-Policy": {
-                "schema": {
-                  "type": "string"
-                },
-                "example": "same-origin"
-              },
-              "Cross-Origin-Embedder-Policy": {
-                "schema": {
-                  "type": "string"
-                },
-                "example": "require-corp"
-              },
-              "Cross-Origin-Resource-Policy": {
-                "schema": {
-                  "type": "string"
-                },
-                "example": "same-origin"
-              },
-              "Cross-Origin-Opener-Policy": {
-                "schema": {
-                  "type": "string"
-                },
-                "example": "same-origin"
-              },
-              "Content-Length": {
-                "schema": {
-                  "type": "integer"
-                },
-                "example": "655"
-              },
-              "ETag": {
-                "schema": {
-                  "type": "string"
-                },
-                "example": "W/\"28f-d7NtA0KoRadlvRZnKCW0nzUZ5qI\""
-              },
-              "Date": {
-                "schema": {
-                  "type": "string"
-                },
-                "example": "Tue, 09 Dec 2025 19:09:16 GMT"
-              },
-              "Connection": {
-                "schema": {
-                  "type": "string"
-                },
-                "example": "keep-alive"
-              },
-              "Keep-Alive": {
-                "schema": {
-                  "type": "string"
-                },
-                "example": "timeout=5"
+        "summary": "Create payment request",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OneTapRequest"
               }
             }
           }
         },
-        "tags": [
-          "Payment Request"
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "properties": {
-                  "payer": {
-                    "type": "string"
-                  },
-                  "reference": {
-                    "type": "string"
-                  },
-                  "amount": {
-                    "type": "integer"
-                  },
-                  "comment": {
-                    "type": "string"
-                  },
-                  "metadata": {
-                    "type": "object"
-                  },
-                  "duration": {
-                    "type": "integer"
-                  }
+        "responses": {
+          "200": {
+            "description": "Created payment request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaymentRequest"
                 }
-              },
-              "example": {
-                "payer": "chixg",
-                "reference": "{{$randomAlphaNumeric}}",
-                "amount": 150,
-                "comment": "T-shirt and polo",
-                "metadata": {},
-                "duration": 5
               }
             }
           }
-        }
+        },
+        "security": [
+          {
+            "ClientIdHeader": [],
+            "ApiKeyHeader": [],
+            "MerchantLocationHeader": []
+          }
+        ]
       },
       "get": {
-        "summary": "Get Payment Requests",
+        "tags": [
+          "Payment Request"
+        ],
+        "summary": "List payment requests",
         "parameters": [
           {
-            "name": "R-Merchant-ID",
-            "in": "header",
+            "name": "limit",
+            "in": "query",
             "schema": {
-              "type": "string"
-            },
-            "example": "{{merchantId}}"
+              "type": "integer",
+              "minimum": 0
+            }
           },
           {
-            "name": "R-Api-Key",
-            "in": "header",
+            "name": "offset",
+            "in": "query",
             "schema": {
-              "type": "string"
-            },
-            "example": "{{apiKey}}"
+              "type": "integer",
+              "minimum": 0
+            }
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "schema": {
+              "$ref": "#/components/schemas/PaymentRequestStatus"
+            }
           }
         ],
         "responses": {
           "200": {
-            "description": "Get Payment Requests",
-            "headers": {
-              "Access-Control-Allow-Origin": {
+            "description": "Paginated payment request list",
+            "content": {
+              "application/json": {
                 "schema": {
-                  "type": "string"
-                },
-                "example": "*"
-              },
-              "X-RateLimit-Limit-Short": {
-                "schema": {
-                  "type": "integer"
-                },
-                "example": "50"
-              },
-              "X-RateLimit-Remaining-Short": {
-                "schema": {
-                  "type": "integer"
-                },
-                "example": "49"
-              },
-              "X-RateLimit-Reset-Short": {
-                "schema": {
-                  "type": "integer"
-                },
-                "example": "1"
-              },
-              "X-RateLimit-Limit-Medium": {
-                "schema": {
-                  "type": "integer"
-                },
-                "example": "300"
-              },
-              "X-RateLimit-Remaining-Medium": {
-                "schema": {
-                  "type": "integer"
-                },
-                "example": "299"
-              },
-              "X-RateLimit-Reset-Medium": {
-                "schema": {
-                  "type": "integer"
-                },
-                "example": "10"
-              },
-              "X-RateLimit-Limit-Long": {
-                "schema": {
-                  "type": "integer"
-                },
-                "example": "1000"
-              },
-              "X-RateLimit-Remaining-Long": {
-                "schema": {
-                  "type": "integer"
-                },
-                "example": "999"
-              },
-              "X-RateLimit-Reset-Long": {
-                "schema": {
-                  "type": "integer"
-                },
-                "example": "60"
-              },
-              "X-Frame-Options": {
-                "schema": {
-                  "type": "string"
-                },
-                "example": "DENY"
-              },
-              "Strict-Transport-Security": {
-                "schema": {
-                  "type": "string"
-                },
-                "example": "max-age=63072000; includeSubDomains; preload"
-              },
-              "Content-Security-Policy": {
-                "schema": {
-                  "type": "string"
-                },
-                "example": "default-src 'self';"
-              },
-              "Referrer-Policy": {
-                "schema": {
-                  "type": "string"
-                },
-                "example": "same-origin"
-              },
-              "Cross-Origin-Embedder-Policy": {
-                "schema": {
-                  "type": "string"
-                },
-                "example": "require-corp"
-              },
-              "Cross-Origin-Resource-Policy": {
-                "schema": {
-                  "type": "string"
-                },
-                "example": "same-origin"
-              },
-              "Cross-Origin-Opener-Policy": {
-                "schema": {
-                  "type": "string"
-                },
-                "example": "same-origin"
-              },
-              "Content-Length": {
-                "schema": {
-                  "type": "integer"
-                },
-                "example": "699"
-              },
-              "ETag": {
-                "schema": {
-                  "type": "string"
-                },
-                "example": "W/\"2bb-ylm4vcEZDxi5WOezoRoU5/PCtJI\""
-              },
-              "Date": {
-                "schema": {
-                  "type": "string"
-                },
-                "example": "Tue, 09 Dec 2025 19:09:35 GMT"
-              },
-              "Connection": {
-                "schema": {
-                  "type": "string"
-                },
-                "example": "keep-alive"
-              },
-              "Keep-Alive": {
-                "schema": {
-                  "type": "string"
-                },
-                "example": "timeout=5"
+                  "$ref": "#/components/schemas/PaginatedPaymentRequestResponse"
+                }
               }
             }
           }
         },
+        "security": [
+          {
+            "ClientIdHeader": [],
+            "ApiKeyHeader": [],
+            "MerchantLocationHeader": []
+          }
+        ]
+      }
+    },
+    "/merchant/payment-request/resolve-paytag": {
+      "get": {
         "tags": [
           "Payment Request"
         ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object"
+        "summary": "Resolve paytag",
+        "parameters": [
+          {
+            "name": "tag",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Paytag owner details",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResolvePayTagResponse"
+                }
               }
             }
           }
-        }
+        },
+        "security": [
+          {
+            "ClientIdHeader": [],
+            "ApiKeyHeader": []
+          }
+        ]
       }
     },
     "/merchant/payment-request/{reference}": {
       "get": {
-        "summary": "Get Payment Request",
+        "tags": [
+          "Payment Request"
+        ],
+        "summary": "Get payment request by reference",
         "parameters": [
           {
-            "name": "R-Merchant-ID",
-            "in": "header",
-            "required": false,
-            "deprecated": false,
-            "schema": {},
-            "example": "{{merchantId}}"
-          },
-          {
-            "name": "R-Api-Key",
-            "in": "header",
-            "required": false,
-            "deprecated": false,
-            "schema": {},
-            "example": "{{apiKey}}"
+            "name": "reference",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
           }
         ],
         "responses": {
           "200": {
-            "description": "Get Payment Request",
-            "headers": {
-              "Access-Control-Allow-Origin": {
+            "description": "Payment request",
+            "content": {
+              "application/json": {
                 "schema": {
-                  "type": "string"
-                },
-                "example": "*"
-              },
-              "X-RateLimit-Limit-Short": {
-                "schema": {
-                  "type": "integer"
-                },
-                "example": "50"
-              },
-              "X-RateLimit-Remaining-Short": {
-                "schema": {
-                  "type": "integer"
-                },
-                "example": "49"
-              },
-              "X-RateLimit-Reset-Short": {
-                "schema": {
-                  "type": "integer"
-                },
-                "example": "1"
-              },
-              "X-RateLimit-Limit-Medium": {
-                "schema": {
-                  "type": "integer"
-                },
-                "example": "300"
-              },
-              "X-RateLimit-Remaining-Medium": {
-                "schema": {
-                  "type": "integer"
-                },
-                "example": "299"
-              },
-              "X-RateLimit-Reset-Medium": {
-                "schema": {
-                  "type": "integer"
-                },
-                "example": "10"
-              },
-              "X-RateLimit-Limit-Long": {
-                "schema": {
-                  "type": "integer"
-                },
-                "example": "1000"
-              },
-              "X-RateLimit-Remaining-Long": {
-                "schema": {
-                  "type": "integer"
-                },
-                "example": "999"
-              },
-              "X-RateLimit-Reset-Long": {
-                "schema": {
-                  "type": "integer"
-                },
-                "example": "60"
-              },
-              "X-Frame-Options": {
-                "schema": {
-                  "type": "string"
-                },
-                "example": "DENY"
-              },
-              "Strict-Transport-Security": {
-                "schema": {
-                  "type": "string"
-                },
-                "example": "max-age=63072000; includeSubDomains; preload"
-              },
-              "Content-Security-Policy": {
-                "schema": {
-                  "type": "string"
-                },
-                "example": "default-src 'self';"
-              },
-              "Referrer-Policy": {
-                "schema": {
-                  "type": "string"
-                },
-                "example": "same-origin"
-              },
-              "Cross-Origin-Embedder-Policy": {
-                "schema": {
-                  "type": "string"
-                },
-                "example": "require-corp"
-              },
-              "Cross-Origin-Resource-Policy": {
-                "schema": {
-                  "type": "string"
-                },
-                "example": "same-origin"
-              },
-              "Cross-Origin-Opener-Policy": {
-                "schema": {
-                  "type": "string"
-                },
-                "example": "same-origin"
-              },
-              "Content-Length": {
-                "schema": {
-                  "type": "integer"
-                },
-                "example": "655"
-              },
-              "ETag": {
-                "schema": {
-                  "type": "string"
-                },
-                "example": "W/\"28f-d7NtA0KoRadlvRZnKCW0nzUZ5qI\""
-              },
-              "Date": {
-                "schema": {
-                  "type": "string"
-                },
-                "example": "Tue, 09 Dec 2025 19:09:50 GMT"
-              },
-              "Connection": {
-                "schema": {
-                  "type": "string"
-                },
-                "example": "keep-alive"
-              },
-              "Keep-Alive": {
-                "schema": {
-                  "type": "string"
-                },
-                "example": "timeout=5"
+                  "$ref": "#/components/schemas/PaymentRequest"
+                }
               }
             }
           }
         },
-        "tags": [
-          "Payment Request"
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object"
-              }
-            }
+        "security": [
+          {
+            "ClientIdHeader": [],
+            "ApiKeyHeader": [],
+            "MerchantLocationHeader": []
           }
-        }
-      },
-      "parameters": [
-        {
-          "name": "reference",
-          "in": "path",
-          "required": true,
-          "schema": {
-            "type": "string"
-          },
-          "example": "abc"
-        }
-      ]
+        ]
+      }
     },
     "/merchant/payment-request/{reference}/cancel": {
       "post": {
-        "summary": "Cancel Payment Request",
+        "tags": [
+          "Payment Request"
+        ],
+        "summary": "Cancel payment request",
         "parameters": [
           {
-            "name": "R-Merchant-ID",
-            "in": "header",
+            "name": "reference",
+            "in": "path",
+            "required": true,
             "schema": {
               "type": "string"
-            },
-            "example": "{{merchantId}}"
-          },
-          {
-            "name": "R-Api-Key",
-            "in": "header",
-            "schema": {
-              "type": "string"
-            },
-            "example": "{{apiKey}}"
+            }
           }
         ],
         "responses": {
           "200": {
-            "description": "Get Payment Request",
-            "headers": {
-              "Access-Control-Allow-Origin": {
+            "description": "Cancelled payment request",
+            "content": {
+              "application/json": {
                 "schema": {
-                  "type": "string"
-                },
-                "example": "*"
-              },
-              "X-RateLimit-Limit-Short": {
-                "schema": {
-                  "type": "integer"
-                },
-                "example": "50"
-              },
-              "X-RateLimit-Remaining-Short": {
-                "schema": {
-                  "type": "integer"
-                },
-                "example": "49"
-              },
-              "X-RateLimit-Reset-Short": {
-                "schema": {
-                  "type": "integer"
-                },
-                "example": "1"
-              },
-              "X-RateLimit-Limit-Medium": {
-                "schema": {
-                  "type": "integer"
-                },
-                "example": "300"
-              },
-              "X-RateLimit-Remaining-Medium": {
-                "schema": {
-                  "type": "integer"
-                },
-                "example": "299"
-              },
-              "X-RateLimit-Reset-Medium": {
-                "schema": {
-                  "type": "integer"
-                },
-                "example": "10"
-              },
-              "X-RateLimit-Limit-Long": {
-                "schema": {
-                  "type": "integer"
-                },
-                "example": "1000"
-              },
-              "X-RateLimit-Remaining-Long": {
-                "schema": {
-                  "type": "integer"
-                },
-                "example": "999"
-              },
-              "X-RateLimit-Reset-Long": {
-                "schema": {
-                  "type": "integer"
-                },
-                "example": "60"
-              },
-              "X-Frame-Options": {
-                "schema": {
-                  "type": "string"
-                },
-                "example": "DENY"
-              },
-              "Strict-Transport-Security": {
-                "schema": {
-                  "type": "string"
-                },
-                "example": "max-age=63072000; includeSubDomains; preload"
-              },
-              "Content-Security-Policy": {
-                "schema": {
-                  "type": "string"
-                },
-                "example": "default-src 'self';"
-              },
-              "Referrer-Policy": {
-                "schema": {
-                  "type": "string"
-                },
-                "example": "same-origin"
-              },
-              "Cross-Origin-Embedder-Policy": {
-                "schema": {
-                  "type": "string"
-                },
-                "example": "require-corp"
-              },
-              "Cross-Origin-Resource-Policy": {
-                "schema": {
-                  "type": "string"
-                },
-                "example": "same-origin"
-              },
-              "Cross-Origin-Opener-Policy": {
-                "schema": {
-                  "type": "string"
-                },
-                "example": "same-origin"
-              },
-              "Content-Length": {
-                "schema": {
-                  "type": "integer"
-                },
-                "example": "655"
-              },
-              "ETag": {
-                "schema": {
-                  "type": "string"
-                },
-                "example": "W/\"28f-d7NtA0KoRadlvRZnKCW0nzUZ5qI\""
-              },
-              "Date": {
-                "schema": {
-                  "type": "string"
-                },
-                "example": "Tue, 09 Dec 2025 19:09:50 GMT"
-              },
-              "Connection": {
-                "schema": {
-                  "type": "string"
-                },
-                "example": "keep-alive"
-              },
-              "Keep-Alive": {
-                "schema": {
-                  "type": "string"
-                },
-                "example": "timeout=5"
+                  "$ref": "#/components/schemas/PaymentRequest"
+                }
               }
             }
           }
         },
+        "security": [
+          {
+            "ClientIdHeader": [],
+            "ApiKeyHeader": [],
+            "MerchantLocationHeader": []
+          }
+        ]
+      }
+    },
+    "/merchant/qr": {
+      "post": {
         "tags": [
-          "Payment Request"
+          "QR"
         ],
+        "summary": "Generate QR payload",
         "requestBody": {
+          "required": true,
           "content": {
             "application/json": {
               "schema": {
-                "type": "object"
+                "$ref": "#/components/schemas/TransactionDto"
               }
             }
           }
+        },
+        "responses": {
+          "200": {
+            "description": "Generated QR payload",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ClientIdHeader": [],
+            "ApiKeyHeader": [],
+            "MerchantLocationHeader": []
+          }
+        ]
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "ClientIdHeader": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "x-client-id"
+      },
+      "ApiKeyHeader": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "x-api-key"
+      },
+      "MerchantLocationHeader": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "x-location"
+      }
+    },
+    "schemas": {
+      "TransactionDto": {
+        "type": "object",
+        "required": [
+          "amount"
+        ],
+        "properties": {
+          "amount": {
+            "type": "number",
+            "maximum": 999999999
+          },
+          "reference": {
+            "type": "string",
+            "maxLength": 100
+          },
+          "comment": {
+            "type": "string",
+            "maxLength": 250
+          },
+          "currency": {
+            "$ref": "#/components/schemas/WalletCurrency"
+          },
+          "metadata": {
+            "type": "object",
+            "additionalProperties": true
+          }
         }
       },
-      "parameters": [
-        {
-          "name": "reference",
-          "in": "path",
-          "required": true,
-          "schema": {
+      "OneTapRequest": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/TransactionDto"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "duration": {
+                "type": "integer",
+                "minimum": 2
+              },
+              "pin": {
+                "type": "string"
+              },
+              "payer": {
+                "type": "string",
+                "description": "Paytag identifier used by PayTagPipe"
+              }
+            }
+          }
+        ]
+      },
+      "ResolvePayTagResponse": {
+        "type": "object",
+        "required": [
+          "Name",
+          "Tag"
+        ],
+        "properties": {
+          "Name": {
             "type": "string"
           },
-          "example": "abc"
+          "Tag": {
+            "type": "string"
+          }
         }
-      ]
+      },
+      "PaymentRequest": {
+        "type": "object",
+        "required": [
+          "ID",
+          "Amount",
+          "Status",
+          "Type",
+          "CreatedAt",
+          "UpdatedAt"
+        ],
+        "properties": {
+          "ID": {
+            "type": "integer"
+          },
+          "PayTag": {
+            "$ref": "#/components/schemas/PayTagLite"
+          },
+          "Payer": {
+            "$ref": "#/components/schemas/PayTagLite"
+          },
+          "Amount": {
+            "type": "number"
+          },
+          "Reference": {
+            "type": "string"
+          },
+          "Description": {
+            "type": "string"
+          },
+          "Status": {
+            "$ref": "#/components/schemas/PaymentRequestStatus"
+          },
+          "Type": {
+            "$ref": "#/components/schemas/TransactionType"
+          },
+          "ExpiresAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "CreatedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "UpdatedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "PayTagLite": {
+        "type": "object",
+        "properties": {
+          "ID": {
+            "type": "integer"
+          },
+          "Tag": {
+            "type": "string"
+          },
+          "Name": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": true
+      },
+      "PaginatedPaymentRequestResponse": {
+        "type": "object",
+        "required": [
+          "items",
+          "count",
+          "limit",
+          "offset"
+        ],
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PaymentRequest"
+            }
+          },
+          "count": {
+            "type": "integer"
+          },
+          "limit": {
+            "type": "integer"
+          },
+          "offset": {
+            "type": "integer"
+          }
+        }
+      },
+      "PaymentRequestStatus": {
+        "type": "string",
+        "enum": [
+          "Pending",
+          "Accepted",
+          "Declined",
+          "Cancelled",
+          "Expired"
+        ]
+      },
+      "WalletCurrency": {
+        "type": "string",
+        "enum": [
+          "NGN",
+          "FP"
+        ]
+      },
+      "TransactionType": {
+        "type": "string",
+        "enum": [
+          "C2C",
+          "C2P",
+          "C2M",
+          "Top Up",
+          "Adjustment",
+          "Reversal",
+          "Withdrawal",
+          "Bank Transfer",
+          "FirestoreTransaction",
+          "Wallet Settlement",
+          "Reward Redemption",
+          "Reward",
+          "Bulk Transfer",
+          "Exchange",
+          "Partner Terminal",
+          "Partner Gateway",
+          "Card Top Up",
+          "Vas",
+          "Airtime Purchase",
+          "Mobile Data Purchase",
+          "Terminal Settlement",
+          "Virtual Account Transfer",
+          "QR Virtual Account Transfer",
+          "Idaas Outward Transfer",
+          "Idaas Inward Transfer"
+        ]
+      }
     }
   }
 }

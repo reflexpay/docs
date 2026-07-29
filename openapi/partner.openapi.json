@@ -1,9 +1,9 @@
 {
-  "openapi": "3.0.0",
+  "openapi": "3.0.3",
   "info": {
-    "title": "Flex Partner API",
+    "title": "Partner API",
     "version": "1.0.0",
-    "description": ""
+    "description": "OpenAPI spec for Partner Terminal and Transaction API"
   },
   "servers": [
     {
@@ -15,1483 +15,873 @@
       "description": "Staging"
     }
   ],
+  "tags": [
+    {
+      "name": "Terminal"
+    },
+    {
+      "name": "Transactions"
+    }
+  ],
   "paths": {
-    "/partner/transaction/initiate": {
-      "post": {
-        "summary": "Initiate Transaction",
-        "parameters": [
-          {
-            "name": "R-Partner-ID",
-            "in": "header",
-            "schema": {
-              "type": "string"
-            },
-            "example": "{{partnerId}}"
-          },
-          {
-            "name": "R-Api-Key",
-            "in": "header",
-            "schema": {
-              "type": "string"
-            },
-            "example": "{{apiKey}}"
-          }
-        ],
-        "responses": {},
-        "tags": [
-          "Gateway"
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "properties": {
-                  "amount": {
-                    "type": "integer"
-                  },
-                  "name": {
-                    "type": "string"
-                  },
-                  "reference": {
-                    "type": "string"
-                  },
-                  "metadata": {
-                    "type": "object",
-                    "properties": {
-                      "foo": {
-                        "type": "string"
-                      }
-                    }
-                  }
-                }
-              },
-              "example": {
-                "amount": 500,
-                "name": "Chi. Ventures",
-                "reference": "{{$randomUUID}}",
-                "metadata": {
-                  "foo": "bar"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/partner/transactions": {
-      "get": {
-        "summary": "Get Transactions",
-        "parameters": [
-          {
-            "name": "limit",
-            "in": "query",
-            "schema": {
-              "type": "integer"
-            },
-            "example": "1"
-          },
-          {
-            "name": "offset",
-            "in": "query",
-            "schema": {
-              "type": "integer"
-            },
-            "example": "0"
-          },
-          {
-            "name": "R-Partner-ID",
-            "in": "header",
-            "schema": {
-              "type": "string"
-            },
-            "example": "{{partnerId}}"
-          },
-          {
-            "name": "R-Api-Key",
-            "in": "header",
-            "schema": {
-              "type": "string"
-            },
-            "example": "{{apiKey}}"
-          }
-        ],
-        "responses": {},
-        "tags": [
-          "Gateway"
-        ]
-      }
-    },
-    "/partner/transaction/{reference}": {
-      "get": {
-        "summary": "Get Transaction",
-        "parameters": [
-          {
-            "name": "R-Partner-ID",
-            "in": "header",
-            "schema": {
-              "type": "string"
-            },
-            "example": "{{partnerId}}"
-          },
-          {
-            "name": "R-Api-Key",
-            "in": "header",
-            "schema": {
-              "type": "string"
-            },
-            "example": "{{apiKey}}"
-          }
-        ],
-        "responses": {},
-        "tags": [
-          "Gateway"
-        ]
-      },
-      "parameters": [
-        {
-          "name": "reference",
-          "in": "path",
-          "required": true,
-          "schema": {
-            "type": "string"
-          },
-          "example": "752f883b-788c-47ee-8c04-a1a7fada03a6"
-        }
-      ]
-    },
     "/terminal": {
       "get": {
-        "summary": "Get Terminal",
-        "parameters": [
-          {
-            "name": "R-Partner-ID",
-            "in": "header",
-            "required": false,
-            "deprecated": false,
-            "schema": {},
-            "example": "{{partnerId}}"
-          },
-          {
-            "name": "R-Api-Key",
-            "in": "header",
-            "required": false,
-            "deprecated": false,
-            "schema": {},
-            "example": "{{apiKey}}"
-          },
-          {
-            "name": "R-Terminal",
-            "in": "header",
-            "required": false,
-            "deprecated": false,
-            "schema": {},
-            "example": "{{terminal}}"
-          }
+        "tags": [
+          "Terminal"
         ],
+        "summary": "Get terminal profile",
         "responses": {
           "200": {
-            "description": "Get Info",
-            "headers": {
-              "Access-Control-Allow-Origin": {
+            "description": "Terminal info",
+            "content": {
+              "application/json": {
                 "schema": {
-                  "type": "string"
-                },
-                "example": "*"
-              },
-              "X-RateLimit-Limit-Short": {
-                "schema": {
-                  "type": "integer"
-                },
-                "example": "50"
-              },
-              "X-RateLimit-Remaining-Short": {
-                "schema": {
-                  "type": "integer"
-                },
-                "example": "49"
-              },
-              "X-RateLimit-Reset-Short": {
-                "schema": {
-                  "type": "integer"
-                },
-                "example": "1"
-              },
-              "X-RateLimit-Limit-Medium": {
-                "schema": {
-                  "type": "integer"
-                },
-                "example": "300"
-              },
-              "X-RateLimit-Remaining-Medium": {
-                "schema": {
-                  "type": "integer"
-                },
-                "example": "299"
-              },
-              "X-RateLimit-Reset-Medium": {
-                "schema": {
-                  "type": "integer"
-                },
-                "example": "10"
-              },
-              "X-RateLimit-Limit-Long": {
-                "schema": {
-                  "type": "integer"
-                },
-                "example": "1000"
-              },
-              "X-RateLimit-Remaining-Long": {
-                "schema": {
-                  "type": "integer"
-                },
-                "example": "999"
-              },
-              "X-RateLimit-Reset-Long": {
-                "schema": {
-                  "type": "integer"
-                },
-                "example": "60"
-              },
-              "X-Frame-Options": {
-                "schema": {
-                  "type": "string"
-                },
-                "example": "DENY"
-              },
-              "Strict-Transport-Security": {
-                "schema": {
-                  "type": "string"
-                },
-                "example": "max-age=63072000; includeSubDomains; preload"
-              },
-              "Content-Security-Policy": {
-                "schema": {
-                  "type": "string"
-                },
-                "example": "default-src 'self';"
-              },
-              "Referrer-Policy": {
-                "schema": {
-                  "type": "string"
-                },
-                "example": "same-origin"
-              },
-              "Cross-Origin-Embedder-Policy": {
-                "schema": {
-                  "type": "string"
-                },
-                "example": "require-corp"
-              },
-              "Cross-Origin-Resource-Policy": {
-                "schema": {
-                  "type": "string"
-                },
-                "example": "same-origin"
-              },
-              "Cross-Origin-Opener-Policy": {
-                "schema": {
-                  "type": "string"
-                },
-                "example": "same-origin"
-              },
-              "Content-Length": {
-                "schema": {
-                  "type": "integer"
-                },
-                "example": "9205"
-              },
-              "ETag": {
-                "schema": {
-                  "type": "string"
-                },
-                "example": "W/\"23f5-S3QsnXm4zUl5IzjUI2j+wjyYU68\""
-              },
-              "Date": {
-                "schema": {
-                  "type": "string"
-                },
-                "example": "Tue, 19 Aug 2025 19:07:51 GMT"
-              },
-              "Connection": {
-                "schema": {
-                  "type": "string"
-                },
-                "example": "keep-alive"
-              },
-              "Keep-Alive": {
-                "schema": {
-                  "type": "string"
-                },
-                "example": "timeout=5"
+                  "$ref": "#/components/schemas/IPartnerTerminal"
+                }
               }
             }
           }
         },
+        "security": [
+          {
+            "ClientIdHeader": [],
+            "ApiKeyHeader": []
+          }
+        ]
+      }
+    },
+    "/terminal/transaction": {
+      "post": {
         "tags": [
           "Terminal"
+        ],
+        "summary": "Initiate terminal transaction",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/InitiateTransactionDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Transaction reference or payload token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ClientIdHeader": [],
+            "ApiKeyHeader": []
+          }
         ]
       }
     },
     "/terminal/transactions": {
       "get": {
-        "summary": "Get Transactions",
+        "tags": [
+          "Terminal"
+        ],
+        "summary": "List terminal transactions",
         "parameters": [
           {
-            "name": "R-Partner-ID",
-            "in": "header",
+            "name": "limit",
+            "in": "query",
             "schema": {
-              "type": "string"
-            },
-            "example": "{{partnerId}}"
+              "type": "integer",
+              "minimum": 0
+            }
           },
           {
-            "name": "R-Api-Key",
-            "in": "header",
+            "name": "offset",
+            "in": "query",
             "schema": {
-              "type": "string"
-            },
-            "example": "{{apiKey}}"
+              "type": "integer",
+              "minimum": 0
+            }
           },
           {
-            "name": "R-Terminal",
-            "in": "header",
+            "name": "search",
+            "in": "query",
             "schema": {
               "type": "string"
-            },
-            "example": "{{terminal}}"
+            }
+          },
+          {
+            "name": "reference",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "schema": {
+              "$ref": "#/components/schemas/TransactionStatus"
+            }
+          },
+          {
+            "name": "startDate",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "description": "Date filter in YYYYMMDD format"
+            }
+          },
+          {
+            "name": "endDate",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "description": "Date filter in YYYYMMDD format"
+            }
           }
         ],
         "responses": {
           "200": {
-            "description": "Get Transactions",
-            "headers": {
-              "Access-Control-Allow-Origin": {
+            "description": "Paginated transactions",
+            "content": {
+              "application/json": {
                 "schema": {
-                  "type": "string"
-                },
-                "example": "*"
-              },
-              "X-RateLimit-Limit-Short": {
-                "schema": {
-                  "type": "integer"
-                },
-                "example": "50"
-              },
-              "X-RateLimit-Remaining-Short": {
-                "schema": {
-                  "type": "integer"
-                },
-                "example": "49"
-              },
-              "X-RateLimit-Reset-Short": {
-                "schema": {
-                  "type": "integer"
-                },
-                "example": "1"
-              },
-              "X-RateLimit-Limit-Medium": {
-                "schema": {
-                  "type": "integer"
-                },
-                "example": "300"
-              },
-              "X-RateLimit-Remaining-Medium": {
-                "schema": {
-                  "type": "integer"
-                },
-                "example": "299"
-              },
-              "X-RateLimit-Reset-Medium": {
-                "schema": {
-                  "type": "integer"
-                },
-                "example": "10"
-              },
-              "X-RateLimit-Limit-Long": {
-                "schema": {
-                  "type": "integer"
-                },
-                "example": "1000"
-              },
-              "X-RateLimit-Remaining-Long": {
-                "schema": {
-                  "type": "integer"
-                },
-                "example": "999"
-              },
-              "X-RateLimit-Reset-Long": {
-                "schema": {
-                  "type": "integer"
-                },
-                "example": "60"
-              },
-              "X-Frame-Options": {
-                "schema": {
-                  "type": "string"
-                },
-                "example": "DENY"
-              },
-              "Strict-Transport-Security": {
-                "schema": {
-                  "type": "string"
-                },
-                "example": "max-age=63072000; includeSubDomains; preload"
-              },
-              "Content-Security-Policy": {
-                "schema": {
-                  "type": "string"
-                },
-                "example": "default-src 'self';"
-              },
-              "Referrer-Policy": {
-                "schema": {
-                  "type": "string"
-                },
-                "example": "same-origin"
-              },
-              "Cross-Origin-Embedder-Policy": {
-                "schema": {
-                  "type": "string"
-                },
-                "example": "require-corp"
-              },
-              "Cross-Origin-Resource-Policy": {
-                "schema": {
-                  "type": "string"
-                },
-                "example": "same-origin"
-              },
-              "Cross-Origin-Opener-Policy": {
-                "schema": {
-                  "type": "string"
-                },
-                "example": "same-origin"
-              },
-              "Content-Length": {
-                "schema": {
-                  "type": "integer"
-                },
-                "example": "2192"
-              },
-              "ETag": {
-                "schema": {
-                  "type": "string"
-                },
-                "example": "W/\"890-jbKQ1/FERDsA44LOJ11zJxe5t0o\""
-              },
-              "Date": {
-                "schema": {
-                  "type": "string"
-                },
-                "example": "Tue, 19 Aug 2025 08:37:26 GMT"
-              },
-              "Connection": {
-                "schema": {
-                  "type": "string"
-                },
-                "example": "keep-alive"
-              },
-              "Keep-Alive": {
-                "schema": {
-                  "type": "string"
-                },
-                "example": "timeout=5"
+                  "$ref": "#/components/schemas/PaginatedPartnerTransactionResponse"
+                }
               }
             }
           }
         },
-        "tags": [
-          "Terminal"
+        "security": [
+          {
+            "ClientIdHeader": [],
+            "ApiKeyHeader": []
+          }
         ]
       }
     },
     "/terminal/transaction/{reference}": {
       "get": {
-        "summary": "Get Transaction",
+        "tags": [
+          "Terminal"
+        ],
+        "summary": "Get transaction by reference",
         "parameters": [
           {
-            "name": "R-Partner-ID",
-            "in": "header",
+            "name": "reference",
+            "in": "path",
+            "required": true,
             "schema": {
               "type": "string"
-            },
-            "example": "{{partnerId}}"
-          },
-          {
-            "name": "R-Api-Key",
-            "in": "header",
-            "schema": {
-              "type": "string"
-            },
-            "example": "{{apiKey}}"
-          },
-          {
-            "name": "R-Terminal",
-            "in": "header",
-            "schema": {
-              "type": "string"
-            },
-            "example": "{{terminal}}"
+            }
           }
         ],
         "responses": {
           "200": {
-            "description": "Get Transaction",
-            "headers": {
-              "Access-Control-Allow-Origin": {
+            "description": "Transaction details",
+            "content": {
+              "application/json": {
                 "schema": {
-                  "type": "string"
-                },
-                "example": "*"
-              },
-              "X-RateLimit-Limit-Short": {
-                "schema": {
-                  "type": "integer"
-                },
-                "example": "50"
-              },
-              "X-RateLimit-Remaining-Short": {
-                "schema": {
-                  "type": "integer"
-                },
-                "example": "49"
-              },
-              "X-RateLimit-Reset-Short": {
-                "schema": {
-                  "type": "integer"
-                },
-                "example": "1"
-              },
-              "X-RateLimit-Limit-Medium": {
-                "schema": {
-                  "type": "integer"
-                },
-                "example": "300"
-              },
-              "X-RateLimit-Remaining-Medium": {
-                "schema": {
-                  "type": "integer"
-                },
-                "example": "299"
-              },
-              "X-RateLimit-Reset-Medium": {
-                "schema": {
-                  "type": "integer"
-                },
-                "example": "10"
-              },
-              "X-RateLimit-Limit-Long": {
-                "schema": {
-                  "type": "integer"
-                },
-                "example": "1000"
-              },
-              "X-RateLimit-Remaining-Long": {
-                "schema": {
-                  "type": "integer"
-                },
-                "example": "999"
-              },
-              "X-RateLimit-Reset-Long": {
-                "schema": {
-                  "type": "integer"
-                },
-                "example": "60"
-              },
-              "X-Frame-Options": {
-                "schema": {
-                  "type": "string"
-                },
-                "example": "DENY"
-              },
-              "Strict-Transport-Security": {
-                "schema": {
-                  "type": "string"
-                },
-                "example": "max-age=63072000; includeSubDomains; preload"
-              },
-              "Content-Security-Policy": {
-                "schema": {
-                  "type": "string"
-                },
-                "example": "default-src 'self';"
-              },
-              "Referrer-Policy": {
-                "schema": {
-                  "type": "string"
-                },
-                "example": "same-origin"
-              },
-              "Cross-Origin-Embedder-Policy": {
-                "schema": {
-                  "type": "string"
-                },
-                "example": "require-corp"
-              },
-              "Cross-Origin-Resource-Policy": {
-                "schema": {
-                  "type": "string"
-                },
-                "example": "same-origin"
-              },
-              "Cross-Origin-Opener-Policy": {
-                "schema": {
-                  "type": "string"
-                },
-                "example": "same-origin"
-              },
-              "Content-Length": {
-                "schema": {
-                  "type": "integer"
-                },
-                "example": "400"
-              },
-              "ETag": {
-                "schema": {
-                  "type": "string"
-                },
-                "example": "W/\"190-rDOWF++svyYDfJgELALm27o/FpA\""
-              },
-              "Date": {
-                "schema": {
-                  "type": "string"
-                },
-                "example": "Tue, 19 Aug 2025 08:37:35 GMT"
-              },
-              "Connection": {
-                "schema": {
-                  "type": "string"
-                },
-                "example": "keep-alive"
-              },
-              "Keep-Alive": {
-                "schema": {
-                  "type": "string"
-                },
-                "example": "timeout=5"
-              }
-            }
-          }
-        },
-        "tags": [
-          "Terminal"
-        ]
-      },
-      "parameters": [
-        {
-          "name": "reference",
-          "in": "path",
-          "required": true,
-          "schema": {
-            "type": "string"
-          },
-          "example": "92c66bc3-0b74-4e16-a241-a1c63f667b45"
-        }
-      ]
-    },
-    "/terminal/transaction": {
-      "post": {
-        "summary": "Initiate Transaction",
-        "parameters": [
-          {
-            "name": "R-Partner-ID",
-            "in": "header",
-            "schema": {
-              "type": "string"
-            },
-            "example": "{{partnerId}}"
-          },
-          {
-            "name": "R-Api-Key",
-            "in": "header",
-            "schema": {
-              "type": "string"
-            },
-            "example": "{{apiKey}}"
-          },
-          {
-            "name": "R-Terminal",
-            "in": "header",
-            "schema": {
-              "type": "string"
-            },
-            "example": "{{terminal}}"
-          }
-        ],
-        "responses": {
-          "201": {
-            "description": "Initiate Transaction",
-            "headers": {
-              "Access-Control-Allow-Origin": {
-                "schema": {
-                  "type": "string"
-                },
-                "example": "*"
-              },
-              "X-RateLimit-Limit-Short": {
-                "schema": {
-                  "type": "integer"
-                },
-                "example": "50"
-              },
-              "X-RateLimit-Remaining-Short": {
-                "schema": {
-                  "type": "integer"
-                },
-                "example": "49"
-              },
-              "X-RateLimit-Reset-Short": {
-                "schema": {
-                  "type": "integer"
-                },
-                "example": "1"
-              },
-              "X-RateLimit-Limit-Medium": {
-                "schema": {
-                  "type": "integer"
-                },
-                "example": "300"
-              },
-              "X-RateLimit-Remaining-Medium": {
-                "schema": {
-                  "type": "integer"
-                },
-                "example": "299"
-              },
-              "X-RateLimit-Reset-Medium": {
-                "schema": {
-                  "type": "integer"
-                },
-                "example": "10"
-              },
-              "X-RateLimit-Limit-Long": {
-                "schema": {
-                  "type": "integer"
-                },
-                "example": "1000"
-              },
-              "X-RateLimit-Remaining-Long": {
-                "schema": {
-                  "type": "integer"
-                },
-                "example": "999"
-              },
-              "X-RateLimit-Reset-Long": {
-                "schema": {
-                  "type": "integer"
-                },
-                "example": "60"
-              },
-              "X-Frame-Options": {
-                "schema": {
-                  "type": "string"
-                },
-                "example": "DENY"
-              },
-              "Strict-Transport-Security": {
-                "schema": {
-                  "type": "string"
-                },
-                "example": "max-age=63072000; includeSubDomains; preload"
-              },
-              "Content-Security-Policy": {
-                "schema": {
-                  "type": "string"
-                },
-                "example": "default-src 'self';"
-              },
-              "Referrer-Policy": {
-                "schema": {
-                  "type": "string"
-                },
-                "example": "same-origin"
-              },
-              "Cross-Origin-Embedder-Policy": {
-                "schema": {
-                  "type": "string"
-                },
-                "example": "require-corp"
-              },
-              "Cross-Origin-Resource-Policy": {
-                "schema": {
-                  "type": "string"
-                },
-                "example": "same-origin"
-              },
-              "Cross-Origin-Opener-Policy": {
-                "schema": {
-                  "type": "string"
-                },
-                "example": "same-origin"
-              },
-              "Content-Length": {
-                "schema": {
-                  "type": "integer"
-                },
-                "example": "2923"
-              },
-              "ETag": {
-                "schema": {
-                  "type": "string"
-                },
-                "example": "W/\"b6b-504yf5VPpIWdiCePa1+iF68qrrU\""
-              },
-              "Date": {
-                "schema": {
-                  "type": "string"
-                },
-                "example": "Tue, 19 Aug 2025 08:37:46 GMT"
-              },
-              "Connection": {
-                "schema": {
-                  "type": "string"
-                },
-                "example": "keep-alive"
-              },
-              "Keep-Alive": {
-                "schema": {
-                  "type": "string"
-                },
-                "example": "timeout=5"
-              }
-            }
-          }
-        },
-        "tags": [
-          "Terminal"
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "properties": {
-                  "amount": {
-                    "type": "integer"
-                  },
-                  "reference": {
-                    "type": "string"
-                  }
+                  "$ref": "#/components/schemas/IPartnerTransaction"
                 }
-              },
-              "example": {
-                "amount": 500,
-                "reference": "{{$randomUUID}}"
               }
             }
           }
-        }
+        },
+        "security": [
+          {
+            "ClientIdHeader": [],
+            "ApiKeyHeader": []
+          }
+        ]
       }
     },
     "/terminal/split": {
       "post": {
-        "summary": "Create Split",
-        "parameters": [
-          {
-            "name": "R-Partner-ID",
-            "in": "header",
-            "schema": {
-              "type": "string"
-            },
-            "example": "{{partnerId}}"
-          },
-          {
-            "name": "R-Api-Key",
-            "in": "header",
-            "schema": {
-              "type": "string"
-            },
-            "example": "{{apiKey}}"
-          },
-          {
-            "name": "R-Terminal",
-            "in": "header",
-            "schema": {
-              "type": "string"
-            },
-            "example": "{{terminal}}"
-          }
+        "tags": [
+          "Terminal"
         ],
-        "responses": {
-          "201": {
-            "description": "Create Split",
-            "headers": {
-              "Access-Control-Allow-Origin": {
-                "schema": {
-                  "type": "string"
-                },
-                "example": "*"
-              },
-              "X-RateLimit-Limit-Short": {
-                "schema": {
-                  "type": "integer"
-                },
-                "example": "50"
-              },
-              "X-RateLimit-Remaining-Short": {
-                "schema": {
-                  "type": "integer"
-                },
-                "example": "49"
-              },
-              "X-RateLimit-Reset-Short": {
-                "schema": {
-                  "type": "integer"
-                },
-                "example": "1"
-              },
-              "X-RateLimit-Limit-Medium": {
-                "schema": {
-                  "type": "integer"
-                },
-                "example": "300"
-              },
-              "X-RateLimit-Remaining-Medium": {
-                "schema": {
-                  "type": "integer"
-                },
-                "example": "299"
-              },
-              "X-RateLimit-Reset-Medium": {
-                "schema": {
-                  "type": "integer"
-                },
-                "example": "10"
-              },
-              "X-RateLimit-Limit-Long": {
-                "schema": {
-                  "type": "integer"
-                },
-                "example": "1000"
-              },
-              "X-RateLimit-Remaining-Long": {
-                "schema": {
-                  "type": "integer"
-                },
-                "example": "999"
-              },
-              "X-RateLimit-Reset-Long": {
-                "schema": {
-                  "type": "integer"
-                },
-                "example": "60"
-              },
-              "X-Frame-Options": {
-                "schema": {
-                  "type": "string"
-                },
-                "example": "DENY"
-              },
-              "Strict-Transport-Security": {
-                "schema": {
-                  "type": "string"
-                },
-                "example": "max-age=63072000; includeSubDomains; preload"
-              },
-              "Content-Security-Policy": {
-                "schema": {
-                  "type": "string"
-                },
-                "example": "default-src 'self';"
-              },
-              "Referrer-Policy": {
-                "schema": {
-                  "type": "string"
-                },
-                "example": "same-origin"
-              },
-              "Cross-Origin-Embedder-Policy": {
-                "schema": {
-                  "type": "string"
-                },
-                "example": "require-corp"
-              },
-              "Cross-Origin-Resource-Policy": {
-                "schema": {
-                  "type": "string"
-                },
-                "example": "same-origin"
-              },
-              "Cross-Origin-Opener-Policy": {
-                "schema": {
-                  "type": "string"
-                },
-                "example": "same-origin"
-              },
-              "Content-Length": {
-                "schema": {
-                  "type": "integer"
-                },
-                "example": "259"
-              },
-              "ETag": {
-                "schema": {
-                  "type": "string"
-                },
-                "example": "W/\"103-5q3CEAwH5U8zb/iWPJskl28UC6I\""
-              },
-              "Date": {
-                "schema": {
-                  "type": "string"
-                },
-                "example": "Tue, 19 Aug 2025 08:45:30 GMT"
-              },
-              "Connection": {
-                "schema": {
-                  "type": "string"
-                },
-                "example": "keep-alive"
-              },
-              "Keep-Alive": {
-                "schema": {
-                  "type": "string"
-                },
-                "example": "timeout=5"
+        "summary": "Create split",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateSplitDto"
               }
             }
           }
         },
-        "tags": [
-          "Terminal"
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "properties": {
-                  "amount": {
-                    "type": "integer"
-                  },
-                  "title": {
-                    "type": "string"
-                  },
-                  "description": {
-                    "type": "string"
-                  }
+        "responses": {
+          "200": {
+            "description": "Split created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Split"
                 }
-              },
-              "example": {
-                "amount": 1000,
-                "title": "Pizza",
-                "description": "split payment for pizza"
               }
             }
           }
-        }
+        },
+        "security": [
+          {
+            "ClientIdHeader": [],
+            "ApiKeyHeader": []
+          }
+        ]
       }
     },
     "/terminal/splits": {
       "get": {
-        "summary": "Get Splits",
+        "tags": [
+          "Terminal"
+        ],
+        "summary": "List splits",
         "parameters": [
           {
-            "name": "R-Partner-ID",
-            "in": "header",
+            "name": "limit",
+            "in": "query",
             "schema": {
-              "type": "string"
-            },
-            "example": "{{partnerId}}"
+              "type": "integer",
+              "minimum": 0
+            }
           },
           {
-            "name": "R-Api-Key",
-            "in": "header",
+            "name": "offset",
+            "in": "query",
             "schema": {
-              "type": "string"
-            },
-            "example": "{{apiKey}}"
+              "type": "integer",
+              "minimum": 0
+            }
           },
           {
-            "name": "R-Terminal",
-            "in": "header",
+            "name": "search",
+            "in": "query",
             "schema": {
               "type": "string"
-            },
-            "example": "{{terminal}}"
+            }
+          },
+          {
+            "name": "startDate",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            }
+          },
+          {
+            "name": "endDate",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            }
           }
         ],
         "responses": {
           "200": {
-            "description": "Get Splits",
-            "headers": {
-              "Access-Control-Allow-Origin": {
+            "description": "Paginated splits",
+            "content": {
+              "application/json": {
                 "schema": {
-                  "type": "string"
-                },
-                "example": "*"
-              },
-              "X-RateLimit-Limit-Short": {
-                "schema": {
-                  "type": "integer"
-                },
-                "example": "50"
-              },
-              "X-RateLimit-Remaining-Short": {
-                "schema": {
-                  "type": "integer"
-                },
-                "example": "49"
-              },
-              "X-RateLimit-Reset-Short": {
-                "schema": {
-                  "type": "integer"
-                },
-                "example": "1"
-              },
-              "X-RateLimit-Limit-Medium": {
-                "schema": {
-                  "type": "integer"
-                },
-                "example": "300"
-              },
-              "X-RateLimit-Remaining-Medium": {
-                "schema": {
-                  "type": "integer"
-                },
-                "example": "299"
-              },
-              "X-RateLimit-Reset-Medium": {
-                "schema": {
-                  "type": "integer"
-                },
-                "example": "10"
-              },
-              "X-RateLimit-Limit-Long": {
-                "schema": {
-                  "type": "integer"
-                },
-                "example": "1000"
-              },
-              "X-RateLimit-Remaining-Long": {
-                "schema": {
-                  "type": "integer"
-                },
-                "example": "999"
-              },
-              "X-RateLimit-Reset-Long": {
-                "schema": {
-                  "type": "integer"
-                },
-                "example": "60"
-              },
-              "X-Frame-Options": {
-                "schema": {
-                  "type": "string"
-                },
-                "example": "DENY"
-              },
-              "Strict-Transport-Security": {
-                "schema": {
-                  "type": "string"
-                },
-                "example": "max-age=63072000; includeSubDomains; preload"
-              },
-              "Content-Security-Policy": {
-                "schema": {
-                  "type": "string"
-                },
-                "example": "default-src 'self';"
-              },
-              "Referrer-Policy": {
-                "schema": {
-                  "type": "string"
-                },
-                "example": "same-origin"
-              },
-              "Cross-Origin-Embedder-Policy": {
-                "schema": {
-                  "type": "string"
-                },
-                "example": "require-corp"
-              },
-              "Cross-Origin-Resource-Policy": {
-                "schema": {
-                  "type": "string"
-                },
-                "example": "same-origin"
-              },
-              "Cross-Origin-Opener-Policy": {
-                "schema": {
-                  "type": "string"
-                },
-                "example": "same-origin"
-              },
-              "Content-Length": {
-                "schema": {
-                  "type": "integer"
-                },
-                "example": "5756"
-              },
-              "ETag": {
-                "schema": {
-                  "type": "string"
-                },
-                "example": "W/\"167c-IiHTogriehVrz08BEgSyiJRnSLQ\""
-              },
-              "Date": {
-                "schema": {
-                  "type": "string"
-                },
-                "example": "Tue, 19 Aug 2025 08:37:52 GMT"
-              },
-              "Connection": {
-                "schema": {
-                  "type": "string"
-                },
-                "example": "keep-alive"
-              },
-              "Keep-Alive": {
-                "schema": {
-                  "type": "string"
-                },
-                "example": "timeout=5"
+                  "$ref": "#/components/schemas/PaginatedSplitResponse"
+                }
               }
             }
           }
         },
-        "tags": [
-          "Terminal"
+        "security": [
+          {
+            "ClientIdHeader": [],
+            "ApiKeyHeader": []
+          }
         ]
       }
     },
     "/terminal/split/{split}": {
       "get": {
-        "summary": "Get Split",
-        "parameters": [
-          {
-            "name": "R-Partner-ID",
-            "in": "header",
-            "schema": {
-              "type": "string"
-            },
-            "example": "{{partnerId}}"
-          },
-          {
-            "name": "R-Api-Key",
-            "in": "header",
-            "schema": {
-              "type": "string"
-            },
-            "example": "{{apiKey}}"
-          },
-          {
-            "name": "R-Terminal",
-            "in": "header",
-            "schema": {
-              "type": "string"
-            },
-            "example": "{{terminal}}"
-          }
-        ],
-        "responses": {},
         "tags": [
           "Terminal"
-        ]
-      },
-      "parameters": [
-        {
-          "name": "split",
-          "in": "path",
-          "required": true,
-          "schema": {
-            "type": "string"
-          },
-          "example": "SP-85NaKZ4Yab"
-        }
-      ]
-    },
-    "/terminal/split/{split}/qr": {
-      "get": {
-        "summary": "Get Split QR",
+        ],
+        "summary": "Get split by reference",
         "parameters": [
           {
-            "name": "amount",
-            "in": "query",
-            "schema": {
-              "type": "integer"
-            },
-            "example": "100"
-          },
-          {
-            "name": "R-Partner-ID",
-            "in": "header",
+            "name": "split",
+            "in": "path",
+            "required": true,
             "schema": {
               "type": "string"
-            },
-            "example": "{{partnerId}}"
-          },
-          {
-            "name": "R-Api-Key",
-            "in": "header",
-            "schema": {
-              "type": "string"
-            },
-            "example": "{{apiKey}}"
-          },
-          {
-            "name": "R-Terminal",
-            "in": "header",
-            "schema": {
-              "type": "string"
-            },
-            "example": "{{terminal}}"
+            }
           }
         ],
         "responses": {
           "200": {
-            "description": "Get Split QR",
-            "headers": {
-              "Access-Control-Allow-Origin": {
+            "description": "Split details",
+            "content": {
+              "application/json": {
                 "schema": {
-                  "type": "string"
-                },
-                "example": "*"
-              },
-              "X-RateLimit-Limit-Short": {
-                "schema": {
-                  "type": "integer"
-                },
-                "example": "50"
-              },
-              "X-RateLimit-Remaining-Short": {
-                "schema": {
-                  "type": "integer"
-                },
-                "example": "49"
-              },
-              "X-RateLimit-Reset-Short": {
-                "schema": {
-                  "type": "integer"
-                },
-                "example": "1"
-              },
-              "X-RateLimit-Limit-Medium": {
-                "schema": {
-                  "type": "integer"
-                },
-                "example": "300"
-              },
-              "X-RateLimit-Remaining-Medium": {
-                "schema": {
-                  "type": "integer"
-                },
-                "example": "299"
-              },
-              "X-RateLimit-Reset-Medium": {
-                "schema": {
-                  "type": "integer"
-                },
-                "example": "10"
-              },
-              "X-RateLimit-Limit-Long": {
-                "schema": {
-                  "type": "integer"
-                },
-                "example": "1000"
-              },
-              "X-RateLimit-Remaining-Long": {
-                "schema": {
-                  "type": "integer"
-                },
-                "example": "999"
-              },
-              "X-RateLimit-Reset-Long": {
-                "schema": {
-                  "type": "integer"
-                },
-                "example": "60"
-              },
-              "X-Frame-Options": {
-                "schema": {
-                  "type": "string"
-                },
-                "example": "DENY"
-              },
-              "Strict-Transport-Security": {
-                "schema": {
-                  "type": "string"
-                },
-                "example": "max-age=63072000; includeSubDomains; preload"
-              },
-              "Content-Security-Policy": {
-                "schema": {
-                  "type": "string"
-                },
-                "example": "default-src 'self';"
-              },
-              "Referrer-Policy": {
-                "schema": {
-                  "type": "string"
-                },
-                "example": "same-origin"
-              },
-              "Cross-Origin-Embedder-Policy": {
-                "schema": {
-                  "type": "string"
-                },
-                "example": "require-corp"
-              },
-              "Cross-Origin-Resource-Policy": {
-                "schema": {
-                  "type": "string"
-                },
-                "example": "same-origin"
-              },
-              "Cross-Origin-Opener-Policy": {
-                "schema": {
-                  "type": "string"
-                },
-                "example": "same-origin"
-              },
-              "Content-Length": {
-                "schema": {
-                  "type": "integer"
-                },
-                "example": "2503"
-              },
-              "ETag": {
-                "schema": {
-                  "type": "string"
-                },
-                "example": "W/\"9c7-W1KVtN8mMbQgX3RXcI2ZKrO/xFk\""
-              },
-              "Date": {
-                "schema": {
-                  "type": "string"
-                },
-                "example": "Tue, 19 Aug 2025 08:38:00 GMT"
-              },
-              "Connection": {
-                "schema": {
-                  "type": "string"
-                },
-                "example": "keep-alive"
-              },
-              "Keep-Alive": {
-                "schema": {
-                  "type": "string"
-                },
-                "example": "timeout=5"
+                  "$ref": "#/components/schemas/Split"
+                }
               }
             }
           }
         },
+        "security": [
+          {
+            "ClientIdHeader": [],
+            "ApiKeyHeader": []
+          }
+        ]
+      }
+    },
+    "/terminal/split/{split}/qr": {
+      "get": {
         "tags": [
           "Terminal"
+        ],
+        "summary": "Generate split payment QR payload",
+        "parameters": [
+          {
+            "name": "split",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "amount",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "number",
+              "format": "float"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "QR transaction payload",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ClientIdHeader": [],
+            "ApiKeyHeader": []
+          }
         ]
-      },
-      "parameters": [
-        {
-          "name": "split",
-          "in": "path",
+      }
+    },
+    "/partner/transaction/initiate": {
+      "post": {
+        "tags": [
+          "Transactions"
+        ],
+        "summary": "Initiate partner transaction",
+        "requestBody": {
           "required": true,
-          "schema": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/InitiateTransactionDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Transaction reference or ID",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ClientIdHeader": [],
+            "ApiKeyHeader": []
+          }
+        ]
+      }
+    },
+    "/partner/transactions": {
+      "get": {
+        "tags": [
+          "Transactions"
+        ],
+        "summary": "Get partner transactions",
+        "parameters": [
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 0
+            }
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 0
+            }
+          },
+          {
+            "name": "search",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "reference",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "schema": {
+              "$ref": "#/components/schemas/TransactionStatus"
+            }
+          },
+          {
+            "name": "terminal",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "startDate",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "description": "Date filter in YYYY-MM-DD format"
+            }
+          },
+          {
+            "name": "endDate",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "description": "Date filter in YYYY-MM-DD format"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Paginated transaction list",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaginatedPartnerTransactionResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ClientIdHeader": [],
+            "ApiKeyHeader": []
+          }
+        ]
+      }
+    },
+    "/partner/transaction/{reference}": {
+      "get": {
+        "tags": [
+          "Transactions"
+        ],
+        "summary": "Get partner transaction by reference",
+        "parameters": [
+          {
+            "name": "reference",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Transaction details",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IPartnerTransaction"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ClientIdHeader": [],
+            "ApiKeyHeader": []
+          }
+        ]
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "ClientIdHeader": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "x-client-id"
+      },
+      "ApiKeyHeader": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "x-api-key"
+      }
+    },
+    "schemas": {
+      "IPartnerTerminal": {
+        "type": "object",
+        "required": [
+          "SerialNumber",
+          "Merchant",
+          "Email",
+          "PhoneNumber",
+          "Status",
+          "CreatedAt",
+          "Metadata",
+          "PayTag",
+          "Balance"
+        ],
+        "properties": {
+          "SerialNumber": {
             "type": "string"
           },
-          "example": "SP-85NaKZ4Yab"
+          "Merchant": {
+            "type": "string"
+          },
+          "Email": {
+            "type": "string"
+          },
+          "PhoneNumber": {
+            "type": "string"
+          },
+          "Status": {
+            "type": "string"
+          },
+          "CreatedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "Metadata": {
+            "type": "object",
+            "additionalProperties": true
+          },
+          "PayTag": {
+            "type": "string"
+          },
+          "Balance": {
+            "type": "number"
+          },
+          "Qr": {
+            "type": "string"
+          }
         }
-      ]
+      },
+      "InitiateTransactionDto": {
+        "type": "object",
+        "required": [
+          "amount",
+          "reference"
+        ],
+        "properties": {
+          "name": {
+            "type": "string",
+            "maxLength": 100
+          },
+          "amount": {
+            "type": "number",
+            "minimum": 100
+          },
+          "reference": {
+            "type": "string",
+            "maxLength": 50,
+            "pattern": "^[A-Za-z0-9_-]+$"
+          },
+          "description": {
+            "type": "string",
+            "maxLength": 255
+          },
+          "metadata": {
+            "type": "object",
+            "additionalProperties": true
+          }
+        }
+      },
+      "CreateSplitDto": {
+        "type": "object",
+        "required": [
+          "amount"
+        ],
+        "properties": {
+          "amount": {
+            "type": "number"
+          },
+          "title": {
+            "type": "string",
+            "maxLength": 50
+          },
+          "description": {
+            "type": "string",
+            "maxLength": 255
+          },
+          "reference": {
+            "type": "string"
+          }
+        }
+      },
+      "Split": {
+        "type": "object",
+        "required": [
+          "Amount",
+          "Reference",
+          "TotalPaid",
+          "Remaining",
+          "Status"
+        ],
+        "properties": {
+          "Amount": {
+            "type": "number"
+          },
+          "Reference": {
+            "type": "string"
+          },
+          "Title": {
+            "type": "string"
+          },
+          "Description": {
+            "type": "string"
+          },
+          "TotalPaid": {
+            "type": "number"
+          },
+          "Remaining": {
+            "type": "number"
+          },
+          "Status": {
+            "$ref": "#/components/schemas/SplitStatus"
+          }
+        }
+      },
+      "IPartnerTransaction": {
+        "type": "object",
+        "required": [
+          "Amount",
+          "Fee",
+          "Commission",
+          "Net",
+          "Reference",
+          "Sender",
+          "SenderDetails",
+          "Recipient",
+          "Status",
+          "Comment",
+          "Date",
+          "Metadata"
+        ],
+        "properties": {
+          "Amount": {
+            "type": "number"
+          },
+          "Fee": {
+            "type": "number"
+          },
+          "Commission": {
+            "type": "number"
+          },
+          "Net": {
+            "type": "number"
+          },
+          "Reference": {
+            "type": "string"
+          },
+          "Sender": {
+            "type": "string"
+          },
+          "SenderDetails": {
+            "$ref": "#/components/schemas/TransactionPartyDetail"
+          },
+          "Recipient": {
+            "type": "string"
+          },
+          "Status": {
+            "$ref": "#/components/schemas/TransactionStatus"
+          },
+          "CompletedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "Comment": {
+            "type": "string"
+          },
+          "Date": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "Metadata": {
+            "type": "object",
+            "additionalProperties": true
+          },
+          "Terminal": {
+            "$ref": "#/components/schemas/IPartnerTerminal"
+          }
+        }
+      },
+      "TransactionPartyDetail": {
+        "type": "object",
+        "required": [
+          "Name",
+          "Amount",
+          "Fee",
+          "Currency"
+        ],
+        "properties": {
+          "Name": {
+            "type": "string"
+          },
+          "Paytag": {
+            "type": "string"
+          },
+          "ProfileImage": {
+            "type": "string"
+          },
+          "Type": {
+            "$ref": "#/components/schemas/AccountType"
+          },
+          "External": {
+            "type": "boolean"
+          },
+          "Amount": {
+            "type": "number"
+          },
+          "Fee": {
+            "type": "number"
+          },
+          "Currency": {
+            "$ref": "#/components/schemas/WalletCurrency"
+          }
+        }
+      },
+      "PaginatedPartnerTransactionResponse": {
+        "type": "object",
+        "required": [
+          "items",
+          "count",
+          "limit",
+          "offset"
+        ],
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/IPartnerTransaction"
+            }
+          },
+          "count": {
+            "type": "integer"
+          },
+          "limit": {
+            "type": "integer"
+          },
+          "offset": {
+            "type": "integer"
+          }
+        }
+      },
+      "PaginatedSplitResponse": {
+        "type": "object",
+        "required": [
+          "items",
+          "count",
+          "limit",
+          "offset"
+        ],
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Split"
+            }
+          },
+          "count": {
+            "type": "integer"
+          },
+          "limit": {
+            "type": "integer"
+          },
+          "offset": {
+            "type": "integer"
+          }
+        }
+      },
+      "AccountType": {
+        "type": "string",
+        "enum": [
+          "AdminAuth",
+          "Customer",
+          "Merchant",
+          "MerchantUser",
+          "Partner"
+        ]
+      },
+      "WalletCurrency": {
+        "type": "string",
+        "enum": [
+          "NGN",
+          "FP"
+        ]
+      },
+      "TransactionStatus": {
+        "type": "string",
+        "enum": [
+          "Pending",
+          "Failed",
+          "Successful",
+          "Cancelled",
+          "Expired",
+          "Pending Review",
+          "Waiting on Provider"
+        ]
+      },
+      "SplitStatus": {
+        "type": "string",
+        "enum": [
+          "Pending",
+          "Completed"
+        ]
+      }
     }
   }
 }

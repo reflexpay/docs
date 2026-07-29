@@ -30,19 +30,23 @@
         ]
       },
       {
-        "tab": "API reference",
+        "tab": "API Reference",
         "groups": [
           {
-            "group": "IDAAS API",
-            "openapi": "openapi/idaas.openapi.json"
+            "group": "Wallet SSO",
+            "openapi": "openapi/sso.openapi.json"
           },
           {
-            "group": "Wallet SSO API",
-            "openapi": "openapi/sso.openapi.json"
+            "group": "Partner",
+            "openapi": "openapi/partner.openapi.json"
           },
           {
             "group": "Merchant API",
             "openapi": "openapi/merchant.openapi.json"
+          },
+          {
+            "group": "IDAAS",
+            "openapi": "openapi/idaas.openapi.json"
           }
         ]
       }
