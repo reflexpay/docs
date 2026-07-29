@@ -34,11 +34,15 @@
         "groups": [
           {
             "group": "IDAAS API",
-            "openapi": "openapi/idaas-api.json"
+            "openapi": "openapi/idaas.openapi.json"
+          },
+          {
+            "group": "Wallet SSO API",
+            "openapi": "openapi/sso.openapi.json"
           },
           {
             "group": "Merchant API",
-            "openapi": "openapi/merchant-api.json"
+            "openapi": "openapi/merchant.openapi.json"
           }
         ]
       }

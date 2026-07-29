@@ -1,0 +1,2016 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "Flex SSO Module API",
+    "version": "1.0.0",
+    "description": "OpenAPI specification for the Wallet service API."
+  },
+  "servers": [
+    {
+      "url": "https://api.yourflexpay.com/v2",
+      "description": "Production"
+    },
+    {
+      "url": "https://staging-api.yourflexpay.com/v2",
+      "description": "Staging"
+    }
+  ],
+  "tags": [
+    {
+      "name": "Auth"
+    },
+    {
+      "name": "Wallet"
+    },
+    {
+      "name": "Transaction"
+    },
+    {
+      "name": "SSO Payment Request"
+    },
+    {
+      "name": "PayTag"
+    },
+    {
+      "name": "Beneficiary"
+    }
+  ],
+  "security": [
+    {
+      "PartnerIdHeader": [
+
+      ],
+      "PartnerApiKeyHeader": [
+
+      ]
+    }
+  ],
+  "paths": {
+    "/sso/auth-code": {
+      "post": {
+        "tags": [
+          "Auth"
+        ],
+        "summary": "Authorize a customer and return redirect URL with auth-code",
+        "security": [
+          {
+            "PartnerIdHeader": [
+
+            ],
+            "PartnerApiKeyHeader": [
+
+            ]
+          }
+        ],
+        "parameters": [
+          {
+            "in": "query",
+            "name": "scope",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "profile",
+                "limited"
+              ]
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CustomerAuthSsoRequestDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Redirect URL with auth-code",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/sso/token": {
+      "get": {
+        "tags": [
+          "Auth"
+        ],
+        "summary": "Exchange auth-code for customer token",
+        "security": [
+          {
+            "PartnerIdHeader": [
+
+            ],
+            "PartnerApiKeyHeader": [
+
+            ]
+          }
+        ],
+        "parameters": [
+          {
+            "in": "query",
+            "name": "auth-code",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "SSO customer token",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/sso/verify-tag": {
+      "get": {
+        "tags": [
+          "Auth"
+        ],
+        "summary": "Verify paytag availability",
+        "security": [
+          {
+            "PartnerIdHeader": [
+
+            ],
+            "PartnerApiKeyHeader": [
+
+            ]
+          }
+        ],
+        "parameters": [
+          {
+            "in": "query",
+            "name": "tag",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Availability status",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TagAvailabilityResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/sso/create-tag": {
+      "post": {
+        "tags": [
+          "Auth"
+        ],
+        "summary": "Initiate customer onboarding for tag creation",
+        "security": [
+          {
+            "PartnerIdHeader": [
+
+            ],
+            "PartnerApiKeyHeader": [
+
+            ]
+          }
+        ],
+        "parameters": [
+          {
+            "in": "query",
+            "name": "otp",
+            "required": false,
+            "schema": {
+              "type": "boolean"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CustomerInitiateOnboardingRequestDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Onboarding session",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CustomerOnboardingDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/sso": {
+      "get": {
+        "tags": [
+          "Auth"
+        ],
+        "summary": "Get onboarding payload",
+        "security": [
+          {
+            "PartnerIdHeader": [
+
+            ],
+            "PartnerApiKeyHeader": [
+
+            ]
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Onboarding payload",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CustomerOnboardingDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/sso/{onboarding}/otp": {
+      "get": {
+        "tags": [
+          "Auth"
+        ],
+        "summary": "Send onboarding OTP",
+        "security": [
+          {
+            "PartnerIdHeader": [
+
+            ],
+            "PartnerApiKeyHeader": [
+
+            ]
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "onboarding",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "channel",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "sms",
+                "whatsapp",
+                "email"
+              ]
+            }
+          },
+          {
+            "in": "query",
+            "name": "recipient",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OTP metadata",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CustomerOnboardingOtp"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Auth"
+        ],
+        "summary": "Validate onboarding OTP",
+        "security": [
+          {
+            "PartnerIdHeader": [
+
+            ],
+            "PartnerApiKeyHeader": [
+
+            ]
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "onboarding",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "code"
+                ],
+                "properties": {
+                  "code": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Updated onboarding payload",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CustomerOnboardingDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/sso/create-tag/{onboarding}/complete": {
+      "post": {
+        "tags": [
+          "Auth"
+        ],
+        "summary": "Complete onboarding and create SSO customer",
+        "security": [
+          {
+            "PartnerIdHeader": [
+
+            ],
+            "PartnerApiKeyHeader": [
+
+            ]
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "onboarding",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CustomerOnboardingCompleteRequestDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "SSO customer",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SsoCustomer"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/sso/wallet": {
+      "get": {
+        "tags": [
+          "Wallet"
+        ],
+        "summary": "Get or create partner-scoped wallet for authenticated customer",
+        "security": [
+          {
+            "PartnerIdHeader": [
+
+            ],
+            "PartnerApiKeyHeader": [
+
+            ],
+            "BearerAuth": [
+
+            ]
+          }
+        ],
+        "parameters": [
+          {
+            "in": "query",
+            "name": "currency",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Wallet",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Wallet"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/sso/wallet/history": {
+      "get": {
+        "tags": [
+          "Wallet"
+        ],
+        "summary": "Get wallet history",
+        "security": [
+          {
+            "PartnerIdHeader": [
+
+            ],
+            "PartnerApiKeyHeader": [
+
+            ],
+            "BearerAuth": [
+
+            ]
+          }
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/LimitQuery"
+          },
+          {
+            "$ref": "#/components/parameters/OffsetQuery"
+          },
+          {
+            "$ref": "#/components/parameters/StartDateQuery"
+          },
+          {
+            "$ref": "#/components/parameters/EndDateQuery"
+          },
+          {
+            "in": "query",
+            "name": "type",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "status",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "reference",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "search",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "currency",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Wallet with paginated history",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WalletHistoryResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/sso/wallet/history/{reference}": {
+      "get": {
+        "tags": [
+          "Wallet"
+        ],
+        "summary": "Get wallet histories by reference",
+        "security": [
+          {
+            "PartnerIdHeader": [
+
+            ],
+            "PartnerApiKeyHeader": [
+
+            ],
+            "BearerAuth": [
+
+            ]
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "reference",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Wallet histories",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/WalletHistory"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/sso/wallet/summary": {
+      "get": {
+        "tags": [
+          "Wallet"
+        ],
+        "summary": "Get wallet summary",
+        "security": [
+          {
+            "PartnerIdHeader": [
+
+            ],
+            "PartnerApiKeyHeader": [
+
+            ],
+            "BearerAuth": [
+
+            ]
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Wallet summary keyed by category",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": {
+                    "$ref": "#/components/schemas/WalletSummary"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/sso/wallet/limit": {
+      "get": {
+        "tags": [
+          "Wallet"
+        ],
+        "summary": "Get daily transaction limit and spend",
+        "security": [
+          {
+            "PartnerIdHeader": [
+
+            ],
+            "PartnerApiKeyHeader": [
+
+            ],
+            "BearerAuth": [
+
+            ]
+          }
+        ],
+        "parameters": [
+          {
+            "in": "query",
+            "name": "transaction",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Limit details",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "Limit": {
+                      "type": "number"
+                    },
+                    "Spent": {
+                      "type": "number"
+                    },
+                    "Remaining": {
+                      "type": "number"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/sso/wallet/v-account": {
+      "get": {
+        "tags": [
+          "Wallet"
+        ],
+        "summary": "Get wallet virtual accounts (creates one if none exists)",
+        "security": [
+          {
+            "PartnerIdHeader": [
+
+            ],
+            "PartnerApiKeyHeader": [
+
+            ],
+            "BearerAuth": [
+
+            ]
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Virtual accounts",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/WalletStaticVirtualAccount"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/sso/transaction/withdraw": {
+      "post": {
+        "tags": [
+          "Transaction"
+        ],
+        "summary": "Withdraw from customer wallet to bank account number",
+        "security": [
+          {
+            "PartnerIdHeader": [
+
+            ],
+            "PartnerApiKeyHeader": [
+
+            ],
+            "BearerAuth": [
+
+            ]
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "allOf": [
+                  {
+                    "$ref": "#/components/schemas/TransactionDto"
+                  },
+                  {
+                    "type": "object",
+                    "required": [
+                      "accountNumber"
+                    ],
+                    "properties": {
+                      "accountNumber": {
+                        "type": "string"
+                      }
+                    }
+                  }
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Transaction details",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TransactionDetail"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/sso/transaction/p2p": {
+      "post": {
+        "tags": [
+          "Transaction"
+        ],
+        "summary": "Transfer from customer wallet to another paytag",
+        "security": [
+          {
+            "PartnerIdHeader": [
+
+            ],
+            "PartnerApiKeyHeader": [
+
+            ],
+            "BearerAuth": [
+
+            ]
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "allOf": [
+                  {
+                    "$ref": "#/components/schemas/P2pTransactionDto"
+                  },
+                  {
+                    "type": "object",
+                    "required": [
+                      "recipient"
+                    ],
+                    "properties": {
+                      "recipient": {
+                        "type": "string"
+                      },
+                      "saveBeneficiary": {
+                        "type": "boolean"
+                      }
+                    }
+                  }
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Transaction details",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TransactionDetail"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/sso/transaction/bank-transfer": {
+      "post": {
+        "tags": [
+          "Transaction"
+        ],
+        "summary": "Bank transfer from customer wallet",
+        "security": [
+          {
+            "PartnerIdHeader": [
+
+            ],
+            "PartnerApiKeyHeader": [
+
+            ],
+            "BearerAuth": [
+
+            ]
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "allOf": [
+                  {
+                    "$ref": "#/components/schemas/TransactionDto"
+                  },
+                  {
+                    "type": "object",
+                    "description": "Must include bank account fields accepted by `BankAccountPipe`.",
+                    "properties": {
+                      "accountNumber": {
+                        "type": "string"
+                      },
+                      "bankCode": {
+                        "type": "string"
+                      }
+                    }
+                  }
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Transaction details",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TransactionDetail"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/sso/transaction/statement": {
+      "post": {
+        "tags": [
+          "Transaction"
+        ],
+        "summary": "Get statement URL or trigger async statement generation",
+        "security": [
+          {
+            "PartnerIdHeader": [
+
+            ],
+            "PartnerApiKeyHeader": [
+
+            ],
+            "BearerAuth": [
+
+            ]
+          }
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/StartDateQuery"
+          },
+          {
+            "$ref": "#/components/parameters/EndDateQuery"
+          },
+          {
+            "in": "query",
+            "name": "async",
+            "schema": {
+              "type": "boolean"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Statement URL (sync mode)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "url": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "204": {
+            "description": "Async statement generation accepted"
+          }
+        }
+      }
+    },
+    "/sso/transaction": {
+      "get": {
+        "tags": [
+          "Transaction"
+        ],
+        "summary": "Get customer wallet transactions",
+        "security": [
+          {
+            "PartnerIdHeader": [
+
+            ],
+            "PartnerApiKeyHeader": [
+
+            ],
+            "BearerAuth": [
+
+            ]
+          }
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/LimitQuery"
+          },
+          {
+            "$ref": "#/components/parameters/OffsetQuery"
+          },
+          {
+            "$ref": "#/components/parameters/StartDateQuery"
+          },
+          {
+            "$ref": "#/components/parameters/EndDateQuery"
+          },
+          {
+            "in": "query",
+            "name": "type",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "status",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "reference",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "search",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "currency",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Wallet and paginated transactions",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TransactionListResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/sso/transaction/{reference}": {
+      "get": {
+        "tags": [
+          "Transaction"
+        ],
+        "summary": "Get transaction by reference",
+        "security": [
+          {
+            "PartnerIdHeader": [
+
+            ],
+            "PartnerApiKeyHeader": [
+
+            ],
+            "BearerAuth": [
+
+            ]
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "reference",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Transaction details",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TransactionDetail"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/sso/payment-transfer": {
+      "post": {
+        "tags": [
+          "SSO Payment Request"
+        ],
+        "summary": "Create payment request",
+        "security": [
+          {
+            "PartnerIdHeader": [
+
+            ],
+            "PartnerApiKeyHeader": [
+
+            ],
+            "BearerAuth": [
+
+            ]
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "allOf": [
+                  {
+                    "$ref": "#/components/schemas/PaymentRequestDto"
+                  },
+                  {
+                    "type": "object",
+                    "required": [
+                      "payer"
+                    ],
+                    "properties": {
+                      "payer": {
+                        "type": "string"
+                      }
+                    }
+                  }
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Payment request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaymentRequest"
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "tags": [
+          "SSO Payment Request"
+        ],
+        "summary": "List payment requests",
+        "security": [
+          {
+            "PartnerIdHeader": [
+
+            ],
+            "PartnerApiKeyHeader": [
+
+            ],
+            "BearerAuth": [
+
+            ]
+          }
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/LimitQuery"
+          },
+          {
+            "$ref": "#/components/parameters/OffsetQuery"
+          },
+          {
+            "in": "query",
+            "name": "status",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "role",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "Initiator",
+                "Payer"
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Paginated payment requests",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaginatedPaymentRequest"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/sso/payment-transfer/{id}": {
+      "get": {
+        "tags": [
+          "SSO Payment Request"
+        ],
+        "summary": "Get payment request by id",
+        "security": [
+          {
+            "PartnerIdHeader": [
+
+            ],
+            "PartnerApiKeyHeader": [
+
+            ],
+            "BearerAuth": [
+
+            ]
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Payment request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaymentRequest"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/sso/payment-transfer/{id}/accept": {
+      "post": {
+        "tags": [
+          "SSO Payment Request"
+        ],
+        "summary": "Accept payment request and execute transfer",
+        "security": [
+          {
+            "PartnerIdHeader": [
+
+            ],
+            "PartnerApiKeyHeader": [
+
+            ],
+            "BearerAuth": [
+
+            ]
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Transaction details",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TransactionDetail"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/sso/payment-transfer/{id}/cancel": {
+      "post": {
+        "tags": [
+          "SSO Payment Request"
+        ],
+        "summary": "Cancel payment request",
+        "security": [
+          {
+            "PartnerIdHeader": [
+
+            ],
+            "PartnerApiKeyHeader": [
+
+            ],
+            "BearerAuth": [
+
+            ]
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Payment request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaymentRequest"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/sso/payment-transfer/{id}/decline": {
+      "post": {
+        "tags": [
+          "SSO Payment Request"
+        ],
+        "summary": "Decline payment request",
+        "security": [
+          {
+            "PartnerIdHeader": [
+
+            ],
+            "PartnerApiKeyHeader": [
+
+            ],
+            "BearerAuth": [
+
+            ]
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Payment request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaymentRequest"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/sso/paytag/search": {
+      "get": {
+        "tags": [
+          "PayTag"
+        ],
+        "summary": "Search paytags",
+        "security": [
+          {
+            "PartnerIdHeader": [
+
+            ],
+            "PartnerApiKeyHeader": [
+
+            ],
+            "BearerAuth": [
+
+            ]
+          }
+        ],
+        "parameters": [
+          {
+            "in": "query",
+            "name": "q",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Paginated paytags",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaginatedPayTag"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/sso/paytag/{tag}": {
+      "get": {
+        "tags": [
+          "PayTag"
+        ],
+        "summary": "Resolve paytag details",
+        "security": [
+          {
+            "PartnerIdHeader": [
+
+            ],
+            "PartnerApiKeyHeader": [
+
+            ],
+            "BearerAuth": [
+
+            ]
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "tag",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Paytag",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PayTag"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/sso/paytag/{tag}/partners": {
+      "get": {
+        "tags": [
+          "PayTag"
+        ],
+        "summary": "List partners connected to paytag through wallet provisioning",
+        "security": [
+          {
+            "PartnerIdHeader": [
+
+            ],
+            "PartnerApiKeyHeader": [
+
+            ],
+            "BearerAuth": [
+
+            ]
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "tag",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Connected partners",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/SsoPayTagConnectedPartnerDto"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/sso/beneficiary/p2p": {
+      "post": {
+        "tags": [
+          "Beneficiary"
+        ],
+        "summary": "Save paytag beneficiary",
+        "security": [
+          {
+            "PartnerIdHeader": [
+
+            ],
+            "PartnerApiKeyHeader": [
+
+            ],
+            "BearerAuth": [
+
+            ]
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "paytag"
+                ],
+                "properties": {
+                  "paytag": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Saved beneficiary",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/P2pBeneficiary"
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "tags": [
+          "Beneficiary"
+        ],
+        "summary": "Get paytag beneficiaries",
+        "security": [
+          {
+            "PartnerIdHeader": [
+
+            ],
+            "PartnerApiKeyHeader": [
+
+            ],
+            "BearerAuth": [
+
+            ]
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Beneficiary paytags",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/PayTag"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Beneficiary"
+        ],
+        "summary": "Remove paytag beneficiary",
+        "security": [
+          {
+            "PartnerIdHeader": [
+
+            ],
+            "PartnerApiKeyHeader": [
+
+            ],
+            "BearerAuth": [
+
+            ]
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "paytag"
+                ],
+                "properties": {
+                  "paytag": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Deletion status",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "boolean"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "PartnerIdHeader": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "r-partner-id"
+      },
+      "PartnerApiKeyHeader": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "r-api-key"
+      },
+      "BearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT"
+      }
+    },
+    "parameters": {
+      "LimitQuery": {
+        "in": "query",
+        "name": "limit",
+        "schema": {
+          "type": "integer",
+          "minimum": 1
+        }
+      },
+      "OffsetQuery": {
+        "in": "query",
+        "name": "offset",
+        "schema": {
+          "type": "integer",
+          "minimum": 0
+        }
+      },
+      "StartDateQuery": {
+        "in": "query",
+        "name": "startDate",
+        "schema": {
+          "type": "string",
+          "format": "date"
+        }
+      },
+      "EndDateQuery": {
+        "in": "query",
+        "name": "endDate",
+        "schema": {
+          "type": "string",
+          "format": "date"
+        }
+      }
+    },
+    "schemas": {
+      "CustomerAuthSsoRequestDto": {
+        "type": "object",
+        "required": [
+          "paytag",
+          "password"
+        ],
+        "properties": {
+          "paytag": {
+            "type": "string"
+          },
+          "password": {
+            "type": "string"
+          }
+        }
+      },
+      "CustomerInitiateOnboardingRequestDto": {
+        "type": "object",
+        "required": [
+          "bvn"
+        ],
+        "properties": {
+          "bvn": {
+            "type": "string",
+            "pattern": "^[0-9]{11}$"
+          },
+          "uid": {
+            "type": "string"
+          },
+          "referrer": {
+            "type": "string"
+          }
+        }
+      },
+      "CustomerOnboardingCompleteRequestDto": {
+        "type": "object",
+        "required": [
+          "tag",
+          "password"
+        ],
+        "properties": {
+          "firstName": {
+            "type": "string"
+          },
+          "lastName": {
+            "type": "string"
+          },
+          "otherName": {
+            "type": "string"
+          },
+          "phone": {
+            "type": "string"
+          },
+          "email": {
+            "type": "string",
+            "format": "email"
+          },
+          "tag": {
+            "type": "string"
+          },
+          "profileImage": {
+            "type": "string"
+          },
+          "password": {
+            "type": "string"
+          }
+        }
+      },
+      "CustomerOnboardingOtp": {
+        "type": "object",
+        "properties": {
+          "provider": {
+            "type": "string"
+          },
+          "reference": {
+            "type": "string"
+          },
+          "recipients": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "validated": {
+            "type": "boolean"
+          }
+        }
+      },
+      "CustomerOnboardingDto": {
+        "type": "object",
+        "additionalProperties": true
+      },
+      "SsoCustomer": {
+        "type": "object",
+        "additionalProperties": true
+      },
+      "TagAvailabilityResponse": {
+        "type": "object",
+        "properties": {
+          "availability": {
+            "type": "boolean"
+          },
+          "tag": {
+            "type": "string"
+          }
+        }
+      },
+      "TransactionDto": {
+        "type": "object",
+        "required": [
+          "amount"
+        ],
+        "properties": {
+          "amount": {
+            "type": "number",
+            "maximum": 999999999
+          },
+          "comment": {
+            "type": "string",
+            "maxLength": 250
+          },
+          "reference": {
+            "type": "string",
+            "maxLength": 100
+          },
+          "currency": {
+            "type": "string"
+          },
+          "metadata": {
+            "type": "object",
+            "additionalProperties": true
+          }
+        }
+      },
+      "P2pTransactionDto": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/TransactionDto"
+          },
+          {
+            "type": "object",
+            "required": [
+              "recipient"
+            ],
+            "properties": {
+              "recipient": {
+                "type": "string"
+              },
+              "senderHostId": {
+                "type": "number"
+              },
+              "recipientHostId": {
+                "type": "number"
+              }
+            }
+          }
+        ]
+      },
+      "PaymentRequestDto": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/TransactionDto"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "duration": {
+                "type": "number"
+              }
+            }
+          }
+        ]
+      },
+      "Wallet": {
+        "type": "object",
+        "additionalProperties": true
+      },
+      "WalletHistory": {
+        "type": "object",
+        "additionalProperties": true
+      },
+      "WalletSummary": {
+        "type": "object",
+        "additionalProperties": true
+      },
+      "WalletStaticVirtualAccount": {
+        "type": "object",
+        "additionalProperties": true
+      },
+      "PaymentRequest": {
+        "type": "object",
+        "additionalProperties": true
+      },
+      "TransactionDetail": {
+        "type": "object",
+        "additionalProperties": true
+      },
+      "PayTag": {
+        "type": "object",
+        "additionalProperties": true
+      },
+      "P2pBeneficiary": {
+        "type": "object",
+        "additionalProperties": true
+      },
+      "SsoPayTagConnectedPartnerDto": {
+        "type": "object",
+        "required": [
+          "ID",
+          "Name"
+        ],
+        "properties": {
+          "ID": {
+            "type": "integer"
+          },
+          "Name": {
+            "type": "string"
+          }
+        }
+      },
+      "WalletHistoryResponse": {
+        "type": "object",
+        "properties": {
+          "Wallet": {
+            "$ref": "#/components/schemas/Wallet"
+          },
+          "History": {
+            "$ref": "#/components/schemas/PaginatedWalletHistory"
+          }
+        }
+      },
+      "PaginatedWalletHistory": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/WalletHistory"
+            }
+          },
+          "count": {
+            "type": "integer"
+          },
+          "limit": {
+            "type": "integer"
+          },
+          "offset": {
+            "type": "integer"
+          }
+        }
+      },
+      "TransactionListResponse": {
+        "type": "object",
+        "properties": {
+          "Wallet": {
+            "$ref": "#/components/schemas/Wallet"
+          },
+          "Transactions": {
+            "$ref": "#/components/schemas/PaginatedTransactionDetail"
+          }
+        }
+      },
+      "PaginatedTransactionDetail": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TransactionDetail"
+            }
+          },
+          "count": {
+            "type": "integer"
+          },
+          "limit": {
+            "type": "integer"
+          },
+          "offset": {
+            "type": "integer"
+          }
+        }
+      },
+      "PaginatedPaymentRequest": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PaymentRequest"
+            }
+          },
+          "count": {
+            "type": "integer"
+          },
+          "limit": {
+            "type": "integer"
+          },
+          "offset": {
+            "type": "integer"
+          }
+        }
+      },
+      "PaginatedPayTag": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PayTag"
+            }
+          },
+          "count": {
+            "type": "integer"
+          },
+          "limit": {
+            "type": "integer"
+          },
+          "offset": {
+            "type": "integer"
+          }
+        }
+      }
+    }
+  }
+}
