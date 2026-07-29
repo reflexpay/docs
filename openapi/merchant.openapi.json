@@ -5,15 +5,62 @@
     "version": "1.0.0",
     "description": "OpenAPI spec for Merchant API"
   },
-  "tags": [
+  "servers": [
     {
-      "name": "Payment Request"
+      "url": "https://staging-api.yourflexpay.com/v2",
+      "description": "Staging"
     },
     {
+      "url": "https://api.yourflexpay.com/v2",
+      "description": "Production"
+    }
+  ],
+  "tags": [
+    {
       "name": "QR"
+    },
+    {
+      "name": "Payment Request"
     }
   ],
   "paths": {
+    "/merchant/qr": {
+      "post": {
+        "tags": [
+          "QR"
+        ],
+        "summary": "Generate QR payload",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TransactionDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Generated QR payload",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ClientIdHeader": [],
+            "ApiKeyHeader": [],
+            "MerchantLocationHeader": []
+          }
+        ]
+      }
+    },
     "/merchant/payment-request": {
       "post": {
         "tags": [
@@ -197,43 +244,6 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/PaymentRequest"
-                }
-              }
-            }
-          }
-        },
-        "security": [
-          {
-            "ClientIdHeader": [],
-            "ApiKeyHeader": [],
-            "MerchantLocationHeader": []
-          }
-        ]
-      }
-    },
-    "/merchant/qr": {
-      "post": {
-        "tags": [
-          "QR"
-        ],
-        "summary": "Generate QR payload",
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/TransactionDto"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "Generated QR payload",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "string"
                 }
               }
             }

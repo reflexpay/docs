@@ -1,5 +1,5 @@
 {
-  "openapi": "3.0.1",
+  "openapi": "3.0.3",
   "info": {
     "title": "IDaaS – Identity as a Service API",
     "description": "## Overview\nIDaaS provides globally unique, portable identity **tags** that travel with users across applications.  Each tag is a short handle (e.g. `@alice`) that can carry verified claims, participate in cross-application payments, and be federated to external identity providers.\n\n## Key Capabilities\n- **Tags** – create, transfer, disable, and attach claims to identity handles.\n- **Cross-application payments** – send money from any tag on Application A   to any tag on Application B; each application has a single escrow wallet   tracked for end-of-day settlement.\n- **Ledger** – every completed payment produces an immutable double-entry   `DEBIT` / `CREDIT` pair recorded against application wallets.\n- **Webhooks** – real-time callbacks with HMAC-SHA256 signatures and   automatic retry (up to 3 attempts with exponential back-off).\n- **Settlement** – a scheduled end-of-day job aggregates daily wallet   movements and emits `SETTLEMENT_BATCH` Kafka events.\n\n## Authentication\n1. Register an application: `POST /v1/applications`\n2. Exchange credentials for a JWT: `POST /v1/auth/token`\n3. Include the JWT as `Authorization: Bearer \u003Ctoken\u003E` on all protected calls.\n\n## Rate Limits\n| Endpoint | Limit |\n|---|---|\n| `POST /v1/auth/token` | 10 req / min per IP |\n| `POST /v1/transactions` | 60 req / min per application |\n| All other | 300 req / min per IP |\n",
@@ -20,12 +20,12 @@
   },
   "servers": [
     {
-      "url": "https://idaas.yourflexpay.com/api",
-      "description": "Production"
-    },
-    {
       "url": "https://staging-idaas.yourflexpay.com/api",
       "description": "Staging"
+    },
+    {
+      "url": "https://idaas.yourflexpay.com/api",
+      "description": "Production"
     }
   ],
   "security": [
@@ -39,48 +39,24 @@
       "description": "Exchange client credentials for a JWT access token."
     },
     {
-      "name": "Claims",
-      "description": "Attach and revoke verifiable claims on tags."
-    },
-    {
-      "name": "Authentication",
-      "description": "Exchange credentials for access tokens and rotate integration credentials"
-    },
-    {
       "name": "Encryption",
       "description": "JWE payload encryption – end-to-end security for API request bodies and webhook payloads.\nEach application receives an EC P-256 keypair at registration:\n- IDaaS encrypts **outbound webhooks** with the application's public key.\n- Applications encrypt **inbound request bodies** with the IDaaS public key.\nAlgorithm: ECDH-ES+A256KW + A256GCM (JSON Web Encryption, RFC 7516).\nUse `GET /v1/keys/idaas` to fetch the IDaaS public key.\nUse `POST /v1/applications/keys/rotate` to rotate your application keypair.\n"
-    },
-    {
-      "name": "Settlement",
-      "description": "Query end-of-day settlement batches and per-application net positions."
-    },
-    {
-      "name": "Subjects",
-      "description": "Manage the real-world entities (users / organisations) behind tags."
-    },
-    {
-      "name": "Webhooks",
-      "description": "Inspect outbound webhook delivery records for transactions. Each transaction has at most two webhook records: one RECEIVER (sent on initiation) and one SENDER (sent on acceptance/rejection/expiry)."
-    },
-    {
-      "name": "Admin",
-      "description": "Privileged cross-entity administration endpoints for operators."
-    },
-    {
-      "name": "Webhooks",
-      "description": "Inspect outbound webhook delivery records (RECEIVER and SENDER) for transactions."
     },
     {
       "name": "Wallet",
       "description": "View application escrow wallet balance and paginated ledger statement."
     },
     {
-      "name": "Wallet",
-      "description": "View application escrow wallet balance and paginated ledger statement (DEBIT / CREDIT entries)."
+      "name": "Subjects",
+      "description": "Manage the real-world entities (users / organisations) behind tags."
     },
     {
-      "name": "Encryption",
-      "description": "Public key distribution and keypair management for JWE payload encryption."
+      "name": "Tags",
+      "description": "Create, transfer, disable and resolve globally unique identity tags."
+    },
+    {
+      "name": "Claims",
+      "description": "Attach and revoke verifiable claims on tags."
     },
     {
       "name": "Consent",
@@ -91,12 +67,12 @@
       "description": "Initiate, accept/reject, and query cross-application tag-to-tag payments."
     },
     {
-      "name": "Applications",
-      "description": "Register and manage API client applications (tenants)."
+      "name": "Settlement",
+      "description": "Query end-of-day settlement batches and per-application net positions."
     },
     {
-      "name": "Tags",
-      "description": "Create, transfer, disable and resolve globally unique identity tags."
+      "name": "Webhooks",
+      "description": "Inspect outbound webhook delivery records for transactions. Each transaction has at most two webhook records: one RECEIVER (sent on initiation) and one SENDER (sent on acceptance/rejection/expiry)."
     }
   ],
   "paths": {

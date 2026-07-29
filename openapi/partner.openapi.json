@@ -7,12 +7,12 @@
   },
   "servers": [
     {
-      "url": "https://api.yourflexpay.com/v2",
-      "description": "Production"
-    },
-    {
       "url": "https://staging-api.yourflexpay.com/v2",
       "description": "Staging"
+    },
+    {
+      "url": "https://api.yourflexpay.com/v2",
+      "description": "Production"
     }
   ],
   "tags": [
