@@ -26,7 +26,7 @@
       "name": "Transaction"
     },
     {
-      "name": "SSO Payment Request"
+      "name": "Payment Request"
     },
     {
       "name": "PayTag"
@@ -1086,7 +1086,7 @@
     "/sso/payment-transfer": {
       "post": {
         "tags": [
-          "SSO Payment Request"
+          "Payment Request"
         ],
         "summary": "Create payment request",
         "security": [
@@ -1142,7 +1142,7 @@
       },
       "get": {
         "tags": [
-          "SSO Payment Request"
+          "Payment Request"
         ],
         "summary": "List payment requests",
         "security": [
@@ -1201,7 +1201,7 @@
     "/sso/payment-transfer/{id}": {
       "get": {
         "tags": [
-          "SSO Payment Request"
+          "Payment Request"
         ],
         "summary": "Get payment request by id",
         "security": [
@@ -1244,7 +1244,7 @@
     "/sso/payment-transfer/{id}/accept": {
       "post": {
         "tags": [
-          "SSO Payment Request"
+          "Payment Request"
         ],
         "summary": "Accept payment request and execute transfer",
         "security": [
@@ -1287,7 +1287,7 @@
     "/sso/payment-transfer/{id}/cancel": {
       "post": {
         "tags": [
-          "SSO Payment Request"
+          "Payment Request"
         ],
         "summary": "Cancel payment request",
         "security": [
@@ -1330,7 +1330,7 @@
     "/sso/payment-transfer/{id}/decline": {
       "post": {
         "tags": [
-          "SSO Payment Request"
+          "Payment Request"
         ],
         "summary": "Decline payment request",
         "security": [
