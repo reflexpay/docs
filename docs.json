@@ -41,7 +41,7 @@
             "openapi": "openapi/partner.openapi.json"
           },
           {
-            "group": "Merchant API",
+            "group": "Merchant",
             "openapi": "openapi/merchant.openapi.json"
           },
           {

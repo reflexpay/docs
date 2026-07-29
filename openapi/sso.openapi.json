@@ -17,22 +17,22 @@
   ],
   "tags": [
     {
-      "name": "Auth"
+      "name": "SSO Auth"
     },
     {
-      "name": "Wallet"
+      "name": "SSO Wallet"
     },
     {
-      "name": "Transaction"
+      "name": "SSO Transaction"
     },
     {
-      "name": "Payment Request"
+      "name": "SSO Payment Request"
     },
     {
-      "name": "PayTag"
+      "name": "SSO PayTag"
     },
     {
-      "name": "Beneficiary"
+      "name": "SSO Beneficiary"
     }
   ],
   "security": [
@@ -45,9 +45,9 @@
     "/sso/auth-code": {
       "post": {
         "tags": [
-          "Auth"
+          "SSO Auth"
         ],
-        "summary": "Authorize a customer and return redirect URL with auth-code",
+        "summary": "Authorize a user and return redirect URL with auth-code",
         "security": [
           {
             "ClientIdHeader": [],
@@ -62,8 +62,7 @@
             "schema": {
               "type": "string",
               "enum": [
-                "profile",
-                "limited"
+                "profile"
               ]
             }
           }
@@ -95,7 +94,7 @@
     "/sso/token": {
       "get": {
         "tags": [
-          "Auth"
+          "SSO Auth"
         ],
         "summary": "Exchange auth-code for customer token",
         "security": [
@@ -131,7 +130,7 @@
     "/sso/verify-tag": {
       "get": {
         "tags": [
-          "Auth"
+          "SSO Auth"
         ],
         "summary": "Verify paytag availability",
         "security": [
@@ -167,7 +166,7 @@
     "/sso/create-tag": {
       "post": {
         "tags": [
-          "Auth"
+          "SSO Auth"
         ],
         "summary": "Initiate customer onboarding for tag creation",
         "security": [
@@ -213,7 +212,7 @@
     "/sso": {
       "get": {
         "tags": [
-          "Auth"
+          "SSO Auth"
         ],
         "summary": "Get onboarding payload",
         "security": [
@@ -239,7 +238,7 @@
     "/sso/{onboarding}/otp": {
       "get": {
         "tags": [
-          "Auth"
+          "SSO Auth"
         ],
         "summary": "Send onboarding OTP",
         "security": [
@@ -294,7 +293,7 @@
       },
       "post": {
         "tags": [
-          "Auth"
+          "SSO Auth"
         ],
         "summary": "Validate onboarding OTP",
         "security": [
@@ -348,7 +347,7 @@
     "/sso/create-tag/{onboarding}/complete": {
       "post": {
         "tags": [
-          "Auth"
+          "SSO Auth"
         ],
         "summary": "Complete onboarding and create SSO customer",
         "security": [
@@ -394,7 +393,7 @@
     "/sso/wallet": {
       "get": {
         "tags": [
-          "Wallet"
+          "SSO Wallet"
         ],
         "summary": "Get or create partner-scoped wallet for authenticated customer",
         "security": [
@@ -431,7 +430,7 @@
     "/sso/wallet/history": {
       "get": {
         "tags": [
-          "Wallet"
+          "SSO Wallet"
         ],
         "summary": "Get wallet history",
         "security": [
@@ -507,7 +506,7 @@
     "/sso/wallet/history/{reference}": {
       "get": {
         "tags": [
-          "Wallet"
+          "SSO Wallet"
         ],
         "summary": "Get wallet histories by reference",
         "security": [
@@ -547,7 +546,7 @@
     "/sso/wallet/summary": {
       "get": {
         "tags": [
-          "Wallet"
+          "SSO Wallet"
         ],
         "summary": "Get wallet summary",
         "security": [
@@ -577,7 +576,7 @@
     "/sso/wallet/limit": {
       "get": {
         "tags": [
-          "Wallet"
+          "SSO Wallet"
         ],
         "summary": "Get daily transaction limit and spend",
         "security": [
@@ -625,7 +624,7 @@
     "/sso/wallet/v-account": {
       "get": {
         "tags": [
-          "Wallet"
+          "SSO Wallet"
         ],
         "summary": "Get wallet virtual accounts (creates one if none exists)",
         "security": [
@@ -655,7 +654,7 @@
     "/sso/transaction/withdraw": {
       "post": {
         "tags": [
-          "Transaction"
+          "SSO Transaction"
         ],
         "summary": "Withdraw from customer wallet to bank account number",
         "security": [
@@ -707,7 +706,7 @@
     "/sso/transaction/p2p": {
       "post": {
         "tags": [
-          "Transaction"
+          "SSO Transaction"
         ],
         "summary": "Transfer from customer wallet to another paytag",
         "security": [
@@ -762,7 +761,7 @@
     "/sso/transaction/bank-transfer": {
       "post": {
         "tags": [
-          "Transaction"
+          "SSO Transaction"
         ],
         "summary": "Bank transfer from customer wallet",
         "security": [
@@ -815,7 +814,7 @@
     "/sso/transaction/statement": {
       "post": {
         "tags": [
-          "Transaction"
+          "SSO Transaction"
         ],
         "summary": "Get statement URL or trigger async statement generation",
         "security": [
@@ -865,7 +864,7 @@
     "/sso/transaction": {
       "get": {
         "tags": [
-          "Transaction"
+          "SSO Transaction"
         ],
         "summary": "Get customer wallet transactions",
         "security": [
@@ -941,7 +940,7 @@
     "/sso/transaction/{reference}": {
       "get": {
         "tags": [
-          "Transaction"
+          "SSO Transaction"
         ],
         "summary": "Get transaction by reference",
         "security": [
@@ -978,7 +977,7 @@
     "/sso/payment-transfer": {
       "post": {
         "tags": [
-          "Payment Request"
+          "SSO Payment Request"
         ],
         "summary": "Create payment request",
         "security": [
@@ -1028,7 +1027,7 @@
       },
       "get": {
         "tags": [
-          "Payment Request"
+          "SSO Payment Request"
         ],
         "summary": "List payment requests",
         "security": [
@@ -1081,7 +1080,7 @@
     "/sso/payment-transfer/{id}": {
       "get": {
         "tags": [
-          "Payment Request"
+          "SSO Payment Request"
         ],
         "summary": "Get payment request by id",
         "security": [
@@ -1118,7 +1117,7 @@
     "/sso/payment-transfer/{id}/accept": {
       "post": {
         "tags": [
-          "Payment Request"
+          "SSO Payment Request"
         ],
         "summary": "Accept payment request and execute transfer",
         "security": [
@@ -1155,7 +1154,7 @@
     "/sso/payment-transfer/{id}/cancel": {
       "post": {
         "tags": [
-          "Payment Request"
+          "SSO Payment Request"
         ],
         "summary": "Cancel payment request",
         "security": [
@@ -1192,7 +1191,7 @@
     "/sso/payment-transfer/{id}/decline": {
       "post": {
         "tags": [
-          "Payment Request"
+          "SSO Payment Request"
         ],
         "summary": "Decline payment request",
         "security": [
@@ -1229,7 +1228,7 @@
     "/sso/paytag/search": {
       "get": {
         "tags": [
-          "PayTag"
+          "SSO PayTag"
         ],
         "summary": "Search paytags",
         "security": [
@@ -1266,7 +1265,7 @@
     "/sso/paytag/{tag}": {
       "get": {
         "tags": [
-          "PayTag"
+          "SSO PayTag"
         ],
         "summary": "Resolve paytag details",
         "security": [
@@ -1303,7 +1302,7 @@
     "/sso/paytag/{tag}/partners": {
       "get": {
         "tags": [
-          "PayTag"
+          "SSO PayTag"
         ],
         "summary": "List partners connected to paytag through wallet provisioning",
         "security": [
@@ -1343,7 +1342,7 @@
     "/sso/beneficiary/p2p": {
       "post": {
         "tags": [
-          "Beneficiary"
+          "SSO Beneficiary"
         ],
         "summary": "Save paytag beneficiary",
         "security": [
@@ -1386,7 +1385,7 @@
       },
       "get": {
         "tags": [
-          "Beneficiary"
+          "SSO Beneficiary"
         ],
         "summary": "Get paytag beneficiaries",
         "security": [
@@ -1414,7 +1413,7 @@
       },
       "delete": {
         "tags": [
-          "Beneficiary"
+          "SSO Beneficiary"
         ],
         "summary": "Remove paytag beneficiary",
         "security": [

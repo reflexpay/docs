@@ -17,17 +17,17 @@
   ],
   "tags": [
     {
-      "name": "QR"
+      "name": "Merchant QR"
     },
     {
-      "name": "Payment Request"
+      "name": "Merchant Payment Request"
     }
   ],
   "paths": {
     "/merchant/qr": {
       "post": {
         "tags": [
-          "QR"
+          "Merchant QR"
         ],
         "summary": "Generate QR payload",
         "requestBody": {
@@ -64,7 +64,7 @@
     "/merchant/payment-request": {
       "post": {
         "tags": [
-          "Payment Request"
+          "Merchant Payment Request"
         ],
         "summary": "Create payment request",
         "requestBody": {
@@ -151,7 +151,7 @@
     "/merchant/payment-request/resolve-paytag": {
       "get": {
         "tags": [
-          "Payment Request"
+          "Merchant Payment Request"
         ],
         "summary": "Resolve paytag",
         "parameters": [
@@ -187,7 +187,7 @@
     "/merchant/payment-request/{reference}": {
       "get": {
         "tags": [
-          "Payment Request"
+          "Merchant Payment Request"
         ],
         "summary": "Get payment request by reference",
         "parameters": [
@@ -224,7 +224,7 @@
     "/merchant/payment-request/{reference}/cancel": {
       "post": {
         "tags": [
-          "Payment Request"
+          "Merchant Payment Request"
         ],
         "summary": "Cancel payment request",
         "parameters": [

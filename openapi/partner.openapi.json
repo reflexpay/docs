@@ -17,17 +17,17 @@
   ],
   "tags": [
     {
-      "name": "Terminal"
+      "name": "Partner Terminal"
     },
     {
-      "name": "Transactions"
+      "name": "Partner Transactions"
     }
   ],
   "paths": {
     "/terminal": {
       "get": {
         "tags": [
-          "Terminal"
+          "Partner Terminal"
         ],
         "summary": "Get terminal profile",
         "responses": {
@@ -53,7 +53,7 @@
     "/terminal/transaction": {
       "post": {
         "tags": [
-          "Terminal"
+          "Partner Terminal"
         ],
         "summary": "Initiate terminal transaction",
         "requestBody": {
@@ -89,7 +89,7 @@
     "/terminal/transactions": {
       "get": {
         "tags": [
-          "Terminal"
+          "Partner Terminal"
         ],
         "summary": "List terminal transactions",
         "parameters": [
@@ -170,7 +170,7 @@
     "/terminal/transaction/{reference}": {
       "get": {
         "tags": [
-          "Terminal"
+          "Partner Terminal"
         ],
         "summary": "Get transaction by reference",
         "parameters": [
@@ -206,7 +206,7 @@
     "/terminal/split": {
       "post": {
         "tags": [
-          "Terminal"
+          "Partner Terminal"
         ],
         "summary": "Create split",
         "requestBody": {
@@ -242,7 +242,7 @@
     "/terminal/splits": {
       "get": {
         "tags": [
-          "Terminal"
+          "Partner Terminal"
         ],
         "summary": "List splits",
         "parameters": [
@@ -309,7 +309,7 @@
     "/terminal/split/{split}": {
       "get": {
         "tags": [
-          "Terminal"
+          "Partner Terminal"
         ],
         "summary": "Get split by reference",
         "parameters": [
@@ -345,7 +345,7 @@
     "/terminal/split/{split}/qr": {
       "get": {
         "tags": [
-          "Terminal"
+          "Partner Terminal"
         ],
         "summary": "Generate split payment QR payload",
         "parameters": [
@@ -390,7 +390,7 @@
     "/partner/transaction/initiate": {
       "post": {
         "tags": [
-          "Transactions"
+          "Partner Transactions"
         ],
         "summary": "Initiate partner transaction",
         "requestBody": {
@@ -426,7 +426,7 @@
     "/partner/transactions": {
       "get": {
         "tags": [
-          "Transactions"
+          "Partner Transactions"
         ],
         "summary": "Get partner transactions",
         "parameters": [
@@ -514,7 +514,7 @@
     "/partner/transaction/{reference}": {
       "get": {
         "tags": [
-          "Transactions"
+          "Partner Transactions"
         ],
         "summary": "Get partner transaction by reference",
         "parameters": [
