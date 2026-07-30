@@ -1,26 +1,27 @@
 ---
-title: 'Partner API Overview'
-description: 'Accept payments and manage terminals with FLEX Partner API'
+title: 'Overview'
+description: 'Collect money into Flex Wallet with the FLEX Partner gateway API'
 ---
 
 ## Welcome to FLEX Partner API
 
-The FLEX Partner API enables partners to manage terminals, process transactions, and implement payment splitting functionality. Build powerful point-of-sale solutions integrated with the FLEX ecosystem.
+The FLEX Partner API is a payment gateway for partners who need to collect money from users into Flex Wallet.
+Participating applications initiate and confirm transactions through the gateway, while Flex handles routing, tracking, and settlement.
 
 ## What You Can Do
 
 <CardGroup cols={2}>
   <Card title="Terminal Management" icon="cash-register">
-    Manage terminals and access terminal profiles
+    Manage collection points and access terminal profiles
   </Card>
   <Card title="Transaction Processing" icon="money-bill-transfer">
-    Initiate and track transactions across terminals
+    Initiate and track collection flows across terminals
   </Card>
   <Card title="Payment Splitting" icon="hand-holding-dollar">
-    Create and manage split payments across multiple parties
+    Create and manage split collections across multiple parties
   </Card>
   <Card title="QR Payments" icon="qrcode">
-    Generate QR codes for terminal and split payments
+    Generate QR codes for collection and split payment flows
   </Card>
 </CardGroup>
 
@@ -39,25 +40,25 @@ https://api.yourflexpay.com/v2
 ## Key Features
 
 ### 🏪 Terminal Operations
-Dedicated terminal endpoints for point-of-sale operations with complete transaction tracking.
+Dedicated collection endpoints for point-of-sale and wallet-funded payment collection with complete transaction tracking.
 
 ### 💸 Split Payments
-Advanced payment splitting functionality to distribute payments across multiple recipients.
+Advanced payment splitting functionality to distribute collected funds across multiple recipients.
 
 ### 📱 QR Code Integration
-Generate dynamic QR codes for both regular terminal payments and split payment scenarios.
+Generate dynamic QR codes for both regular collection flows and split payment scenarios.
 
 ### 🔐 Secure Authentication
-All API requests authenticated using partner credentials with support for terminal-specific operations.
+All API requests are authenticated using partner credentials with support for terminal-specific collection operations.
 
 ## API Sections
 
 <CardGroup cols={2}>
   <Card title="Terminal API" icon="cash-register" href="/partner/terminal">
-    Manage terminals, process transactions, and handle splits
+    Manage collection points, route transactions, and handle splits
   </Card>
   <Card title="Transactions API" icon="exchange" href="/partner/transactions">
-    Partner-level transaction management and reporting
+    Gateway transaction management and reporting
   </Card>
 </CardGroup>
 
@@ -69,7 +70,7 @@ All Partner API endpoints require authentication using your partner credentials:
 - **x-api-key**: Your partner API key
 
 <Note>
-  Some terminal endpoints also require a valid terminal identifier in the request headers.
+  Some collection endpoints also require a valid terminal identifier in the request headers.
 </Note>
 
 ## Quick Start
@@ -83,11 +84,11 @@ All Partner API endpoints require authentication using your partner credentials:
   </Step>
 
   <Step title="Set Up Terminals">
-    Configure your terminals and obtain their serial numbers for authentication
+    Configure your collection terminals and obtain their serial numbers for authentication
   </Step>
 
   <Step title="Test Integration">
-    Start with terminal profile retrieval and transaction initiation
+    Start with terminal profile retrieval and a small collection flow
   </Step>
 
   <Step title="Go Live">
@@ -99,16 +100,16 @@ All Partner API endpoints require authentication using your partner credentials:
 
 <CardGroup cols={2}>
   <Card title="POS Integration" icon="cash-register">
-    Integrate FLEX payments into your point-of-sale system
+    Integrate FLEX collections into your point-of-sale system
   </Card>
   <Card title="Multi-Location" icon="store">
-    Manage multiple terminals across different locations
+    Manage multiple collection points across different locations
   </Card>
   <Card title="Split Bills" icon="receipt">
-    Enable bill splitting for restaurants and group purchases
+    Enable split collections for restaurants and group purchases
   </Card>
   <Card title="Transaction Tracking" icon="chart-line">
-    Monitor and report on all terminal transactions
+    Monitor and report on all gateway transactions
   </Card>
 </CardGroup>
 
@@ -132,10 +133,10 @@ Need help? Reach out to our developer support team:
 
 <CardGroup cols={2}>
   <Card title="Terminal API" icon="cash-register" href="/partner/terminal">
-    Explore terminal endpoints
+    Explore collection terminal endpoints
   </Card>
   <Card title="Transactions API" icon="exchange" href="/partner/transactions">
-    Partner transaction management
+    Gateway transaction management
   </Card>
   <Card title="OpenAPI Spec" icon="file-code" href="/openapi/partner.openapi.json">
     Complete API specification

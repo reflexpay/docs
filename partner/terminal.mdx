@@ -1,11 +1,11 @@
 ---
 title: 'Terminal'
-description: 'Manage terminals, process payments, and handle split transactions'
+description: 'Manage collection terminals, process payments, and handle split transactions'
 ---
 
 ## Overview
 
-Terminals are managed from the Partner Portal at [https://partner.yourflexpay.com](https://partner.yourflexpay.com). This API is meant to be integrated into a POS that has already been added and configured from the portal. The Terminal API provides endpoints for terminal-specific operations including profile management, transaction processing, and split payment functionality.
+Terminals are managed from the Partner Portal at [https://partner.yourflexpay.com](https://partner.yourflexpay.com). This API is meant to be integrated into a collection terminal that has already been added and configured from the portal. The Terminal API provides endpoints for terminal-specific operations including profile management, money collection, and split payment functionality.
 
 <Warning>
   All terminal endpoints require **three headers**:
@@ -13,7 +13,7 @@ Terminals are managed from the Partner Portal at [https://partner.yourflexpay.co
   - `x-api-key`: Your partner API key
   - `x-terminal`: Terminal serial number
 
-  The `x-terminal` value must match a POS terminal already created in the Partner Portal.
+  The `x-terminal` value must match a terminal already created in the Partner Portal.
 </Warning>
 
 ## Terminal Endpoints
@@ -52,7 +52,7 @@ Terminals are managed from the Partner Portal at [https://partner.yourflexpay.co
 
 ## Get Terminal Profile
 
-Retrieve terminal information including balance, PayTag, and a dynamic QR code for accepting payments.
+Retrieve terminal information including balance, PayTag, and a dynamic QR code for accepting customer payments into Flex Wallet.
 
 **Endpoint**: `GET /terminal`
 
@@ -76,20 +76,20 @@ Retrieve terminal information including balance, PayTag, and a dynamic QR code f
   "CreatedAt": "2026-01-15T10:00:00Z",
   "Metadata": {
     "location": "Store 1",
-    "pos_id": "POS-001"
+    "store_id": "STORE-001"
   }
 }
 ```
 
 <Note>
-  The `Qr` field contains a QR payload that can be encoded into a QR code image for customers to scan and make payments to this terminal.
+  The `Qr` field contains a QR payload that can be encoded into a QR code image for customers to scan and make payments through this terminal.
 </Note>
 
 ---
 
 ## Initiate Transaction
 
-Create a new payment transaction for the terminal.
+Create a new collection transaction for the terminal.
 
 **Endpoint**: `POST /terminal/transaction`
 
@@ -116,11 +116,11 @@ curl --request POST \
   --data '{
     "amount": 5000,
     "reference": "TXN-12345",
-    "description": "Product purchase",
-    "metadata": {
-      "product_id": "PROD-123",
-      "cashier": "John Doe"
-    }
+    "description": "Wallet collection",
+      "metadata": {
+        "product_id": "PROD-123",
+        "source": "front_desk"
+      }
   }'
 ```
 
@@ -138,10 +138,10 @@ const response = await fetch(
     body: JSON.stringify({
       amount: 5000,
       reference: 'TXN-12345',
-      description: 'Product purchase',
+      description: 'Wallet collection',
       metadata: {
         product_id: 'PROD-123',
-        cashier: 'John Doe'
+        source: 'front_desk'
       }
     })
   }
@@ -212,7 +212,7 @@ Retrieve paginated transaction history for the terminal.
 
 ## Create Split Payment
 
-Create a split payment configuration that allows multiple parties to contribute to a total amount.
+Create a split payment configuration that allows multiple parties to contribute to a total amount collected through the terminal.
 
 **Endpoint**: `POST /terminal/split`
 
@@ -237,8 +237,8 @@ curl --request POST \
   --header 'x-terminal: TERM-12345' \
   --data '{
     "amount": 10000,
-    "title": "Table 5 Bill",
-    "description": "Dinner bill for 4 people"
+    "title": "Store Order",
+    "description": "Shared collection for multiple customers"
   }'
 ```
 
@@ -255,8 +255,8 @@ const response = await fetch(
     },
     body: JSON.stringify({
       amount: 10000,
-      title: 'Table 5 Bill',
-      description: 'Dinner bill for 4 people'
+      title: 'Store Order',
+      description: 'Shared collection for multiple customers'
     })
   }
 );
@@ -271,8 +271,8 @@ const split = await response.json();
 {
   "Amount": 10000,
   "Reference": "SPLIT-ABC123",
-  "Title": "Table 5 Bill",
-  "Description": "Dinner bill for 4 people",
+  "Title": "Store Order",
+  "Description": "Shared collection for multiple customers",
   "TotalPaid": 0,
   "Remaining": 10000,
   "Status": "Pending"
@@ -328,11 +328,11 @@ const qrPayload = await response.json();
 
 <Steps>
   <Step title="Create Split">
-    Create a split payment with the total amount (e.g., ₦10,000 dinner bill)
+    Create a split payment with the total amount (e.g., a shared order or group collection)
   </Step>
 
   <Step title="Generate Individual QRs">
-    Generate separate QR codes for each contributing party with their share (e.g., ₦2,500 each for 4 people)
+    Generate separate QR codes for each contributing party with their share (e.g., equal amounts or custom splits)
   </Step>
 
   <Step title="Customers Scan & Pay">
@@ -377,7 +377,7 @@ const qrPayload = await response.json();
 
 <CardGroup cols={2}>
   <Card title="Transactions API" icon="exchange" href="/partner/transactions">
-    Partner-level transaction management
+    Gateway transaction management
   </Card>
   <Card title="Overview" icon="home" href="/partner/index">
     Partner API overview
