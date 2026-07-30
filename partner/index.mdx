@@ -1,0 +1,146 @@
+---
+title: 'Partner API Overview'
+description: 'Accept payments and manage terminals with FLEX Partner API'
+---
+
+## Welcome to FLEX Partner API
+
+The FLEX Partner API enables partners to manage terminals, process transactions, and implement payment splitting functionality. Build powerful point-of-sale solutions integrated with the FLEX ecosystem.
+
+## What You Can Do
+
+<CardGroup cols={2}>
+  <Card title="Terminal Management" icon="cash-register">
+    Manage terminals and access terminal profiles
+  </Card>
+  <Card title="Transaction Processing" icon="money-bill-transfer">
+    Initiate and track transactions across terminals
+  </Card>
+  <Card title="Payment Splitting" icon="hand-holding-dollar">
+    Create and manage split payments across multiple parties
+  </Card>
+  <Card title="QR Payments" icon="qrcode">
+    Generate QR codes for terminal and split payments
+  </Card>
+</CardGroup>
+
+## Base URLs
+
+<CodeGroup>
+```bash Staging
+https://staging-api.yourflexpay.com/v2
+```
+
+```bash Production
+https://api.yourflexpay.com/v2
+```
+</CodeGroup>
+
+## Key Features
+
+### 🏪 Terminal Operations
+Dedicated terminal endpoints for point-of-sale operations with complete transaction tracking.
+
+### 💸 Split Payments
+Advanced payment splitting functionality to distribute payments across multiple recipients.
+
+### 📱 QR Code Integration
+Generate dynamic QR codes for both regular terminal payments and split payment scenarios.
+
+### 🔐 Secure Authentication
+All API requests authenticated using partner credentials with support for terminal-specific operations.
+
+## API Sections
+
+<CardGroup cols={2}>
+  <Card title="Terminal API" icon="cash-register" href="/partner/terminal">
+    Manage terminals, process transactions, and handle splits
+  </Card>
+  <Card title="Transactions API" icon="exchange" href="/partner/transactions">
+    Partner-level transaction management and reporting
+  </Card>
+</CardGroup>
+
+## Authentication
+
+All Partner API endpoints require authentication using your partner credentials:
+
+- **x-client-id**: Your partner client ID
+- **x-api-key**: Your partner API key
+
+<Note>
+  Some terminal endpoints also require a valid terminal identifier in the request headers.
+</Note>
+
+## Quick Start
+
+<Steps>
+  <Step title="Get API Credentials">
+    Contact FLEX support to receive your partner credentials:
+    - Client ID (`x-client-id`)
+    - API Key (`x-api-key`)
+    - Terminal serial numbers (if applicable)
+  </Step>
+
+  <Step title="Set Up Terminals">
+    Configure your terminals and obtain their serial numbers for authentication
+  </Step>
+
+  <Step title="Test Integration">
+    Start with terminal profile retrieval and transaction initiation
+  </Step>
+
+  <Step title="Go Live">
+    Deploy to production after testing in staging environment
+  </Step>
+</Steps>
+
+## Common Use Cases
+
+<CardGroup cols={2}>
+  <Card title="POS Integration" icon="cash-register">
+    Integrate FLEX payments into your point-of-sale system
+  </Card>
+  <Card title="Multi-Location" icon="store">
+    Manage multiple terminals across different locations
+  </Card>
+  <Card title="Split Bills" icon="receipt">
+    Enable bill splitting for restaurants and group purchases
+  </Card>
+  <Card title="Transaction Tracking" icon="chart-line">
+    Monitor and report on all terminal transactions
+  </Card>
+</CardGroup>
+
+## Support
+
+Need help? Reach out to our developer support team:
+
+- **Email**: developers@yourflexpay.com
+- **Documentation**: [FLEX Developer Portal](https://developers.yourflexpay.com)
+- **Status Page**: [status.yourflexpay.com](https://status.yourflexpay.com)
+
+## API Status Codes
+
+| Status Code | Description |
+|------------|-------------|
+| `200` | Success |
+| `400` | Bad Request - Invalid parameters |
+| `401` | Unauthorized - Invalid credentials |
+| `404` | Not Found - Resource doesn't exist |
+| `500` | Server Error - Contact support |
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Terminal API" icon="cash-register" href="/partner/terminal">
+    Explore terminal endpoints
+  </Card>
+  <Card title="Transactions API" icon="exchange" href="/partner/transactions">
+    Partner transaction management
+  </Card>
+  <Card title="OpenAPI Spec" icon="file-code" href="/openapi/partner.openapi.json">
+    Complete API specification
+  </Card>
+</CardGroup>
+

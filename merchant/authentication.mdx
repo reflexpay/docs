@@ -1,0 +1,216 @@
+---
+title: 'Authentication'
+description: 'Learn how to authenticate your API requests to FLEX Merchant API'
+---
+
+## Overview
+
+The FLEX Merchant API uses **API Key authentication** with three required headers for secure access. All requests must include valid credentials to be processed.
+
+## Required Headers
+
+Every API request must include the following headers:
+
+<ParamField header="x-client-id" type="string" required>
+  Your unique merchant client identifier
+</ParamField>
+
+<ParamField header="x-api-key" type="string" required>
+  Your secret API key for authentication
+</ParamField>
+
+<ParamField header="x-location" type="string" required>
+  Your merchant location identifier (required for most endpoints)
+</ParamField>
+
+<Note>
+  The `x-location` header is optional only for the **Resolve PayTag** endpoint. All other endpoints require it.
+</Note>
+
+## Getting Your Credentials
+
+To obtain your API credentials:
+
+1. **Sign up** for a FLEX merchant account
+2. **Complete** merchant verification
+3. **Request** API access from your merchant dashboard or contact support
+4. **Receive** your credentials via secure email:
+   - Client ID
+   - API Key
+   - Location identifier(s)
+
+<Warning>
+  Never expose your API key in client-side code, public repositories, or logs. Always store credentials securely using environment variables or secret management systems.
+</Warning>
+
+## Authentication Example
+
+<CodeGroup>
+```bash cURL
+curl --request GET \
+  --url https://staging-api.yourflexpay.com/v2/merchant/payment-request \
+  --header 'x-client-id: your_client_id' \
+  --header 'x-api-key: your_api_key' \
+  --header 'x-location: your_location_id'
+```
+
+```javascript Node.js
+const axios = require('axios');
+
+const config = {
+  headers: {
+    'x-client-id': process.env.FLEXPAY_CLIENT_ID,
+    'x-api-key': process.env.FLEXPAY_API_KEY,
+    'x-location': process.env.FLEXPAY_LOCATION_ID
+  }
+};
+
+const response = await axios.get(
+  'https://staging-api.yourflexpay.com/v2/merchant/payment-request',
+  config
+);
+```
+
+```python Python
+import requests
+import os
+
+headers = {
+    'x-client-id': os.getenv('FLEXPAY_CLIENT_ID'),
+    'x-api-key': os.getenv('FLEXPAY_API_KEY'),
+    'x-location': os.getenv('FLEXPAY_LOCATION_ID')
+}
+
+response = requests.get(
+    'https://staging-api.yourflexpay.com/v2/merchant/payment-request',
+    headers=headers
+)
+```
+
+```php PHP
+<?php
+$client_id = getenv('FLEXPAY_CLIENT_ID');
+$api_key = getenv('FLEXPAY_API_KEY');
+$location_id = getenv('FLEXPAY_LOCATION_ID');
+
+$headers = [
+    'x-client-id: ' . $client_id,
+    'x-api-key: ' . $api_key,
+    'x-location: ' . $location_id
+];
+
+$ch = curl_init('https://staging-api.yourflexpay.com/v2/merchant/payment-request');
+curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
+curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+
+$response = curl_exec($ch);
+curl_close($ch);
+?>
+```
+</CodeGroup>
+
+## Authentication Errors
+
+<AccordionGroup>
+  <Accordion title="400 - Client ID Missing">
+    **Error Message**: `"client id is missing!"`
+
+    **Cause**: The `x-client-id` header was not provided
+
+    **Solution**: Ensure you include the `x-client-id` header in your request
+  </Accordion>
+
+  <Accordion title="400 - API Key Missing">
+    **Error Message**: `"API key is missing!"`
+
+    **Cause**: The `x-api-key` header was not provided
+
+    **Solution**: Ensure you include the `x-api-key` header in your request
+  </Accordion>
+
+  <Accordion title="401 - Unauthorized">
+    **Error Message**: `"Unauthorized"`
+
+    **Cause**: Invalid credentials or disabled merchant account
+
+    **Solution**:
+    - Verify your client ID and API key are correct
+    - Check if your merchant account is active
+    - Contact support if the issue persists
+  </Accordion>
+
+  <Accordion title="404 - Merchant Not Found">
+    **Error Message**: `"Merchant not found"`
+
+    **Cause**: The merchant account associated with your credentials is not found or disabled
+
+    **Solution**: Contact FLEX support to verify your account status
+  </Accordion>
+</AccordionGroup>
+
+## Legacy Headers (Deprecated)
+
+<Warning>
+  The following headers are **deprecated** and will be removed in a future version. Please migrate to the new `x-*` headers.
+</Warning>
+
+| Deprecated Header | New Header | Status |
+|------------------|------------|--------|
+| `r-merchant-id` | `x-client-id` | ⚠️ Deprecated |
+| `r-api-key` | `x-api-key` | ⚠️ Deprecated |
+| `r-location` | `x-location` | ⚠️ Deprecated |
+
+## Best Practices
+
+<CardGroup cols={2}>
+  <Card title="Use Environment Variables" icon="shield-halved">
+    Store credentials in environment variables, never hardcode them
+  </Card>
+  <Card title="Rotate Keys Regularly" icon="arrows-rotate">
+    Periodically rotate your API keys for enhanced security
+  </Card>
+  <Card title="Monitor Usage" icon="chart-line">
+    Track API usage to detect unauthorized access
+  </Card>
+  <Card title="Use HTTPS Only" icon="lock">
+    Always use HTTPS endpoints to encrypt data in transit
+  </Card>
+</CardGroup>
+
+## Testing Authentication
+
+Use this simple endpoint to verify your credentials are working:
+
+<CodeGroup>
+```bash Test Credentials
+curl --request GET \
+  --url https://staging-api.yourflexpay.com/v2/merchant/payment-request?limit=1 \
+  --header 'x-client-id: your_client_id' \
+  --header 'x-api-key: your_api_key' \
+  --header 'x-location: your_location_id'
+```
+</CodeGroup>
+
+**Expected Response** (200 OK):
+```json
+{
+  "items": [],
+  "count": 0,
+  "limit": 1,
+  "offset": 0
+}
+```
+
+If you receive this response, your authentication is configured correctly!
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Integration Guide" icon="rocket" href="/merchant/integration-guide">
+    Start integrating the API into your application
+  </Card>
+  <Card title="API Reference" icon="code" href="/merchant/payment-requests">
+    Explore available endpoints
+  </Card>
+</CardGroup>
+

@@ -1,0 +1,110 @@
+---
+title: 'Merchant API Overview'
+description: 'Accept payments and manage transactions with FLEX Merchant API'
+---
+
+## Welcome to FLEX Merchant API
+
+The FLEX Merchant API enables businesses to accept payments, generate QR codes, and manage payment requests programmatically. With our API, you can seamlessly integrate FLEX payment capabilities into your applications.
+
+## What You Can Do
+
+<CardGroup cols={2}>
+  <Card title="Payment Requests" icon="money-bill-transfer">
+    Create and manage payment requests for your customers
+  </Card>
+  <Card title="QR Code Generation" icon="qrcode">
+    Generate dynamic QR codes for instant payments
+  </Card>
+  <Card title="PayTag Resolution" icon="user-check">
+    Verify customer PayTags before initiating transactions
+  </Card>
+  <Card title="Transaction History" icon="clock-rotate-left">
+    Track and retrieve all your payment requests
+  </Card>
+</CardGroup>
+
+## Base URLs
+
+<CodeGroup>
+```bash Staging
+https://staging-api.yourflexpay.com/v2
+```
+
+```bash Production
+https://api.yourflexpay.com/v2
+```
+</CodeGroup>
+
+## Key Features
+
+### 🔐 Secure Authentication
+All API requests are authenticated using API keys with multi-layer security headers.
+
+### 💰 Multiple Payment Methods
+Support for NGN and FLEX points (FP) currencies.
+
+### ⚡ Real-time Processing
+Instant payment request creation and status updates.
+
+### 📊 Comprehensive Tracking
+Full pagination support and filtering for transaction history.
+
+## Quick Links
+
+<CardGroup cols={2}>
+  <Card title="Authentication" icon="key" href="/merchant/authentication">
+    Learn how to authenticate your API requests
+  </Card>
+  <Card title="Integration Guide" icon="rocket" href="/merchant/integration-guide">
+    Step-by-step integration walkthrough
+  </Card>
+  <Card title="API Reference" icon="code" href="/merchant/payment-requests">
+    Explore all available endpoints
+  </Card>
+  <Card title="Examples" icon="lightbulb" href="/merchant/examples">
+    See code examples in action
+  </Card>
+</CardGroup>
+
+## Getting Started
+
+<Steps>
+  <Step title="Get API Credentials">
+    Contact FLEX support to receive your merchant credentials:
+    - Client ID (`x-client-id`)
+    - API Key (`x-api-key`)
+    - Location identifier (`x-location`)
+  </Step>
+
+  <Step title="Review Authentication">
+    Understand how to [authenticate your requests](/merchant/authentication)
+  </Step>
+
+  <Step title="Follow Integration Guide">
+    Complete the [step-by-step integration](/merchant/integration-guide)
+  </Step>
+
+  <Step title="Test in Staging">
+    Test your integration in our staging environment before going live
+  </Step>
+</Steps>
+
+## Support
+
+Need help? Reach out to our developer support team:
+
+- **Email**: developers@yourflexpay.com
+- **Documentation**: [FLEX Developer Portal](https://developers.yourflexpay.com)
+- **Status Page**: [status.yourflexpay.com](https://status.yourflexpay.com)
+
+## API Status Codes
+
+| Status Code | Description |
+|------------|-------------|
+| `200` | Success |
+| `400` | Bad Request - Invalid parameters |
+| `401` | Unauthorized - Invalid credentials |
+| `404` | Not Found - Resource doesn't exist |
+| `500` | Server Error - Contact support |
+

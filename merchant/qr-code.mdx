@@ -1,0 +1,448 @@
+---
+title: 'QR Code'
+description: 'Generate QR codes for instant payment collection'
+---
+
+## Generate QR Payload
+
+Generate a QR code payload for quick payment collection. The generated payload can be converted to a QR code image that customers can scan with the FLEX mobile app to make instant payments.
+
+<Info>
+  The API returns a **QR payload string**, not an image. You'll need to encode this payload into a QR code image using a QR code generation library.
+</Info>
+
+### Request Parameters
+
+<ParamField body="amount" type="number" required>
+  Payment amount in the specified currency (maximum: 999,999,999)
+</ParamField>
+
+<ParamField body="reference" type="string">
+  Unique reference for tracking this transaction (max 100 characters). Auto-generated if not provided.
+</ParamField>
+
+<ParamField body="comment" type="string">
+  Description or note for the payment (max 250 characters)
+</ParamField>
+
+<ParamField body="currency" type="string" default="NGN">
+  Currency code: `NGN` (Nigerian Naira) or `FP` (FLEX Points)
+</ParamField>
+
+<ParamField body="metadata" type="object">
+  Additional custom data to store with the transaction
+</ParamField>
+
+### Request Example
+
+<CodeGroup>
+```bash cURL
+curl --request POST \
+  --url https://staging-api.yourflexpay.com/v2/merchant/qr \
+  --header 'Content-Type: application/json' \
+  --header 'x-client-id: your_client_id' \
+  --header 'x-api-key: your_api_key' \
+  --header 'x-location: your_location_id' \
+  --data '{
+    "amount": 2500,
+    "reference": "QR-ORDER-789",
+    "comment": "Product Purchase",
+    "currency": "NGN",
+    "metadata": {
+      "product_id": "PROD-123",
+      "order_id": "789"
+    }
+  }'
+```
+
+```javascript JavaScript
+const response = await fetch('https://staging-api.yourflexpay.com/v2/merchant/qr', {
+  method: 'POST',
+  headers: {
+    'Content-Type': 'application/json',
+    'x-client-id': 'your_client_id',
+    'x-api-key': 'your_api_key',
+    'x-location': 'your_location_id'
+  },
+  body: JSON.stringify({
+    amount: 2500,
+    reference: 'QR-ORDER-789',
+    comment: 'Product Purchase',
+    currency: 'NGN',
+    metadata: {
+      product_id: 'PROD-123',
+      order_id: '789'
+    }
+  })
+});
+
+const qrPayload = await response.json();
+```
+
+```python Python
+import requests
+
+response = requests.post(
+    'https://staging-api.yourflexpay.com/v2/merchant/qr',
+    headers={
+        'Content-Type': 'application/json',
+        'x-client-id': 'your_client_id',
+        'x-api-key': 'your_api_key',
+        'x-location': 'your_location_id'
+    },
+    json={
+        'amount': 2500,
+        'reference': 'QR-ORDER-789',
+        'comment': 'Product Purchase',
+        'currency': 'NGN',
+        'metadata': {
+            'product_id': 'PROD-123',
+            'order_id': '789'
+        }
+    }
+)
+
+qr_payload = response.json()
+```
+</CodeGroup>
+
+### Response
+
+The API returns a **QR payload string** that contains encrypted payment information.
+
+<ResponseExample>
+```json Response
+"eyJhbW91bnQiOjI1MDAsInRhZyI6IkB5b3VyYnVzaW5lc3MiLCJyZWZlcmVuY2UiOiJRUi1PUkRFUi03ODkiLCJjb21tZW50IjoiUHJvZHVjdCBQdXJjaGFzZSIsImN1cnJlbmN5IjoiTkdOIiwibWV0YWRhdGEiOnsicHJvZHVjdF9pZCI6IlBST0QtMTIzIiwib3JkZXJfaWQiOiI3ODkifX0="
+```
+</ResponseExample>
+
+---
+
+## Converting Payload to QR Code
+
+After receiving the QR payload, you need to encode it into a QR code image. Here's how to do it in different languages:
+
+<CodeGroup>
+```javascript Node.js (using qrcode)
+const QRCode = require('qrcode');
+
+async function generateQRImage(qrPayload) {
+  try {
+    // Generate QR code as Data URL (for web display)
+    const qrDataURL = await QRCode.toDataURL(qrPayload, {
+      errorCorrectionLevel: 'H',
+      width: 300
+    });
+
+    // Or save as file
+    await QRCode.toFile('payment-qr.png', qrPayload, {
+      errorCorrectionLevel: 'H',
+      width: 300
+    });
+
+    return qrDataURL;
+  } catch (error) {
+    console.error('QR generation failed:', error);
+    throw error;
+  }
+}
+
+// Usage
+const qrPayload = await fetch('/merchant/qr', {...}).then(r => r.json());
+const qrImage = await generateQRImage(qrPayload);
+```
+
+```python Python (using qrcode)
+import qrcode
+from PIL import Image
+
+def generate_qr_image(qr_payload, filename='payment-qr.png'):
+    """Generate QR code image from payload"""
+    qr = qrcode.QRCode(
+        version=1,
+        error_correction=qrcode.constants.ERROR_CORRECT_H,
+        box_size=10,
+        border=4,
+    )
+
+    qr.add_data(qr_payload)
+    qr.make(fit=True)
+
+    img = qr.make_image(fill_color="black", back_color="white")
+    img.save(filename)
+
+    return filename
+
+# Usage
+qr_payload = response.json()
+generate_qr_image(qr_payload)
+```
+
+```php PHP (using endroid/qr-code)
+<?php
+use Endroid\QrCode\QrCode;
+use Endroid\QrCode\Writer\PngWriter;
+
+function generateQRImage($qrPayload, $filename = 'payment-qr.png') {
+    $qrCode = QrCode::create($qrPayload)
+        ->setSize(300)
+        ->setMargin(10);
+
+    $writer = new PngWriter();
+    $result = $writer->write($qrCode);
+
+    // Save to file
+    $result->saveToFile($filename);
+
+    // Or get data URI for web display
+    return $result->getDataUri();
+}
+
+// Usage
+$qrPayload = json_decode($response);
+$qrImage = generateQRImage($qrPayload);
+?>
+```
+</CodeGroup>
+
+### Installation Commands
+
+<CodeGroup>
+```bash Node.js
+npm install qrcode
+# or
+yarn add qrcode
+```
+
+```bash Python
+pip install qrcode[pil]
+```
+
+```bash PHP
+composer require endroid/qr-code
+```
+</CodeGroup>
+
+---
+
+## Complete Example: Web Implementation
+
+Here's a complete example showing how to generate and display a QR code on a web page:
+
+<CodeGroup>
+```html HTML + JavaScript
+<!DOCTYPE html>
+<html>
+<head>
+    <title>FLEX QR Payment</title>
+    <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.1/build/qrcode.min.js"></script>
+</head>
+<body>
+    <div id="qr-container">
+        <h2>Scan to Pay</h2>
+        <canvas id="qr-canvas"></canvas>
+        <p>Amount: ₦<span id="amount"></span></p>
+        <p>Reference: <span id="reference"></span></p>
+    </div>
+
+    <script>
+        async function displayPaymentQR(amount, reference) {
+            try {
+                // Step 1: Generate QR payload from API
+                const response = await fetch('https://staging-api.yourflexpay.com/v2/merchant/qr', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'x-client-id': 'your_client_id',
+                        'x-api-key': 'your_api_key',
+                        'x-location': 'your_location_id'
+                    },
+                    body: JSON.stringify({
+                        amount: amount,
+                        reference: reference,
+                        comment: 'Product Purchase'
+                    })
+                });
+
+                const qrPayload = await response.json();
+
+                // Step 2: Generate QR code image
+                const canvas = document.getElementById('qr-canvas');
+                await QRCode.toCanvas(canvas, qrPayload, {
+                    errorCorrectionLevel: 'H',
+                    width: 300
+                });
+
+                // Step 3: Display payment details
+                document.getElementById('amount').textContent = amount.toLocaleString();
+                document.getElementById('reference').textContent = reference;
+
+                console.log('QR code generated successfully');
+            } catch (error) {
+                console.error('Failed to generate QR:', error);
+                alert('Failed to generate payment QR code');
+            }
+        }
+
+        // Example usage
+        displayPaymentQR(2500, 'QR-ORDER-789');
+    </script>
+</body>
+</html>
+```
+
+```javascript React Component
+import React, { useState, useEffect } from 'react';
+import QRCode from 'qrcode';
+
+function PaymentQR({ amount, reference }) {
+  const [qrDataURL, setQrDataURL] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    generateQR();
+  }, [amount, reference]);
+
+  async function generateQR() {
+    setLoading(true);
+    setError(null);
+
+    try {
+      // Fetch QR payload from API
+      const response = await fetch('https://staging-api.yourflexpay.com/v2/merchant/qr', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-client-id': process.env.REACT_APP_FLEXPAY_CLIENT_ID,
+          'x-api-key': process.env.REACT_APP_FLEXPAY_API_KEY,
+          'x-location': process.env.REACT_APP_FLEXPAY_LOCATION_ID
+        },
+        body: JSON.stringify({
+          amount,
+          reference,
+          comment: 'Product Purchase'
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to generate QR payload');
+      }
+
+      const qrPayload = await response.json();
+
+      // Convert payload to QR code image
+      const dataURL = await QRCode.toDataURL(qrPayload, {
+        errorCorrectionLevel: 'H',
+        width: 300
+      });
+
+      setQrDataURL(dataURL);
+    } catch (err) {
+      setError(err.message);
+      console.error('QR generation failed:', err);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  if (loading) return <div>Generating QR code...</div>;
+  if (error) return <div>Error: {error}</div>;
+
+  return (
+    <div className="payment-qr">
+      <h2>Scan to Pay</h2>
+      {qrDataURL && <img src={qrDataURL} alt="Payment QR Code" />}
+      <p>Amount: ₦{amount.toLocaleString()}</p>
+      <p>Reference: {reference}</p>
+    </div>
+  );
+}
+
+export default PaymentQR;
+```
+</CodeGroup>
+
+---
+
+## Use Cases
+
+<CardGroup cols={2}>
+  <Card title="Point of Sale" icon="cash-register">
+    Display QR codes at checkout counters for quick payment
+  </Card>
+  <Card title="E-commerce" icon="cart-shopping">
+    Show QR code on order confirmation page as alternative payment method
+  </Card>
+  <Card title="Invoices" icon="file-invoice">
+    Include QR codes in PDF invoices for instant payment
+  </Card>
+  <Card title="Event Ticketing" icon="ticket">
+    Generate unique QR codes for ticket purchases
+  </Card>
+</CardGroup>
+
+---
+
+## Best Practices
+
+<Check>
+  **Use unique references** for each QR code to track individual transactions
+</Check>
+
+<Check>
+  **Set appropriate amounts** - QR codes are typically used for fixed amounts
+</Check>
+
+<Check>
+  **Include metadata** to link QR payments back to your internal systems (order IDs, SKUs, etc.)
+</Check>
+
+<Check>
+  **Display payment details** alongside the QR code so customers know what they're paying for
+</Check>
+
+<Warning>
+  QR code payloads don't expire automatically. Implement your own expiration logic if needed by tracking QR generation timestamps.
+</Warning>
+
+---
+
+## Error Responses
+
+<AccordionGroup>
+  <Accordion title="400 - Bad Request">
+    ```json
+    {
+      "statusCode": 400,
+      "message": "Validation failed",
+      "errors": [
+        "amount must be a positive number"
+      ]
+    }
+    ```
+  </Accordion>
+
+  <Accordion title="401 - Unauthorized">
+    ```json
+    {
+      "statusCode": 401,
+      "message": "Unauthorized"
+    }
+    ```
+  </Accordion>
+</AccordionGroup>
+
+---
+
+## Related Endpoints
+
+<CardGroup cols={2}>
+  <Card title="Payment Requests" icon="money-bill-transfer" href="/merchant/payment-requests">
+    Create payment requests with customer approval
+  </Card>
+  <Card title="Transaction History" icon="clock-rotate-left" href="/merchant/payment-requests#list-payment-requests">
+    Track all your transactions
+  </Card>
+</CardGroup>
+

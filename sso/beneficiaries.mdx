@@ -1,0 +1,119 @@
+---
+title: 'Beneficiary'
+description: 'Save and manage frequent payment recipients'
+---
+
+## Overview
+
+Beneficiary endpoints allow customers to save frequently used PayTags for quick access during transfers, creating a seamless payment experience.
+
+<Note>
+  All beneficiary endpoints require **customer authentication** (Bearer token).
+</Note>
+
+<Note>
+  **Complete API Specification**: View the full [SSO OpenAPI Spec](/openapi/sso.openapi.json) for detailed schemas and all endpoint specifications.
+</Note>
+
+## Beneficiary Endpoints
+
+<CardGroup cols={2}>
+  <Card title="Save Beneficiary" icon="user-plus">
+    `POST /sso/beneficiary/p2p` - Save a PayTag as beneficiary
+  </Card>
+  <Card title="List Beneficiaries" icon="users">
+    `GET /sso/beneficiary/p2p` - Get saved beneficiary PayTags
+  </Card>
+  <Card title="Remove Beneficiary" icon="user-minus">
+    `DELETE /sso/beneficiary/p2p` - Remove a beneficiary PayTag
+  </Card>
+</CardGroup>
+
+## Key Features
+
+### Quick Access
+Save frequently used PayTags for one-tap transfers without searching each time.
+
+### Auto-Save During Transfer
+Automatically save recipients as beneficiaries during P2P transfers by setting `saveBeneficiary: true` in the transaction request.
+
+### Cross-Partner Beneficiaries
+Save any PayTag user across the FLEX ecosystem as a beneficiary, regardless of which partner created their account.
+
+## Use Cases
+
+<CardGroup cols={2}>
+  <Card title="Quick Transfers" icon="bolt">
+    Enable one-tap transfers to frequent recipients
+  </Card>
+  <Card title="Recipient History" icon="clock-rotate-left">
+    Show recently used recipients
+  </Card>
+  <Card title="Contact Book" icon="address-book">
+    Build beneficiary contact lists
+  </Card>
+  <Card title="Favorite Recipients" icon="star">
+    Let users mark favorite payment contacts
+  </Card>
+</CardGroup>
+
+## Auto-Save Example
+
+When making a P2P transfer, automatically save the recipient as a beneficiary:
+
+```javascript
+const transaction = await fetch('/sso/transaction/p2p', {
+  method: 'POST',
+  headers: { /* auth headers */ },
+  body: JSON.stringify({
+    recipient: '@janedoe',
+    amount: 5000,
+    comment: 'Payment',
+    saveBeneficiary: true  // ← Automatically save as beneficiary
+  })
+});
+```
+
+## Quick Links
+
+<CardGroup cols={2}>
+  <Card title="Transaction API" icon="exchange" href="/sso/transactions">
+    Send money to beneficiaries
+  </Card>
+  <Card title="PayTag API" icon="at" href="/sso/api-paytag">
+    Search for new beneficiaries
+  </Card>
+  <Card title="Integration Guide" icon="code" href="/sso/integration-guide">
+    Implementation examples
+  </Card>
+  <Card title="OpenAPI Spec" icon="file-code">
+    Full API specification
+  </Card>
+</CardGroup>
+
+## Security
+
+All beneficiary endpoints require:
+- `x-client-id` header (Partner ID)
+- `x-api-key` header (Partner API key)
+- `Authorization: Bearer {customer_token}` header
+
+## Error Responses
+
+| Status | Description |
+|--------|-------------|
+| 400 | Invalid PayTag or already saved |
+| 401 | Invalid or expired customer token |
+| 404 | PayTag or beneficiary not found |
+| 500 | Server error |
+
+## API Tags
+
+The Beneficiary API includes endpoints under the **SSO Beneficiary** tag in the OpenAPI specification.
+
+---
+
+<Info>
+For complete request/response schemas, parameters, and examples, refer to the [SSO OpenAPI Specification](/openapi/sso.openapi.json).
+</Info>
+

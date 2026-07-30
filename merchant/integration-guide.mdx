@@ -1,0 +1,782 @@
+---
+title: 'Integration Guide'
+description: 'Step-by-step guide to integrate FLEX Merchant API into your application'
+---
+
+## Overview
+
+This guide will walk you through integrating the FLEX Merchant API into your application. By the end, you'll be able to create payment requests, generate QR codes, and manage transactions.
+
+<Info>
+  **Estimated Time**: 30-45 minutes
+
+  **Prerequisites**:
+  - API credentials (client ID, API key, location ID)
+  - Development environment set up
+  - Basic understanding of REST APIs
+</Info>
+
+## Integration Steps
+
+<Steps>
+  <Step title="Set Up Your Environment">
+    Configure your development environment with the necessary credentials and dependencies.
+  </Step>
+
+  <Step title="Verify PayTag">
+    Implement PayTag verification to ensure customers exist before creating payment requests.
+  </Step>
+
+  <Step title="Create Payment Request">
+    Build the core functionality to create payment requests for your customers.
+  </Step>
+
+  <Step title="Track Payment Status">
+    Implement status tracking to monitor payment request lifecycle.
+  </Step>
+
+  <Step title="Handle Edge Cases">
+    Add error handling and edge case management.
+  </Step>
+
+  <Step title="Test & Go Live">
+    Test thoroughly in staging, then deploy to production.
+  </Step>
+</Steps>
+
+---
+
+## Step 1: Set Up Your Environment
+
+### Install Dependencies
+
+<CodeGroup>
+```bash Node.js
+npm install axios dotenv
+# or
+yarn add axios dotenv
+```
+
+```bash Python
+pip install requests python-dotenv
+```
+
+```bash PHP
+# PHP has built-in cURL support
+composer require vlucas/phpdotenv
+```
+</CodeGroup>
+
+### Configure Environment Variables
+
+Create a `.env` file in your project root:
+
+```bash .env
+# Staging Environment
+FLEXPAY_BASE_URL=https://staging-api.yourflexpay.com/v2
+FLEXPAY_CLIENT_ID=your_client_id_here
+FLEXPAY_API_KEY=your_api_key_here
+FLEXPAY_LOCATION_ID=your_location_id_here
+
+# Production Environment (uncomment when ready)
+# FLEXPAY_BASE_URL=https://api.yourflexpay.com/v2
+```
+
+<Warning>
+  Add `.env` to your `.gitignore` file to prevent committing sensitive credentials!
+</Warning>
+
+### Create API Client
+
+<CodeGroup>
+```javascript Node.js - api-client.js
+require('dotenv').config();
+const axios = require('axios');
+
+class FLEXClient {
+  constructor() {
+    this.baseURL = process.env.FLEXPAY_BASE_URL;
+    this.clientId = process.env.FLEXPAY_CLIENT_ID;
+    this.apiKey = process.env.FLEXPAY_API_KEY;
+    this.locationId = process.env.FLEXPAY_LOCATION_ID;
+  }
+
+  getHeaders(includeLocation = true) {
+    const headers = {
+      'x-client-id': this.clientId,
+      'x-api-key': this.apiKey,
+      'Content-Type': 'application/json'
+    };
+
+    if (includeLocation) {
+      headers['x-location'] = this.locationId;
+    }
+
+    return headers;
+  }
+
+  async makeRequest(method, endpoint, data = null, includeLocation = true) {
+    try {
+      const config = {
+        method,
+        url: `${this.baseURL}${endpoint}`,
+        headers: this.getHeaders(includeLocation),
+      };
+
+      if (data) {
+        config.data = data;
+      }
+
+      const response = await axios(config);
+      return response.data;
+    } catch (error) {
+      console.error('API Error:', error.response?.data || error.message);
+      throw error;
+    }
+  }
+}
+
+module.exports = new FLEXClient();
+```
+
+```python Python - flexpay_client.py
+import os
+import requests
+from dotenv import load_dotenv
+
+load_dotenv()
+
+class FLEXClient:
+    def __init__(self):
+        self.base_url = os.getenv('FLEXPAY_BASE_URL')
+        self.client_id = os.getenv('FLEXPAY_CLIENT_ID')
+        self.api_key = os.getenv('FLEXPAY_API_KEY')
+        self.location_id = os.getenv('FLEXPAY_LOCATION_ID')
+
+    def get_headers(self, include_location=True):
+        headers = {
+            'x-client-id': self.client_id,
+            'x-api-key': self.api_key,
+            'Content-Type': 'application/json'
+        }
+
+        if include_location:
+            headers['x-location'] = self.location_id
+
+        return headers
+
+    def make_request(self, method, endpoint, data=None, include_location=True):
+        url = f"{self.base_url}{endpoint}"
+        headers = self.get_headers(include_location)
+
+        try:
+            response = requests.request(
+                method=method,
+                url=url,
+                headers=headers,
+                json=data
+            )
+            response.raise_for_status()
+            return response.json()
+        except requests.exceptions.RequestException as e:
+            print(f"API Error: {e}")
+            raise
+
+client = FLEXClient()
+```
+</CodeGroup>
+
+---
+
+## Step 2: Verify PayTag
+
+Before creating a payment request, verify that the customer's PayTag exists and is valid.
+
+<CodeGroup>
+```javascript Node.js
+const flexPay = require('./api-client');
+
+async function verifyPayTag(payTag) {
+  try {
+    const result = await flexPay.makeRequest(
+      'GET',
+      `/merchant/payment-request/resolve-paytag?tag=${payTag}`,
+      null,
+      false // x-location not required for this endpoint
+    );
+
+    console.log('PayTag verified:', result);
+    return result;
+  } catch (error) {
+    if (error.response?.status === 404) {
+      console.error('PayTag not found');
+      return null;
+    }
+    throw error;
+  }
+}
+
+// Usage
+const customer = await verifyPayTag('@johndoe');
+if (customer) {
+  console.log(`Customer: ${customer.Name} (${customer.Tag})`);
+}
+```
+
+```python Python
+from flexpay_client import client
+
+def verify_paytag(pay_tag):
+    try:
+        result = client.make_request(
+            'GET',
+            f'/merchant/payment-request/resolve-paytag?tag={pay_tag}',
+            include_location=False
+        )
+        print(f"PayTag verified: {result}")
+        return result
+    except requests.exceptions.HTTPError as e:
+        if e.response.status_code == 404:
+            print("PayTag not found")
+            return None
+        raise
+
+# Usage
+customer = verify_paytag('@johndoe')
+if customer:
+    print(f"Customer: {customer['Name']} ({customer['Tag']})")
+```
+</CodeGroup>
+
+**Expected Response**:
+```json
+{
+  "Name": "John Doe",
+  "Tag": "@johndoe"
+}
+```
+
+---
+
+## Step 3: Create Payment Request
+
+Now create a payment request for your verified customer.
+
+<CodeGroup>
+```javascript Node.js
+async function createPaymentRequest(payerTag, amount, options = {}) {
+  const payload = {
+    payer: payerTag,
+    amount: amount,
+    reference: options.reference || `REF-${Date.now()}`,
+    comment: options.comment || 'Payment request',
+    currency: options.currency || 'NGN',
+    duration: options.duration || 30, // minutes
+    metadata: options.metadata || {}
+  };
+
+  try {
+    const paymentRequest = await flexPay.makeRequest(
+      'POST',
+      '/merchant/payment-request',
+      payload
+    );
+
+    console.log('Payment request created:', paymentRequest);
+    return paymentRequest;
+  } catch (error) {
+    console.error('Failed to create payment request:', error.response?.data);
+    throw error;
+  }
+}
+
+// Usage
+const payment = await createPaymentRequest('@johndoe', 5000, {
+  comment: 'Invoice #12345',
+  duration: 60,
+  metadata: {
+    invoice_id: '12345',
+    customer_email: 'john@example.com'
+  }
+});
+
+console.log(`Payment Reference: ${payment.Reference}`);
+console.log(`Status: ${payment.Status}`);
+console.log(`Expires: ${payment.ExpiresAt}`);
+```
+
+```python Python
+def create_payment_request(payer_tag, amount, **options):
+    payload = {
+        'payer': payer_tag,
+        'amount': amount,
+        'reference': options.get('reference', f"REF-{int(time.time() * 1000)}"),
+        'comment': options.get('comment', 'Payment request'),
+        'currency': options.get('currency', 'NGN'),
+        'duration': options.get('duration', 30),
+        'metadata': options.get('metadata', {})
+    }
+
+    try:
+        payment_request = client.make_request(
+            'POST',
+            '/merchant/payment-request',
+            data=payload
+        )
+        print(f"Payment request created: {payment_request}")
+        return payment_request
+    except Exception as e:
+        print(f"Failed to create payment request: {e}")
+        raise
+
+# Usage
+payment = create_payment_request('@johndoe', 5000,
+    comment='Invoice #12345',
+    duration=60,
+    metadata={
+        'invoice_id': '12345',
+        'customer_email': 'john@example.com'
+    }
+)
+
+print(f"Payment Reference: {payment['Reference']}")
+print(f"Status: {payment['Status']}")
+```
+</CodeGroup>
+
+**Expected Response**:
+```json
+{
+  "ID": 12345,
+  "Reference": "REF-1722345678901",
+  "Amount": 5000,
+  "Status": "Pending",
+  "Description": "Invoice #12345",
+  "PayTag": {
+    "ID": 1,
+    "Tag": "@merchant",
+    "Name": "Your Business"
+  },
+  "Payer": {
+    "ID": 2,
+    "Tag": "@johndoe",
+    "Name": "John Doe"
+  },
+  "Type": "C2M",
+  "ExpiresAt": "2026-07-30T15:30:00Z",
+  "CreatedAt": "2026-07-30T14:30:00Z",
+  "UpdatedAt": "2026-07-30T14:30:00Z"
+}
+```
+
+<Info>
+  Payment requests expire after the specified `duration` (default: 30 minutes). Customers must complete payment before expiration.
+</Info>
+
+---
+
+## Step 4: Track Payment Status
+
+Implement functionality to check payment request status and retrieve payment history.
+
+### Get Single Payment Request
+
+<CodeGroup>
+```javascript Node.js
+async function getPaymentRequest(reference) {
+  try {
+    const payment = await flexPay.makeRequest(
+      'GET',
+      `/merchant/payment-request/${reference}`
+    );
+
+    console.log(`Payment ${reference}:`, payment.Status);
+    return payment;
+  } catch (error) {
+    console.error('Payment not found');
+    return null;
+  }
+}
+
+// Usage
+const payment = await getPaymentRequest('REF-1722345678901');
+if (payment.Status === 'Accepted') {
+  console.log('Payment completed!');
+}
+```
+
+```python Python
+def get_payment_request(reference):
+    try:
+        payment = client.make_request(
+            'GET',
+            f'/merchant/payment-request/{reference}'
+        )
+        print(f"Payment {reference}: {payment['Status']}")
+        return payment
+    except Exception as e:
+        print("Payment not found")
+        return None
+
+# Usage
+payment = get_payment_request('REF-1722345678901')
+if payment and payment['Status'] == 'Accepted':
+    print('Payment completed!')
+```
+</CodeGroup>
+
+### List All Payment Requests
+
+<CodeGroup>
+```javascript Node.js
+async function listPaymentRequests(filters = {}) {
+  const params = new URLSearchParams({
+    limit: filters.limit || 20,
+    offset: filters.offset || 0,
+    ...(filters.status && { status: filters.status })
+  });
+
+  try {
+    const response = await flexPay.makeRequest(
+      'GET',
+      `/merchant/payment-request?${params}`
+    );
+
+    console.log(`Found ${response.count} payment requests`);
+    return response;
+  } catch (error) {
+    console.error('Failed to fetch payment requests');
+    throw error;
+  }
+}
+
+// Usage - Get pending payments
+const pending = await listPaymentRequests({ status: 'Pending', limit: 10 });
+pending.items.forEach(payment => {
+  console.log(`${payment.Reference}: ${payment.Amount} NGN`);
+});
+```
+
+```python Python
+def list_payment_requests(**filters):
+    params = {
+        'limit': filters.get('limit', 20),
+        'offset': filters.get('offset', 0)
+    }
+
+    if 'status' in filters:
+        params['status'] = filters['status']
+
+    query_string = '&'.join([f"{k}={v}" for k, v in params.items()])
+
+    try:
+        response = client.make_request(
+            'GET',
+            f'/merchant/payment-request?{query_string}'
+        )
+        print(f"Found {response['count']} payment requests")
+        return response
+    except Exception as e:
+        print("Failed to fetch payment requests")
+        raise
+
+# Usage
+pending = list_payment_requests(status='Pending', limit=10)
+for payment in pending['items']:
+    print(f"{payment['Reference']}: {payment['Amount']} NGN")
+```
+</CodeGroup>
+
+---
+
+## Step 5: Handle Edge Cases
+
+### Cancel Payment Request
+
+<CodeGroup>
+```javascript Node.js
+async function cancelPaymentRequest(reference) {
+  try {
+    const cancelled = await flexPay.makeRequest(
+      'POST',
+      `/merchant/payment-request/${reference}/cancel`
+    );
+
+    console.log('Payment request cancelled:', cancelled.Reference);
+    return cancelled;
+  } catch (error) {
+    console.error('Failed to cancel payment:', error.response?.data);
+    throw error;
+  }
+}
+
+// Usage
+await cancelPaymentRequest('REF-1722345678901');
+```
+
+```python Python
+def cancel_payment_request(reference):
+    try:
+        cancelled = client.make_request(
+            'POST',
+            f'/merchant/payment-request/{reference}/cancel'
+        )
+        print(f"Payment request cancelled: {cancelled['Reference']}")
+        return cancelled
+    except Exception as e:
+        print(f"Failed to cancel payment: {e}")
+        raise
+```
+</CodeGroup>
+
+### Error Handling Best Practices
+
+<CodeGroup>
+```javascript Node.js
+async function safeCreatePayment(payerTag, amount, options = {}) {
+  try {
+    // Step 1: Verify PayTag
+    const customer = await verifyPayTag(payerTag);
+    if (!customer) {
+      return {
+        success: false,
+        error: 'Customer PayTag not found'
+      };
+    }
+
+    // Step 2: Create payment request
+    const payment = await createPaymentRequest(payerTag, amount, options);
+
+    return {
+      success: true,
+      data: payment
+    };
+  } catch (error) {
+    // Handle specific error cases
+    if (error.response?.status === 400) {
+      return {
+        success: false,
+        error: 'Invalid request parameters',
+        details: error.response.data
+      };
+    }
+
+    if (error.response?.status === 401) {
+      return {
+        success: false,
+        error: 'Authentication failed. Check your API credentials.'
+      };
+    }
+
+    // Generic error
+    return {
+      success: false,
+      error: 'An unexpected error occurred',
+      details: error.message
+    };
+  }
+}
+```
+</CodeGroup>
+
+---
+
+## Step 6: Generate QR Codes (Optional)
+
+Generate QR codes for quick payment collection.
+
+<CodeGroup>
+```javascript Node.js
+async function generatePaymentQR(amount, options = {}) {
+  const payload = {
+    amount: amount,
+    reference: options.reference || `QR-${Date.now()}`,
+    comment: options.comment || 'QR Payment',
+    currency: options.currency || 'NGN',
+    metadata: options.metadata || {}
+  };
+
+  try {
+    const qrPayload = await flexPay.makeRequest(
+      'POST',
+      '/merchant/qr',
+      payload
+    );
+
+    console.log('QR Code generated:', qrPayload);
+    // Returns a QR payload string that can be encoded to QR image
+    return qrPayload;
+  } catch (error) {
+    console.error('Failed to generate QR:', error.response?.data);
+    throw error;
+  }
+}
+
+// Usage
+const qrCode = await generatePaymentQR(2500, {
+  comment: 'Product Purchase',
+  metadata: { product_id: 'PROD-123' }
+});
+```
+</CodeGroup>
+
+---
+
+## Step 7: Test & Go Live
+
+### Testing Checklist
+
+<AccordionGroup>
+  <Accordion title="✅ Verify Authentication">
+    - [ ] All API requests include correct headers
+    - [ ] Credentials are stored securely in environment variables
+    - [ ] 401 errors are handled gracefully
+  </Accordion>
+
+  <Accordion title="✅ Test Core Flows">
+    - [ ] PayTag verification works correctly
+    - [ ] Payment requests are created successfully
+    - [ ] Payment status can be retrieved
+    - [ ] Payment cancellation works
+    - [ ] Pagination works for payment lists
+  </Accordion>
+
+  <Accordion title="✅ Error Handling">
+    - [ ] Invalid PayTags are handled
+    - [ ] Network errors are caught and logged
+    - [ ] Invalid amounts are rejected
+    - [ ] Expired payments are handled
+  </Accordion>
+
+  <Accordion title="✅ Edge Cases">
+    - [ ] Duplicate references are prevented
+    - [ ] Large amounts are tested
+    - [ ] Currency switching works (NGN/FP)
+    - [ ] Metadata is properly stored and retrieved
+  </Accordion>
+</AccordionGroup>
+
+### Go Live Checklist
+
+<Steps>
+  <Step title="Complete Staging Tests">
+    Ensure all features work correctly in the staging environment
+  </Step>
+
+  <Step title="Update Environment Variables">
+    Switch `FLEXPAY_BASE_URL` to production: `https://api.yourflexpay.com/v2`
+  </Step>
+
+  <Step title="Request Production Credentials">
+    Contact FLEX to receive your production API credentials
+  </Step>
+
+  <Step title="Enable Monitoring">
+    Set up logging and monitoring for API requests and errors
+  </Step>
+
+  <Step title="Deploy to Production">
+    Deploy your integration and monitor closely for the first few transactions
+  </Step>
+</Steps>
+
+---
+
+## Complete Example Application
+
+Here's a complete working example:
+
+<CodeGroup>
+```javascript Node.js - complete-example.js
+const flexPay = require('./api-client');
+
+class PaymentService {
+  async processPayment(customerPayTag, amount, invoiceId) {
+    console.log(`\n🔄 Processing payment for ${customerPayTag}...\n`);
+
+    // Step 1: Verify customer
+    console.log('1️⃣ Verifying customer...');
+    const customer = await verifyPayTag(customerPayTag);
+    if (!customer) {
+      console.error('❌ Customer not found');
+      return { success: false, error: 'Customer not found' };
+    }
+    console.log(`✅ Customer verified: ${customer.Name}`);
+
+    // Step 2: Create payment request
+    console.log('\n2️⃣ Creating payment request...');
+    const payment = await createPaymentRequest(customerPayTag, amount, {
+      comment: `Invoice ${invoiceId}`,
+      metadata: { invoice_id: invoiceId }
+    });
+    console.log(`✅ Payment created: ${payment.Reference}`);
+    console.log(`   Amount: ${payment.Amount} ${payment.currency || 'NGN'}`);
+    console.log(`   Status: ${payment.Status}`);
+    console.log(`   Expires: ${payment.ExpiresAt}`);
+
+    return {
+      success: true,
+      reference: payment.Reference,
+      status: payment.Status,
+      expiresAt: payment.ExpiresAt
+    };
+  }
+
+  async checkPaymentStatus(reference) {
+    const payment = await getPaymentRequest(reference);
+    if (!payment) {
+      return { found: false };
+    }
+
+    return {
+      found: true,
+      status: payment.Status,
+      amount: payment.Amount,
+      payer: payment.Payer?.Name
+    };
+  }
+}
+
+// Run example
+(async () => {
+  const service = new PaymentService();
+
+  // Create payment
+  const result = await service.processPayment('@johndoe', 15000, 'INV-001');
+
+  if (result.success) {
+    // Check status
+    setTimeout(async () => {
+      const status = await service.checkPaymentStatus(result.reference);
+      console.log(`\n📊 Payment Status: ${status.status}`);
+    }, 5000);
+  }
+})();
+```
+</CodeGroup>
+
+---
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="API Reference" icon="book" href="/merchant/payment-requests">
+    Explore detailed API endpoint documentation
+  </Card>
+  <Card title="Code Examples" icon="code" href="/merchant/examples">
+    See more integration examples
+  </Card>
+  <Card title="Webhooks" icon="webhook" href="/merchant/webhooks">
+    Set up real-time payment notifications
+  </Card>
+  <Card title="Support" icon="life-ring" href="/merchant/support">
+    Get help from our support team
+  </Card>
+</CardGroup>
+
+## Need Help?
+
+- **Email**: developers@yourflexpay.com
+- **Slack**: [Join FLEX Developer Community](#)
+- **Documentation**: Browse the full API reference
+

@@ -1,0 +1,121 @@
+---
+title: 'Payment Request'
+description: 'Create and manage payment requests between users'
+---
+
+## Overview
+
+Payment requests allow users to request money from other FLEX users across the entire ecosystem. Recipients can accept, decline, or let the request expire.
+
+<Note>
+  All payment request endpoints require **customer authentication** (Bearer token).
+</Note>
+
+<Note>
+  **Complete API Specification**: View the full [SSO OpenAPI Spec](/openapi/sso.openapi.json) for detailed schemas and all endpoint specifications.
+</Note>
+
+## Payment Request Endpoints
+
+<CardGroup cols={2}>
+  <Card title="Create Request" icon="file-invoice">
+    `POST /sso/payment-transfer` - Create a payment request
+  </Card>
+  <Card title="List Requests" icon="list">
+    `GET /sso/payment-transfer` - Get paginated payment requests
+  </Card>
+  <Card title="Get Request" icon="magnifying-glass">
+    `GET /sso/payment-transfer/{id}` - Get payment request by ID
+  </Card>
+  <Card title="Accept Request" icon="check">
+    `POST /sso/payment-transfer/{id}/accept` - Accept and execute payment
+  </Card>
+  <Card title="Decline Request" icon="xmark">
+    `POST /sso/payment-transfer/{id}/decline` - Decline payment request
+  </Card>
+  <Card title="Cancel Request" icon="ban">
+    `POST /sso/payment-transfer/{id}/cancel` - Cancel payment request
+  </Card>
+</CardGroup>
+
+## Payment Request Lifecycle
+
+<Steps>
+  <Step title="Create">
+    Initiator creates a payment request for a specific payer
+  </Step>
+  <Step title="Notify">
+    Payer receives notification of the request
+  </Step>
+  <Step title="Action">
+    Payer can accept, decline, or let it expire
+  </Step>
+  <Step title="Complete">
+    If accepted, payment is automatically executed
+  </Step>
+</Steps>
+
+## Request Statuses
+
+- **Pending**: Awaiting payer action
+- **Accepted**: Payer accepted and payment completed
+- **Declined**: Payer declined the request
+- **Cancelled**: Initiator cancelled the request
+- **Expired**: Request expired before action
+
+## Key Features
+
+### Cross-Partner Requests
+Create payment requests for any PayTag user on FLEX, regardless of which partner they come from.
+
+### Role-Based Filtering
+Filter payment requests by role:
+- **Initiator**: Requests you've sent
+- **Payer**: Requests you've received
+
+### Duration Control
+Set custom expiration times for payment requests.
+
+## Quick Links
+
+<CardGroup cols={2}>
+  <Card title="Integration Guide" icon="code" href="/sso/integration-guide">
+    Implementation examples
+  </Card>
+  <Card title="Transaction API" icon="exchange" href="/sso/transactions">
+    Direct payment transfers
+  </Card>
+  <Card title="PayTag API" icon="at" href="/sso/api-paytag">
+    Search for recipients
+  </Card>
+  <Card title="OpenAPI Spec" icon="file-code">
+    Full API specification
+  </Card>
+</CardGroup>
+
+## Security
+
+All payment request endpoints require:
+- `x-client-id` header (Partner ID)
+- `x-api-key` header (Partner API key)
+- `Authorization: Bearer {customer_token}` header
+
+## Error Responses
+
+| Status | Description |
+|--------|-------------|
+| 400 | Invalid parameters or request already actioned |
+| 401 | Invalid or expired customer token |
+| 404 | Payment request not found |
+| 500 | Server error |
+
+## API Tags
+
+The Payment Request API includes endpoints under the **SSO Payment Request** tag in the OpenAPI specification.
+
+---
+
+<Info>
+For complete request/response schemas, parameters, and examples, refer to the [SSO OpenAPI Specification](/openapi/sso.openapi.json).
+</Info>
+

@@ -1,0 +1,101 @@
+---
+title: 'Transaction'
+description: 'Process P2P transfers, withdrawals, bank transfers, and generate statements'
+---
+
+## Overview
+
+The Transaction API enables customers to transfer money between wallets, withdraw to bank accounts, perform bank transfers, and manage their transaction history—all while transacting across the entire FLEX ecosystem.
+
+<Note>
+  All transaction endpoints require **customer authentication** (Bearer token).
+</Note>
+
+<Note>
+  **Complete API Specification**: View the full [SSO OpenAPI Spec](/openapi/sso.openapi.json) for detailed schemas and all endpoint specifications.
+</Note>
+
+## Transaction Endpoints
+
+<CardGroup cols={2}>
+  <Card title="P2P Transfer" icon="people-arrows">
+    `POST /sso/transaction/p2p` - Transfer to any PayTag across the ecosystem
+  </Card>
+  <Card title="Withdraw" icon="money-bill">
+    `POST /sso/transaction/withdraw` - Withdraw funds to bank account
+  </Card>
+  <Card title="Bank Transfer" icon="building-columns">
+    `POST /sso/transaction/bank-transfer` - Transfer to any Nigerian bank account
+  </Card>
+  <Card title="List Transactions" icon="list">
+    `GET /sso/transaction` - Get paginated customer transactions
+  </Card>
+  <Card title="Get Transaction" icon="magnifying-glass">
+    `GET /sso/transaction/{reference}` - Get transaction details by reference
+  </Card>
+  <Card title="Generate Statement" icon="file-invoice">
+    `POST /sso/transaction/statement` - Generate account statement
+  </Card>
+</CardGroup>
+
+## Key Features
+
+### Cross-Partner Transactions
+Your customers can send money to any PayTag user on FLEX, regardless of which partner created their PayTag—creating a truly interconnected payment ecosystem.
+
+### Transaction Types
+- **P2P Transfers**: Send to any PayTag user across the ecosystem
+- **Withdrawals**: Transfer to bank account numbers
+- **Bank Transfers**: Full bank transfer with bank code
+- **Statements**: Generate PDF statements for any date range
+
+### Advanced Filtering
+- Date range filtering
+- Transaction type and status
+- Search by reference
+- Currency filtering
+- Pagination support
+
+## Quick Links
+
+<CardGroup cols={2}>
+  <Card title="Integration Guide" icon="code" href="/sso/integration-guide#build-transaction-features">
+    Implementation examples
+  </Card>
+  <Card title="Wallet API" icon="wallet" href="/sso/wallet">
+    Check balances and limits
+  </Card>
+  <Card title="Payment Requests API" icon="file-invoice" href="/sso/payment-requests">
+    Request payments from others
+  </Card>
+  <Card title="OpenAPI Spec" icon="file-code">
+    Full API specification
+  </Card>
+</CardGroup>
+
+## Security
+
+All transaction endpoints require:
+- `x-client-id` header (Partner ID)
+- `x-api-key` header (Partner API key)
+- `Authorization: Bearer {customer_token}` header
+
+## Error Responses
+
+| Status | Description |
+|--------|-------------|
+| 400 | Invalid parameters or insufficient balance |
+| 401 | Invalid or expired customer token |
+| 404 | Transaction or recipient not found |
+| 500 | Server error |
+
+## API Tags
+
+The Transaction API includes endpoints under the **SSO Transaction** tag in the OpenAPI specification.
+
+---
+
+<Info>
+For complete request/response schemas, parameters, and examples, refer to the [SSO OpenAPI Specification](/openapi/sso.openapi.json).
+</Info>
+

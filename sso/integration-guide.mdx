@@ -1,0 +1,626 @@
+---
+title: 'Integration Guide'
+description: 'Complete step-by-step guide to integrating FLEX SSO wallet features'
+---
+
+## Overview
+
+This guide walks you through building a complete wallet integration using the FLEX SSO API. You'll learn how to handle authentication, display balances, process transactions, and manage payment requests.
+
+<Info>
+  **Estimated Time**: 2-3 hours for complete integration
+
+  **Prerequisites**:
+  - Partner API credentials
+  - Development environment set up
+  - Understanding of OAuth 2.0 flow
+</Info>
+
+## Integration Roadmap
+
+<Steps>
+  <Step title="Environment Setup">
+    Configure credentials and create API client
+  </Step>
+
+  <Step title="Implement Auth Flow">
+    Add customer login and token management
+  </Step>
+
+  <Step title="Display Wallet Balance">
+    Show customer wallet information
+  </Step>
+
+  <Step title="Build Transaction Features">
+    Enable P2P transfers, withdrawals, and payments
+  </Step>
+
+  <Step title="Add Payment Requests">
+    Create and manage payment requests
+  </Step>
+
+  <Step title="Test & Deploy">
+    Verify integration and go live
+  </Step>
+</Steps>
+
+---
+
+## Step 1: Environment Setup
+
+### Configure Environment Variables
+
+```bash .env
+# FLEX SSO API Configuration
+FLEX_BASE_URL=https://staging-api.yourflexpay.com/v2
+PARTNER_CLIENT_ID=your_partner_client_id
+PARTNER_API_KEY=your_partner_api_key
+PARTNER_REDIRECT_URI=https://your-app.com/auth/flex/callback
+
+# Session Secret (generate a strong random string)
+SESSION_SECRET=your_session_secret_here
+```
+
+### Create API Client
+
+<CodeGroup>
+```javascript Node.js - flex-client.js
+class FLEXClient {
+  constructor() {
+    this.baseURL = process.env.FLEX_BASE_URL;
+    this.clientId = process.env.PARTNER_CLIENT_ID;
+    this.apiKey = process.env.PARTNER_API_KEY;
+  }
+
+  getHeaders(customerToken = null) {
+    const headers = {
+      'x-client-id': this.clientId,
+      'x-api-key': this.apiKey,
+      'Content-Type': 'application/json'
+    };
+
+    if (customerToken) {
+      headers['Authorization'] = `Bearer ${customerToken}`;
+    }
+
+    return headers;
+  }
+
+  async request(method, endpoint, data = null, token = null) {
+    const config = {
+      method,
+      headers: this.getHeaders(token)
+    };
+
+    if (data) {
+      config.body = JSON.stringify(data);
+    }
+
+    const response = await fetch(`${this.baseURL}${endpoint}`, config);
+
+    if (!response.ok) {
+      const error = await response.text();
+      throw new Error(`API Error: ${response.status} - ${error}`);
+    }
+
+    const contentType = response.headers.get('content-type');
+    if (contentType && contentType.includes('application/json')) {
+      return response.json();
+    }
+    return response.text();
+  }
+
+  // Auth methods
+  async getAuthCode(paytag, password) {
+    return this.request('POST', '/sso/auth-code?scope=profile', {
+      paytag,
+      password
+    });
+  }
+
+  async exchangeToken(authCode) {
+    return this.request('GET', `/sso/token?auth-code=${authCode}`);
+  }
+
+  // Wallet methods
+  async getWallet(token, currency = 'NGN') {
+    return this.request('GET', `/sso/wallet?currency=${currency}`, null, token);
+  }
+
+  async getWalletHistory(token, filters = {}) {
+    const params = new URLSearchParams(filters);
+    return this.request('GET', `/sso/wallet/history?${params}`, null, token);
+  }
+
+  // Transaction methods
+  async p2pTransfer(token, data) {
+    return this.request('POST', '/sso/transaction/p2p', data, token);
+  }
+
+  async withdraw(token, data) {
+    return this.request('POST', '/sso/transaction/withdraw', data, token);
+  }
+}
+
+module.exports = new FLEXClient();
+```
+</CodeGroup>
+
+---
+
+## Step 2: Implement Authentication
+
+### Login Flow
+
+<CodeGroup>
+```javascript Express.js
+const express = require('express');
+const session = require('express-session');
+const flexClient = require('./flex-client');
+
+const app = express();
+app.use(express.json());
+app.use(session({
+  secret: process.env.SESSION_SECRET,
+  resave: false,
+  saveUninitialized: false,
+  cookie: { secure: process.env.NODE_ENV === 'production' }
+}));
+
+// Login endpoint
+app.post('/auth/flex/login', async (req, res) => {
+  try {
+    const { paytag, password } = req.body;
+
+    // Step 1: Get auth code
+    const redirectUrl = await flexClient.getAuthCode(paytag, password);
+
+    // Return redirect URL to frontend
+    res.json({ redirectUrl });
+  } catch (error) {
+    res.status(401).json({ error: 'Authentication failed' });
+  }
+});
+
+// OAuth callback
+app.get('/auth/flex/callback', async (req, res) => {
+  try {
+    const authCode = req.query['auth-code'];
+
+    if (!authCode) {
+      return res.status(400).send('Missing auth code');
+    }
+
+    // Step 2: Exchange auth code for token
+    const customerToken = await flexClient.exchangeToken(authCode);
+
+    // Store token in session
+    req.session.flexToken = customerToken;
+    req.session.save();
+
+    // Redirect to wallet dashboard
+    res.redirect('/wallet');
+  } catch (error) {
+    res.status(401).send('Token exchange failed');
+  }
+});
+
+// Middleware to check authentication
+function requireAuth(req, res, next) {
+  if (!req.session.flexToken) {
+    return res.status(401).json({ error: 'Not authenticated' });
+  }
+  next();
+}
+```
+</CodeGroup>
+
+---
+
+## Step 3: Display Wallet Balance
+
+### Wallet Dashboard
+
+<CodeGroup>
+```javascript Backend API
+app.get('/api/wallet', requireAuth, async (req, res) => {
+  try {
+    const wallet = await flexClient.getWallet(req.session.flexToken);
+
+    res.json({
+      balance: wallet.Balance,
+      currency: wallet.Currency,
+      paytag: wallet.PayTag?.Tag,
+      name: wallet.PayTag?.Name
+    });
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to fetch wallet' });
+  }
+});
+
+app.get('/api/wallet/history', requireAuth, async (req, res) => {
+  try {
+    const { limit = 20, offset = 0, startDate, endDate } = req.query;
+
+    const result = await flexClient.getWalletHistory(req.session.flexToken, {
+      limit,
+      offset,
+      startDate,
+      endDate
+    });
+
+    res.json(result);
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to fetch history' });
+  }
+});
+```
+
+```javascript React Frontend
+function WalletDashboard() {
+  const [wallet, setWallet] = useState(null);
+  const [history, setHistory] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    async function loadWalletData() {
+      try {
+        const [walletData, historyData] = await Promise.all([
+          fetch('/api/wallet').then(r => r.json()),
+          fetch('/api/wallet/history?limit=10').then(r => r.json())
+        ]);
+
+        setWallet(walletData);
+        setHistory(historyData.History.items);
+      } catch (error) {
+        console.error('Failed to load wallet:', error);
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    loadWalletData();
+  }, []);
+
+  if (loading) return <div>Loading...</div>;
+
+  return (
+    <div className="wallet-dashboard">
+      <div className="balance-card">
+        <h2>₦{wallet.balance.toLocaleString()}</h2>
+        <p>{wallet.paytag}</p>
+        <p>{wallet.name}</p>
+      </div>
+
+      <div className="transactions">
+        <h3>Recent Transactions</h3>
+        {history.map(tx => (
+          <div key={tx.ID} className="transaction-item">
+            <span>{tx.Description}</span>
+            <span>₦{tx.Amount.toLocaleString()}</span>
+            <span>{tx.Status}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+```
+</CodeGroup>
+
+---
+
+## Step 4: Build Transaction Features
+
+### P2P Transfer
+
+<CodeGroup>
+```javascript Backend
+app.post('/api/transfer/p2p', requireAuth, async (req, res) => {
+  try {
+    const { recipient, amount, comment } = req.body;
+
+    const transaction = await flexClient.p2pTransfer(req.session.flexToken, {
+      recipient,
+      amount,
+      comment,
+      saveBeneficiary: req.body.saveBeneficiary || false
+    });
+
+    res.json(transaction);
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+});
+```
+
+```javascript React Component
+function P2PTransferForm() {
+  const [formData, setFormData] = useState({
+    recipient: '',
+    amount: '',
+    comment: ''
+  });
+  const [loading, setLoading] = useState(false);
+  const [result, setResult] = useState(null);
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+
+    try {
+      const response = await fetch('/api/transfer/p2p', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(formData)
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        setResult({ success: true, data });
+        setFormData({ recipient: '', amount: '', comment: '' });
+      } else {
+        setResult({ success: false, error: data.error });
+      }
+    } catch (error) {
+      setResult({ success: false, error: 'Transfer failed' });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <form onSubmit={handleSubmit}>
+      <input
+        type="text"
+        placeholder="Recipient PayTag (e.g., @johndoe)"
+        value={formData.recipient}
+        onChange={(e) => setFormData({...formData, recipient: e.target.value})}
+        required
+      />
+      <input
+        type="number"
+        placeholder="Amount"
+        value={formData.amount}
+        onChange={(e) => setFormData({...formData, amount: e.target.value})}
+        required
+      />
+      <input
+        type="text"
+        placeholder="Comment (optional)"
+        value={formData.comment}
+        onChange={(e) => setFormData({...formData, comment: e.target.value})}
+      />
+      <button type="submit" disabled={loading}>
+        {loading ? 'Processing...' : 'Send Money'}
+      </button>
+
+      {result && (
+        <div className={result.success ? 'success' : 'error'}>
+          {result.success
+            ? `Transfer successful! Reference: ${result.data.Reference}`
+            : `Error: ${result.error}`
+          }
+        </div>
+      )}
+    </form>
+  );
+}
+```
+</CodeGroup>
+
+### Withdrawal to Bank
+
+<CodeGroup>
+```javascript Backend
+app.post('/api/transfer/withdraw', requireAuth, async (req, res) => {
+  try {
+    const { accountNumber, amount, comment } = req.body;
+
+    const transaction = await flexClient.withdraw(req.session.flexToken, {
+      accountNumber,
+      amount,
+      comment
+    });
+
+    res.json(transaction);
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+});
+```
+</CodeGroup>
+
+---
+
+## Step 5: Payment Requests
+
+### Create Payment Request
+
+<CodeGroup>
+```javascript Implementation
+// Backend endpoint
+app.post('/api/payment-request', requireAuth, async (req, res) => {
+  try {
+    const { payer, amount, comment, duration } = req.body;
+
+    const paymentRequest = await flexClient.request(
+      'POST',
+      '/sso/payment-transfer',
+      { payer, amount, comment, duration },
+      req.session.flexToken
+    );
+
+    res.json(paymentRequest);
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+});
+
+// Frontend component
+function PaymentRequestForm() {
+  const [formData, setFormData] = useState({
+    payer: '',
+    amount: '',
+    comment: '',
+    duration: 60 // minutes
+  });
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+
+    const response = await fetch('/api/payment-request', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(formData)
+    });
+
+    const result = await response.json();
+
+    if (response.ok) {
+      alert(`Payment request created! Reference: ${result.Reference}`);
+    }
+  };
+
+  return (
+    <form onSubmit={handleSubmit}>
+      <input
+        type="text"
+        placeholder="Payer PayTag"
+        value={formData.payer}
+        onChange={(e) => setFormData({...formData, payer: e.target.value})}
+        required
+      />
+      <input
+        type="number"
+        placeholder="Amount"
+        value={formData.amount}
+        onChange={(e) => setFormData({...formData, amount: e.target.value})}
+        required
+      />
+      <input
+        type="text"
+        placeholder="Description"
+        value={formData.comment}
+        onChange={(e) => setFormData({...formData, comment: e.target.value})}
+      />
+      <button type="submit">Request Payment</button>
+    </form>
+  );
+}
+```
+</CodeGroup>
+
+---
+
+## Step 6: Test & Deploy
+
+### Testing Checklist
+
+<AccordionGroup>
+  <Accordion title="✅ Authentication Flow">
+    - [ ] Login with existing customer works
+    - [ ] PayTag creation flow completes successfully
+    - [ ] Token is stored and persists across requests
+    - [ ] Logout clears session properly
+    - [ ] 401 errors trigger re-authentication
+  </Accordion>
+
+  <Accordion title="✅ Wallet Operations">
+    - [ ] Balance displays correctly
+    - [ ] Transaction history loads with pagination
+    - [ ] Wallet limits are enforced
+    - [ ] Virtual accounts display correctly
+  </Accordion>
+
+  <Accordion title="✅ Transactions">
+    - [ ] P2P transfers complete successfully
+    - [ ] Withdrawals process correctly
+    - [ ] Transaction status updates properly
+    - [ ] Error messages are user-friendly
+  </Accordion>
+
+  <Accordion title="✅ Payment Requests">
+    - [ ] Creating payment requests works
+    - [ ] Accepting payment requests completes transfer
+    - [ ] Declining/canceling updates status
+    - [ ] Expired requests are handled
+  </Accordion>
+</AccordionGroup>
+
+### Go Live Checklist
+
+<Steps>
+  <Step title="Complete Staging Tests">
+    Verify all features work in staging environment
+  </Step>
+
+  <Step title="Update Environment">
+    Switch to production URLs and credentials
+    ```bash
+    FLEX_BASE_URL=https://api.yourflexpay.com/v2
+    ```
+  </Step>
+
+  <Step title="Enable HTTPS">
+    Ensure all requests use HTTPS in production
+  </Step>
+
+  <Step title="Set Up Monitoring">
+    Implement logging and error tracking
+  </Step>
+
+  <Step title="Deploy & Monitor">
+    Deploy to production and monitor closely
+  </Step>
+</Steps>
+
+---
+
+## Best Practices
+
+<CardGroup cols={2}>
+  <Card title="Token Management" icon="key">
+    Store tokens server-side only, never in localStorage
+  </Card>
+  <Card title="Error Handling" icon="triangle-exclamation">
+    Provide clear error messages to users
+  </Card>
+  <Card title="Loading States" icon="spinner">
+    Show loading indicators during API calls
+  </Card>
+  <Card title="Transaction Receipts" icon="receipt">
+    Display confirmation for all transactions
+  </Card>
+</CardGroup>
+
+## Common Pitfalls
+
+<Warning>
+  **Don't store passwords!** Use the OAuth flow - passwords should only be sent to FLEX API
+</Warning>
+
+<Warning>
+  **Handle token expiration!** Catch 401 errors and prompt re-authentication
+</Warning>
+
+<Warning>
+  **Validate amounts!** Check for sufficient balance before attempting transfers
+</Warning>
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="API Reference" icon="book" href="/api-reference/sso-auth">
+    Explore all available endpoints
+  </Card>
+</CardGroup>
+
+## Support
+
+Questions? Contact us:
+- **Email**: developers@yourflexpay.com
+- **Documentation**: Full API reference available
+- **Status**: [status.yourflexpay.com](https://status.yourflexpay.com)
+

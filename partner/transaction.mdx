@@ -1,0 +1,406 @@
+---
+title: 'Transaction'
+description: 'Partner-level transaction management and reporting'
+---
+
+## Overview
+
+The Transactions API provides partner-level endpoints for initiating transactions and accessing transaction data across all terminals.
+
+<Note>
+  These endpoints require **partner authentication** headers (`x-client-id` and `x-api-key`).
+</Note>
+
+## Transaction Endpoints
+
+<CardGroup cols={2}>
+  <Card title="Initiate Transaction" icon="paper-plane">
+    `POST /partner/transaction/initiate` - Create a new transaction
+  </Card>
+  <Card title="List Transactions" icon="list">
+    `GET /partner/transactions` - Get all partner transactions
+  </Card>
+  <Card title="Get Transaction" icon="magnifying-glass">
+    `GET /partner/transaction/{reference}` - Get transaction details
+  </Card>
+</CardGroup>
+
+---
+
+## Initiate Transaction
+
+Create a new transaction at the partner level (not tied to a specific terminal).
+
+**Endpoint**: `POST /partner/transaction/initiate`
+
+**Headers**:
+- `x-client-id`: Your partner ID
+- `x-api-key`: Your API key
+
+**Request Body**:
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| amount | number | Yes | Transaction amount (minimum: 100) |
+| reference | string | Yes | Unique reference (max 50 chars, alphanumeric with dashes/underscores) |
+| name | string | No | Customer name (max 100 chars) |
+| description | string | No | Transaction description (max 255 chars) |
+| metadata | object | No | Additional custom data |
+
+### Request Example
+
+<CodeGroup>
+```bash cURL
+curl --request POST \
+  --url https://staging-api.yourflexpay.com/v2/partner/transaction/initiate \
+  --header 'Content-Type: application/json' \
+  --header 'x-client-id: your_partner_id' \
+  --header 'x-api-key: your_api_key' \
+  --data '{
+    "amount": 15000,
+    "reference": "PAR-TXN-12345",
+    "name": "Jane Customer",
+    "description": "Online order payment",
+    "metadata": {
+      "order_id": "ORD-789",
+      "channel": "web"
+    }
+  }'
+```
+
+```javascript JavaScript
+const response = await fetch(
+  'https://staging-api.yourflexpay.com/v2/partner/transaction/initiate',
+  {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'x-client-id': process.env.PARTNER_CLIENT_ID,
+      'x-api-key': process.env.PARTNER_API_KEY
+    },
+    body: JSON.stringify({
+      amount: 15000,
+      reference: 'PAR-TXN-12345',
+      name: 'Jane Customer',
+      description: 'Online order payment',
+      metadata: {
+        order_id: 'ORD-789',
+        channel: 'web'
+      }
+    })
+  }
+);
+
+const transactionId = await response.json();
+console.log('Transaction initiated:', transactionId);
+```
+
+```python Python
+import requests
+import os
+
+response = requests.post(
+    'https://staging-api.yourflexpay.com/v2/partner/transaction/initiate',
+    headers={
+        'Content-Type': 'application/json',
+        'x-client-id': os.getenv('PARTNER_CLIENT_ID'),
+        'x-api-key': os.getenv('PARTNER_API_KEY')
+    },
+    json={
+        'amount': 15000,
+        'reference': 'PAR-TXN-12345',
+        'name': 'Jane Customer',
+        'description': 'Online order payment',
+        'metadata': {
+            'order_id': 'ORD-789',
+            'channel': 'web'
+        }
+    }
+)
+
+transaction_id = response.json()
+print(f'Transaction initiated: {transaction_id}')
+```
+</CodeGroup>
+
+### Response
+
+Returns a transaction reference or identifier string:
+```json
+"PAR-TXN-12345"
+```
+
+<Tip>
+  Store the returned reference to track transaction status using the `GET /partner/transaction/{reference}` endpoint.
+</Tip>
+
+---
+
+## List Transactions
+
+Retrieve paginated transaction history for all partner transactions across all terminals.
+
+**Endpoint**: `GET /partner/transactions`
+
+**Query Parameters**:
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| limit | integer | Results per page (default: 20) |
+| offset | integer | Pagination offset (default: 0) |
+| search | string | Search by reference or customer name |
+| reference | string | Filter by specific reference |
+| status | string | Filter by transaction status |
+| terminal | string | Filter by terminal serial number |
+| startDate | string | Start date (YYYY-MM-DD format) |
+| endDate | string | End date (YYYY-MM-DD format) |
+
+### Request Example
+
+<CodeGroup>
+```bash cURL
+curl --request GET \
+  --url 'https://staging-api.yourflexpay.com/v2/partner/transactions?limit=10&status=Successful&startDate=2026-07-01' \
+  --header 'x-client-id: your_partner_id' \
+  --header 'x-api-key: your_api_key'
+```
+
+```javascript JavaScript
+const params = new URLSearchParams({
+  limit: '10',
+  status: 'Successful',
+  startDate: '2026-07-01'
+});
+
+const response = await fetch(
+  `https://staging-api.yourflexpay.com/v2/partner/transactions?${params}`,
+  {
+    headers: {
+      'x-client-id': process.env.PARTNER_CLIENT_ID,
+      'x-api-key': process.env.PARTNER_API_KEY
+    }
+  }
+);
+
+const data = await response.json();
+console.log(`Found ${data.count} transactions`);
+```
+
+```python Python
+params = {
+    'limit': 10,
+    'status': 'Successful',
+    'startDate': '2026-07-01'
+}
+
+response = requests.get(
+    'https://staging-api.yourflexpay.com/v2/partner/transactions',
+    params=params,
+    headers={
+        'x-client-id': os.getenv('PARTNER_CLIENT_ID'),
+        'x-api-key': os.getenv('PARTNER_API_KEY')
+    }
+)
+
+data = response.json()
+print(f"Found {data['count']} transactions")
+```
+</CodeGroup>
+
+### Response
+
+```json
+{
+  "items": [
+    {
+      "Amount": 15000,
+      "Fee": 150,
+      "Commission": 75,
+      "Net": 14775,
+      "Reference": "PAR-TXN-12345",
+      "Sender": "@janecustomer",
+      "SenderDetails": {
+        "Name": "Jane Customer",
+        "Paytag": "@janecustomer",
+        "Type": "Customer",
+        "Amount": 15000,
+        "Fee": 150,
+        "Currency": "NGN"
+      },
+      "Recipient": "@mypartner",
+      "Status": "Successful",
+      "Comment": "Online order payment",
+      "Date": "2026-07-30T10:00:00Z",
+      "CompletedAt": "2026-07-30T10:00:15Z",
+      "Metadata": {
+        "order_id": "ORD-789",
+        "channel": "web"
+      },
+      "Terminal": {
+        "SerialNumber": "TERM-12345",
+        "Merchant": "My Business",
+        "PayTag": "@mybusiness_term1"
+      }
+    }
+  ],
+  "count": 1,
+  "limit": 10,
+  "offset": 0
+}
+```
+
+### Response Fields
+
+| Field | Type | Description |
+|-------|------|-------------|
+| Amount | number | Transaction amount |
+| Fee | number | Transaction fee charged |
+| Commission | number | Partner commission earned |
+| Net | number | Net amount after fees (Amount - Fee + Commission) |
+| Reference | string | Transaction reference |
+| Sender | string | Sender PayTag |
+| SenderDetails | object | Detailed sender information |
+| Recipient | string | Recipient PayTag |
+| Status | string | Transaction status |
+| Comment | string | Transaction description |
+| Date | string | Transaction creation timestamp |
+| CompletedAt | string | Transaction completion timestamp |
+| Metadata | object | Custom metadata stored with transaction |
+| Terminal | object | Terminal information (if transaction was terminal-based) |
+
+---
+
+## Get Transaction
+
+Retrieve detailed information about a specific transaction by reference.
+
+**Endpoint**: `GET /partner/transaction/{reference}`
+
+**Path Parameters**:
+- `reference` (required): Transaction reference
+
+### Request Example
+
+<CodeGroup>
+```bash cURL
+curl --request GET \
+  --url https://staging-api.yourflexpay.com/v2/partner/transaction/PAR-TXN-12345 \
+  --header 'x-client-id: your_partner_id' \
+  --header 'x-api-key: your_api_key'
+```
+
+```javascript JavaScript
+const reference = 'PAR-TXN-12345';
+
+const response = await fetch(
+  `https://staging-api.yourflexpay.com/v2/partner/transaction/${reference}`,
+  {
+    headers: {
+      'x-client-id': process.env.PARTNER_CLIENT_ID,
+      'x-api-key': process.env.PARTNER_API_KEY
+    }
+  }
+);
+
+const transaction = await response.json();
+console.log('Transaction status:', transaction.Status);
+```
+
+```python Python
+reference = 'PAR-TXN-12345'
+
+response = requests.get(
+    f'https://staging-api.yourflexpay.com/v2/partner/transaction/{reference}',
+    headers={
+        'x-client-id': os.getenv('PARTNER_CLIENT_ID'),
+        'x-api-key': os.getenv('PARTNER_API_KEY')
+    }
+)
+
+transaction = response.json()
+print(f"Transaction status: {transaction['Status']}")
+```
+</CodeGroup>
+
+### Response
+
+Returns a single transaction object (same structure as items in the list endpoint).
+
+---
+
+## Transaction Statuses
+
+| Status | Description |
+|--------|-------------|
+| **Pending** | Transaction initiated, awaiting completion |
+| **Successful** | Transaction completed successfully |
+| **Failed** | Transaction failed to complete |
+| **Cancelled** | Transaction was cancelled before completion |
+| **Expired** | Transaction expired before customer paid |
+| **Pending Review** | Transaction flagged for review |
+| **Waiting on Provider** | Awaiting response from external payment provider |
+
+## Use Cases
+
+<CardGroup cols={2}>
+  <Card title="E-commerce Payments" icon="cart-shopping">
+    Process online order payments at the partner level
+  </Card>
+  <Card title="Transaction Reporting" icon="chart-bar">
+    Generate reports across all terminals
+  </Card>
+  <Card title="Settlement Tracking" icon="money-bill">
+    Monitor fees, commissions, and net settlements
+  </Card>
+  <Card title="Multi-Terminal Management" icon="network-wired">
+    Track transactions across multiple locations
+  </Card>
+</CardGroup>
+
+## Best Practices
+
+<Check>
+  **Use unique references** - Each transaction reference must be unique across all your transactions
+</Check>
+
+<Check>
+  **Store metadata** - Use the metadata field to link transactions to your internal systems
+</Check>
+
+<Check>
+  **Filter by date** - Use date filters when querying large transaction sets to improve performance
+</Check>
+
+<Check>
+  **Monitor terminal field** - Track which terminal processed each transaction for location-specific reporting
+</Check>
+
+## Error Responses
+
+| Status Code | Description |
+|-------------|-------------|
+| 400 | Bad Request - Invalid parameters or duplicate reference |
+| 401 | Unauthorized - Invalid partner credentials |
+| 404 | Not Found - Transaction not found |
+| 500 | Server Error - Contact support |
+
+---
+
+## Quick Links
+
+<CardGroup cols={2}>
+  <Card title="Terminal API" icon="cash-register" href="/partner/terminal">
+    Terminal-specific operations
+  </Card>
+  <Card title="Overview" icon="home" href="/partner/index">
+    Partner API overview
+  </Card>
+  <Card title="OpenAPI Spec" icon="file-code" href="/openapi/partner.openapi.json">
+    Complete API specification
+  </Card>
+</CardGroup>
+
+<Info>
+For complete request/response schemas, parameters, and examples, refer to the [Partner OpenAPI Specification](/openapi/partner.openapi.json).
+</Info>
+

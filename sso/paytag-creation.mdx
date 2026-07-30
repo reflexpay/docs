@@ -1,0 +1,591 @@
+---
+title: 'PayTag Creation'
+description: 'Create PayTags for your customers on the FLEX ecosystem with BVN verification and OTP validation'
+---
+
+## Overview
+
+The PayTag creation process allows you to create PayTags for your customers on the FLEX ecosystem. Once created, your customers can transact with any other PayTag user across the entire FLEX network, regardless of which partner they come from. The process includes BVN verification, OTP validation, and PayTag account creation.
+
+## PayTag Creation Flow
+
+<Steps>
+  <Step title="Verify PayTag Availability">
+    Check if the desired PayTag is available
+  </Step>
+
+  <Step title="Initiate PayTag Creation">
+    Start creation with customer's BVN
+  </Step>
+
+  <Step title="Send and Validate OTP">
+    Send OTP via SMS/WhatsApp/Email and validate customer input
+  </Step>
+
+  <Step title="Complete PayTag Creation">
+    Submit final customer details to create the account
+  </Step>
+
+  <Step title="Authenticate Customer">
+    Use the OAuth flow to get customer token
+  </Step>
+</Steps>
+
+## Step 1: Verify PayTag Availability
+
+Before creating a PayTag, check if the desired PayTag is available.
+
+<CodeGroup>
+```bash cURL
+curl --request GET \
+  --url 'https://staging-api.yourflexpay.com/v2/sso/verify-tag?tag=@johndoe' \
+  --header 'x-client-id: your_partner_id' \
+  --header 'x-api-key: your_api_key'
+```
+
+```javascript Node.js
+async function checkPayTagAvailability(paytag) {
+  const response = await fetch(
+    `https://staging-api.yourflexpay.com/v2/sso/verify-tag?tag=${paytag}`,
+    {
+      headers: {
+        'x-client-id': process.env.PARTNER_CLIENT_ID,
+        'x-api-key': process.env.PARTNER_API_KEY
+      }
+    }
+  );
+
+  const result = await response.json();
+  return result.availability;
+}
+
+// Usage
+const isAvailable = await checkPayTagAvailability('@johndoe');
+if (isAvailable) {
+  console.log('PayTag is available!');
+} else {
+  console.log('PayTag is already taken');
+}
+```
+
+```python Python
+def check_paytag_availability(paytag):
+    response = requests.get(
+        'https://staging-api.yourflexpay.com/v2/sso/verify-tag',
+        params={'tag': paytag},
+        headers={
+            'x-client-id': os.getenv('PARTNER_CLIENT_ID'),
+            'x-api-key': os.getenv('PARTNER_API_KEY')
+        }
+    )
+    result = response.json()
+    return result['availability']
+
+# Usage
+is_available = check_paytag_availability('@johndoe')
+if is_available:
+    print('PayTag is available!')
+```
+</CodeGroup>
+
+**Response**:
+```json
+{
+  "availability": true,
+  "tag": "@johndoe"
+}
+```
+
+<Tip>
+  PayTags must start with `@` and can contain letters, numbers, underscores, and hyphens.
+</Tip>
+
+## Step 2: Initiate PayTag Creation
+
+Start the PayTag creation process with the customer's 11-digit BVN (Bank Verification Number).
+
+<CodeGroup>
+```bash cURL
+curl --request POST \
+  --url 'https://staging-api.yourflexpay.com/v2/sso/create-tag?otp=true' \
+  --header 'Content-Type: application/json' \
+  --header 'x-client-id: your_partner_id' \
+  --header 'x-api-key: your_api_key' \
+  --data '{
+    "bvn": "12345678901",
+    "uid": "optional_unique_id",
+    "referrer": "@referrer_paytag"
+  }'
+```
+
+```javascript Node.js
+async function initiateOnboarding(bvn, options = {}) {
+  const response = await fetch(
+    'https://staging-api.yourflexpay.com/v2/sso/create-tag?otp=true',
+    {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-client-id': process.env.PARTNER_CLIENT_ID,
+        'x-api-key': process.env.PARTNER_API_KEY
+      },
+      body: JSON.stringify({
+        bvn: bvn,
+        uid: options.uid,
+        referrer: options.referrer
+      })
+    }
+  );
+
+  const onboarding = await response.json();
+  console.log('Onboarding session:', onboarding.session);
+  return onboarding;
+}
+
+// Usage
+const onboarding = await initiateOnboarding('12345678901', {
+  uid: 'user-12345',
+  referrer: '@partner_account'
+});
+```
+
+```python Python
+def initiate_onboarding(bvn, uid=None, referrer=None):
+    response = requests.post(
+        'https://staging-api.yourflexpay.com/v2/sso/create-tag',
+        params={'otp': 'true'},
+        headers={
+            'Content-Type': 'application/json',
+            'x-client-id': os.getenv('PARTNER_CLIENT_ID'),
+            'x-api-key': os.getenv('PARTNER_API_KEY')
+        },
+        json={
+            'bvn': bvn,
+            'uid': uid,
+            'referrer': referrer
+        }
+    )
+    return response.json()
+
+# Usage
+onboarding = initiate_onboarding(
+    bvn='12345678901',
+    uid='user-12345',
+    referrer='@partner_account'
+)
+```
+</CodeGroup>
+
+**Parameters**:
+- `bvn` (required): 11-digit Bank Verification Number
+- `uid` (optional): Your internal user identifier for tracking
+- `referrer` (optional): PayTag of the referring user
+- `otp` query param: Set to `true` to enable OTP flow
+
+**Response**:
+```json
+{
+  "session": "onboarding_abc123xyz",
+  "bvnData": {
+    "firstName": "John",
+    "lastName": "Doe",
+    "phone": "2348012345678",
+    "email": "john@example.com",
+    "dateOfBirth": "1990-01-01"
+  },
+  "status": "pending_otp"
+}
+```
+
+<Warning>
+  Store the `session` ID! You'll need it for subsequent steps in the PayTag creation flow.
+</Warning>
+
+## Step 3: Send OTP
+
+Send a one-time password to verify the customer's phone number or email.
+
+<CodeGroup>
+```bash cURL
+curl --request GET \
+  --url 'https://staging-api.yourflexpay.com/v2/sso/onboarding_abc123xyz/otp?channel=sms&recipient=2348012345678' \
+  --header 'x-client-id: your_partner_id' \
+  --header 'x-api-key: your_api_key'
+```
+
+```javascript Node.js
+async function sendOTP(sessionId, channel, recipient) {
+  const response = await fetch(
+    `https://staging-api.yourflexpay.com/v2/sso/${sessionId}/otp?channel=${channel}&recipient=${recipient}`,
+    {
+      headers: {
+        'x-client-id': process.env.PARTNER_CLIENT_ID,
+        'x-api-key': process.env.PARTNER_API_KEY
+      }
+    }
+  );
+
+  const otpInfo = await response.json();
+  console.log('OTP sent via:', otpInfo.provider);
+  return otpInfo;
+}
+
+// Usage
+await sendOTP('onboarding_abc123xyz', 'sms', '2348012345678');
+// or
+await sendOTP('onboarding_abc123xyz', 'email', 'john@example.com');
+// or
+await sendOTP('onboarding_abc123xyz', 'whatsapp', '2348012345678');
+```
+
+```python Python
+def send_otp(session_id, channel, recipient):
+    response = requests.get(
+        f'https://staging-api.yourflexpay.com/v2/sso/{session_id}/otp',
+        params={
+            'channel': channel,
+            'recipient': recipient
+        },
+        headers={
+            'x-client-id': os.getenv('PARTNER_CLIENT_ID'),
+            'x-api-key': os.getenv('PARTNER_API_KEY')
+        }
+    )
+    return response.json()
+
+# Usage
+send_otp('onboarding_abc123xyz', 'sms', '2348012345678')
+```
+</CodeGroup>
+
+**Parameters**:
+- `channel`: `sms`, `whatsapp`, or `email`
+- `recipient` (optional): Override default from BVN data
+
+**Response**:
+```json
+{
+  "provider": "termii",
+  "reference": "otp_ref_123",
+  "recipients": ["2348012345678"],
+  "validated": false
+}
+```
+
+## Step 4: Validate OTP
+
+Validate the OTP code entered by the customer.
+
+<CodeGroup>
+```bash cURL
+curl --request POST \
+  --url 'https://staging-api.yourflexpay.com/v2/sso/onboarding_abc123xyz/otp' \
+  --header 'Content-Type: application/json' \
+  --header 'x-client-id: your_partner_id' \
+  --header 'x-api-key: your_api_key' \
+  --data '{
+    "code": "123456"
+  }'
+```
+
+```javascript Node.js
+async function validateOTP(sessionId, otpCode) {
+  const response = await fetch(
+    `https://staging-api.yourflexpay.com/v2/sso/${sessionId}/otp`,
+    {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-client-id': process.env.PARTNER_CLIENT_ID,
+        'x-api-key': process.env.PARTNER_API_KEY
+      },
+      body: JSON.stringify({ code: otpCode })
+    }
+  );
+
+  const updatedOnboarding = await response.json();
+  return updatedOnboarding;
+}
+
+// Usage
+const result = await validateOTP('onboarding_abc123xyz', '123456');
+if (result.status === 'otp_validated') {
+  console.log('OTP verified! Proceed to complete onboarding');
+}
+```
+
+```python Python
+def validate_otp(session_id, otp_code):
+    response = requests.post(
+        f'https://staging-api.yourflexpay.com/v2/sso/{session_id}/otp',
+        headers={
+            'Content-Type': 'application/json',
+            'x-client-id': os.getenv('PARTNER_CLIENT_ID'),
+            'x-api-key': os.getenv('PARTNER_API_KEY')
+        },
+        json={'code': otp_code}
+    )
+    return response.json()
+
+# Usage
+result = validate_otp('onboarding_abc123xyz', '123456')
+```
+</CodeGroup>
+
+**Response**:
+```json
+{
+  "session": "onboarding_abc123xyz",
+  "status": "otp_validated",
+  "bvnData": {
+    "firstName": "John",
+    "lastName": "Doe",
+    "phone": "2348012345678",
+    "email": "john@example.com"
+  }
+}
+```
+
+## Step 5: Complete PayTag Creation
+
+Submit final details to create the customer account.
+
+<CodeGroup>
+```bash cURL
+curl --request POST \
+  --url 'https://staging-api.yourflexpay.com/v2/sso/create-tag/onboarding_abc123xyz/complete' \
+  --header 'Content-Type: application/json' \
+  --header 'x-client-id: your_partner_id' \
+  --header 'x-api-key: your_api_key' \
+  --data '{
+    "tag": "@johndoe",
+    "password": "secure_password_123",
+    "firstName": "John",
+    "lastName": "Doe",
+    "email": "john@example.com",
+    "phone": "2348012345678"
+  }'
+```
+
+```javascript Node.js
+async function completeOnboarding(sessionId, customerData) {
+  const response = await fetch(
+    `https://staging-api.yourflexpay.com/v2/sso/create-tag/${sessionId}/complete`,
+    {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-client-id': process.env.PARTNER_CLIENT_ID,
+        'x-api-key': process.env.PARTNER_API_KEY
+      },
+      body: JSON.stringify(customerData)
+    }
+  );
+
+  const customer = await response.json();
+  console.log('Customer created!', customer);
+  return customer;
+}
+
+// Usage
+const customer = await completeOnboarding('onboarding_abc123xyz', {
+  tag: '@johndoe',
+  password: 'secure_password_123',
+  firstName: 'John',
+  lastName: 'Doe',
+  email: 'john@example.com',
+  phone: '2348012345678',
+  profileImage: 'https://example.com/avatar.jpg' // optional
+});
+```
+
+```python Python
+def complete_onboarding(session_id, customer_data):
+    response = requests.post(
+        f'https://staging-api.yourflexpay.com/v2/sso/create-tag/{session_id}/complete',
+        headers={
+            'Content-Type': 'application/json',
+            'x-client-id': os.getenv('PARTNER_CLIENT_ID'),
+            'x-api-key': os.getenv('PARTNER_API_KEY')
+        },
+        json=customer_data
+    )
+    return response.json()
+
+# Usage
+customer = complete_onboarding('onboarding_abc123xyz', {
+    'tag': '@johndoe',
+    'password': 'secure_password_123',
+    'firstName': 'John',
+    'lastName': 'Doe',
+    'email': 'john@example.com',
+    'phone': '2348012345678'
+})
+```
+</CodeGroup>
+
+**Required Fields**:
+- `tag`: Desired PayTag (must be available)
+- `password`: Strong password for the account
+- BVN-derived data can be pre-filled but may be overridden
+
+**Response**:
+```json
+{
+  "ID": 12345,
+  "PayTag": "@johndoe",
+  "Name": "John Doe",
+  "Email": "john@example.com",
+  "Phone": "2348012345678",
+  "CreatedAt": "2026-07-30T10:00:00Z"
+}
+```
+
+<Check>
+  **Success!** The customer account is now created. Next, use the [authentication flow](/sso/authentication) to log them in.
+</Check>
+
+## Complete PayTag Creation Example
+
+Here's a full implementation with UI feedback:
+
+<CodeGroup>
+```javascript React Component
+import React, { useState } from 'react';
+
+function OnboardingFlow() {
+  const [step, setStep] = useState('bvn');
+  const [sessionId, setSessionId] = useState(null);
+  const [bvnData, setBvnData] = useState(null);
+  const [error, setError] = useState(null);
+
+  // Step 1: Submit BVN
+  const handleBVNSubmit = async (bvn) => {
+    try {
+      const response = await fetch('/api/onboarding/initiate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ bvn })
+      });
+
+      const data = await response.json();
+      setSessionId(data.session);
+      setBvnData(data.bvnData);
+      setStep('otp');
+
+      // Auto-send OTP via SMS
+      await fetch(`/api/onboarding/${data.session}/send-otp`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ channel: 'sms' })
+      });
+    } catch (err) {
+      setError('BVN verification failed');
+    }
+  };
+
+  // Step 2: Validate OTP
+  const handleOTPSubmit = async (otpCode) => {
+    try {
+      const response = await fetch(`/api/onboarding/${sessionId}/validate-otp`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ code: otpCode })
+      });
+
+      if (response.ok) {
+        setStep('complete');
+      } else {
+        setError('Invalid OTP code');
+      }
+    } catch (err) {
+      setError('OTP validation failed');
+    }
+  };
+
+  // Step 3: Complete onboarding
+  const handleComplete = async (formData) => {
+    try {
+      const response = await fetch(`/api/onboarding/${sessionId}/complete`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(formData)
+      });
+
+      const customer = await response.json();
+
+      // Auto-login after account creation
+      window.location.href = '/auth/flex/login';
+    } catch (err) {
+      setError('Account creation failed');
+    }
+  };
+
+  return (
+    <div className="onboarding-wizard">
+      {step === 'bvn' && <BVNForm onSubmit={handleBVNSubmit} />}
+      {step === 'otp' && <OTPForm phone={bvnData?.phone} onSubmit={handleOTPSubmit} />}
+      {step === 'complete' && <CompleteForm bvnData={bvnData} onSubmit={handleComplete} />}
+      {error && <div className="error">{error}</div>}
+    </div>
+  );
+}
+```
+</CodeGroup>
+
+## Error Handling
+
+<AccordionGroup>
+  <Accordion title="400 - Invalid BVN">
+    **Error**: `"Invalid BVN format"`
+
+    **Solution**: Ensure BVN is exactly 11 digits
+  </Accordion>
+
+  <Accordion title="400 - BVN Already Registered">
+    **Error**: `"Customer with this BVN already exists"`
+
+    **Solution**: Guide user to login instead of creating a new account
+  </Accordion>
+
+  <Accordion title="400 - PayTag Taken">
+    **Error**: `"PayTag is not available"`
+
+    **Solution**: Prompt user to choose a different PayTag
+  </Accordion>
+
+  <Accordion title="400 - Invalid OTP">
+    **Error**: `"Invalid or expired OTP code"`
+
+    **Solution**: Ask user to request a new OTP or re-enter the code
+  </Accordion>
+</AccordionGroup>
+
+## Best Practices
+
+<CardGroup cols={2}>
+  <Card title="Pre-fill BVN Data" icon="pen">
+    Use the BVN data response to pre-fill the completion form
+  </Card>
+  <Card title="Clear Progress Indicators" icon="list-check">
+    Show users which step they're on in the PayTag creation flow
+  </Card>
+  <Card title="OTP Retry Logic" icon="rotate">
+    Allow users to resend OTP after a cooldown period
+  </Card>
+  <Card title="Password Strength" icon="shield">
+    Enforce strong password requirements
+  </Card>
+</CardGroup>
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Authentication" icon="key" href="/sso/authentication">
+    Log in newly created customers
+  </Card>
+  <Card title="Integration Guide" icon="rocket" href="/sso/integration-guide">
+    Build complete wallet features
+  </Card>
+</CardGroup>
+

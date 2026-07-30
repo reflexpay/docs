@@ -1,0 +1,100 @@
+---
+title: 'Wallet'
+description: 'Manage customer wallets, balances, history, and virtual accounts'
+---
+
+## Overview
+
+The Wallet API provides endpoints for managing partner-scoped customer wallets, including balance queries, transaction history, daily limits, and virtual account management.
+
+<Info>
+ All wallet endpoints require **customer authentication** (Bearer token) in addition to partner credentials.
+</Info>
+
+<Note>
+  **Complete API Specification**: View the full [SSO OpenAPI Spec](/openapi/sso.openapi.json) for detailed schemas and all endpoint specifications.
+</Note>
+
+## Wallet Endpoints
+
+<CardGroup cols={2}>
+  <Card title="Get or Create Wallet" icon="wallet">
+    `GET /sso/wallet` - Get or create partner-scoped wallet
+  </Card>
+  <Card title="Transaction History" icon="clock-rotate-left">
+    `GET /sso/wallet/history` - Get paginated transaction history
+  </Card>
+  <Card title="History by Reference" icon="magnifying-glass">
+    `GET /sso/wallet/history/{reference}` - Get history for specific reference
+  </Card>
+  <Card title="Wallet Summary" icon="chart-simple">
+    `GET /sso/wallet/summary` - Get wallet summary by categories
+  </Card>
+  <Card title="Daily Limits" icon="gauge-high">
+    `GET /sso/wallet/limit` - Get daily transaction limits and spend
+  </Card>
+  <Card title="Virtual Accounts" icon="building-columns">
+    `GET /sso/wallet/v-account` - Get wallet virtual accounts
+  </Card>
+</CardGroup>
+
+## Key Features
+
+### Partner-Scoped Wallets
+Each partner gets isolated wallet instances for their customers. The wallet is **automatically created** if it doesn't exist on first request.
+
+### Transaction History
+Comprehensive filtering options:
+- Date range filtering
+- Transaction type and status
+- Search by reference
+- Pagination support
+
+### Daily Limits
+Check available limits before transactions to provide better UX and avoid failed transactions.
+
+### Virtual Accounts
+Virtual accounts allow customers to fund their wallets via bank transfer. Accounts are automatically created on first request.
+
+## Quick Links
+
+<CardGroup cols={2}>
+  <Card title="Wallet Guide" icon="book-open" href="/sso/integration-guide#display-wallet-balance">
+    Implementation examples
+  </Card>
+  <Card title="Transactions API" icon="exchange" href="/sso/transactions">
+    Process payments and transfers
+  </Card>
+  <Card title="Integration Guide" icon="code" href="/sso/integration-guide">
+    Complete implementation guide
+  </Card>
+  <Card title="OpenAPI Spec" icon="file-code">
+    Full API specification
+  </Card>
+</CardGroup>
+
+## Security
+
+All wallet endpoints require:
+- `x-client-id` header (Partner ID)
+- `x-api-key` header (Partner API key)
+- `Authorization: Bearer {customer_token}` header
+
+## Error Responses
+
+| Status | Description |
+|--------|-------------|
+| 401 | Invalid or expired customer token |
+| 404 | Wallet not found |
+| 500 | Server error |
+
+## API Tags
+
+The Wallet API includes endpoints under the **SSO Wallet** tag in the OpenAPI specification.
+
+---
+
+<Info>
+For complete request/response schemas, parameters, and examples, refer to the [SSO OpenAPI Specification](/openapi/sso.openapi.json).
+</Info>
+

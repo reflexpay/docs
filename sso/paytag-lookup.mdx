@@ -1,0 +1,112 @@
+---
+title: 'PayTag Lookup'
+description: 'Search and resolve PayTag profiles across the FLEX ecosystem'
+---
+
+## Overview
+
+PayTag endpoints allow you to search for FLEX users and resolve PayTag details across the entire ecosystem, regardless of which partner created the PayTag.
+
+<Note>
+  All PayTag endpoints require **customer authentication** (Bearer token).
+</Note>
+
+<Note>
+  **Complete API Specification**: View the full [SSO OpenAPI Spec](/openapi/sso.openapi.json) for detailed schemas and all endpoint specifications.
+</Note>
+
+## PayTag Endpoints
+
+<CardGroup cols={2}>
+  <Card title="Search PayTags" icon="magnifying-glass">
+    `GET /sso/paytag/search` - Search for PayTags by name, email, phone, or tag
+  </Card>
+  <Card title="Resolve PayTag" icon="user">
+    `GET /sso/paytag/{tag}` - Get PayTag profile details
+  </Card>
+  <Card title="Connected Partners" icon="handshake">
+    `GET /sso/paytag/{tag}/partners` - List partners connected to a PayTag
+  </Card>
+</CardGroup>
+
+## Key Features
+
+### Cross-Partner Search
+Search and discover PayTag users across the entire FLEX ecosystem, enabling truly interconnected payments.
+
+### Profile Resolution
+Get detailed profile information for any PayTag user to display in your application before initiating transfers.
+
+### Partner Discovery
+See which partners a PayTag user is connected to through wallet provisioning.
+
+## Use Cases
+
+<CardGroup cols={2}>
+  <Card title="Recipient Lookup" icon="magnifying-glass">
+    Search for recipients before initiating transfers
+  </Card>
+  <Card title="Profile Display" icon="user">
+    Show user profiles in your application
+  </Card>
+  <Card title="Partner Discovery" icon="handshake">
+    Show which partners a user is connected to
+  </Card>
+  <Card title="Contact Suggestions" icon="address-book">
+    Provide search suggestions as user types
+  </Card>
+</CardGroup>
+
+## Search Capabilities
+
+The PayTag search endpoint supports searching by:
+- PayTag (e.g., `@johndoe`)
+- User name
+- Email address
+- Phone number
+
+Results are paginated for optimal performance.
+
+## Quick Links
+
+<CardGroup cols={2}>
+  <Card title="Transaction API" icon="exchange" href="/sso/transactions">
+    Send money to searched PayTags
+  </Card>
+  <Card title="Beneficiaries API" icon="users" href="/sso/beneficiaries">
+    Save frequent recipients
+  </Card>
+  <Card title="Integration Guide" icon="code" href="/sso/integration-guide">
+    Implementation examples
+  </Card>
+  <Card title="OpenAPI Spec" icon="file-code">
+    Full API specification
+  </Card>
+</CardGroup>
+
+## Security
+
+All PayTag endpoints require:
+- `x-client-id` header (Partner ID)
+- `x-api-key` header (Partner API key)
+- `Authorization: Bearer {customer_token}` header
+
+## Error Responses
+
+| Status | Description |
+|--------|-------------|
+| 400 | Invalid search parameters |
+| 401 | Invalid or expired customer token |
+| 404 | PayTag not found |
+| 500 | Server error |
+
+## API Tags
+
+The PayTag API includes endpoints under the **SSO PayTag** tag in the OpenAPI specification.
+
+---
+
+<Info>
+For complete request/response schemas, parameters, and examples, refer to the [SSO OpenAPI Specification](/openapi/sso.openapi.json).
+</Info>
+

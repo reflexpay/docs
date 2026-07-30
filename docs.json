@@ -14,6 +14,38 @@
         "tab": "Guides",
         "groups": [
           {
+            "group": "SSO",
+            "pages": [
+              "sso/index",
+              "sso/authentication",
+              "sso/paytag-creation",
+              "sso/wallet",
+              "sso/transactions",
+              "sso/payment-requests",
+              "sso/paytag-lookup",
+              "sso/beneficiaries",
+              "sso/integration-guide"
+            ]
+          },
+          {
+            "group": "Merchant",
+            "pages": [
+              "merchant/index",
+              "merchant/authentication",
+              "merchant/payment-request",
+              "merchant/qr-codes",
+              "merchant/integration-guide"
+            ]
+          },
+          {
+            "group": "Partner",
+            "pages": [
+              "partner/index",
+              "partner/terminal",
+              "partner/transaction"
+            ]
+          },
+          {
             "group": "IDAAS",
             "pages": [
               "idaas/index",

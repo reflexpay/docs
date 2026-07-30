@@ -1,0 +1,393 @@
+---
+title: 'Terminal'
+description: 'Manage terminals, process payments, and handle split transactions'
+---
+
+## Overview
+
+Terminals are managed from the Partner Portal at [https://partner.yourflexpay.com](https://partner.yourflexpay.com). This API is meant to be integrated into a POS that has already been added and configured from the portal. The Terminal API provides endpoints for terminal-specific operations including profile management, transaction processing, and split payment functionality.
+
+<Warning>
+  All terminal endpoints require **three headers**:
+  - `x-client-id`: Your partner ID
+  - `x-api-key`: Your partner API key
+  - `x-terminal`: Terminal serial number
+
+  The `x-terminal` value must match a POS terminal already created in the Partner Portal.
+</Warning>
+
+## Terminal Endpoints
+
+<CardGroup cols={2}>
+  <Card title="Get Terminal Profile" icon="id-card">
+    `GET /terminal` - Retrieve terminal information and QR code
+  </Card>
+  <Card title="Initiate Transaction" icon="money-bill-transfer">
+    `POST /terminal/transaction` - Process a terminal payment
+  </Card>
+  <Card title="List Transactions" icon="list">
+    `GET /terminal/transactions` - Get terminal transaction history
+  </Card>
+  <Card title="Get Transaction" icon="magnifying-glass">
+    `GET /terminal/transaction/{reference}` - Get specific transaction details
+  </Card>
+</CardGroup>
+
+### Split Payment Endpoints
+
+<CardGroup cols={2}>
+  <Card title="Create Split" icon="hand-holding-dollar">
+    `POST /terminal/split` - Create a split payment
+  </Card>
+  <Card title="List Splits" icon="list">
+    `GET /terminal/splits` - Get all splits for terminal
+  </Card>
+  <Card title="Get Split" icon="magnifying-glass">
+    `GET /terminal/split/{split}` - Get split details
+  </Card>
+  <Card title="Split QR Code" icon="qrcode">
+    `GET /terminal/split/{split}/qr` - Generate QR for split payment
+  </Card>
+</CardGroup>
+
+## Get Terminal Profile
+
+Retrieve terminal information including balance, PayTag, and a dynamic QR code for accepting payments.
+
+**Endpoint**: `GET /terminal`
+
+**Headers**:
+- `x-client-id`: Your partner ID
+- `x-api-key`: Your API key
+- `x-terminal`: Terminal serial number (e.g., `TERM-12345`)
+
+### Response
+
+```json
+{
+  "SerialNumber": "TERM-12345",
+  "Merchant": "My Business",
+  "Email": "terminal@mybusiness.com",
+  "PhoneNumber": "+2348012345678",
+  "Status": "Active",
+  "PayTag": "@mybusiness_term1",
+  "Balance": 150000.00,
+  "Qr": "eyJhbW91bnQ...",
+  "CreatedAt": "2026-01-15T10:00:00Z",
+  "Metadata": {
+    "location": "Store 1",
+    "pos_id": "POS-001"
+  }
+}
+```
+
+<Note>
+  The `Qr` field contains a QR payload that can be encoded into a QR code image for customers to scan and make payments to this terminal.
+</Note>
+
+---
+
+## Initiate Transaction
+
+Create a new payment transaction for the terminal.
+
+**Endpoint**: `POST /terminal/transaction`
+
+**Request Body**:
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| amount | number | Yes | Transaction amount (minimum: 100) |
+| reference | string | Yes | Unique reference (max 50 chars, alphanumeric) |
+| name | string | No | Customer name (max 100 chars) |
+| description | string | No | Transaction description (max 255 chars) |
+| metadata | object | No | Additional custom data |
+
+### Request Example
+
+<CodeGroup>
+```bash cURL
+curl --request POST \
+  --url https://staging-api.yourflexpay.com/v2/terminal/transaction \
+  --header 'Content-Type: application/json' \
+  --header 'x-client-id: your_partner_id' \
+  --header 'x-api-key: your_api_key' \
+  --header 'x-terminal: TERM-12345' \
+  --data '{
+    "amount": 5000,
+    "reference": "TXN-12345",
+    "description": "Product purchase",
+    "metadata": {
+      "product_id": "PROD-123",
+      "cashier": "John Doe"
+    }
+  }'
+```
+
+```javascript JavaScript
+const response = await fetch(
+  'https://staging-api.yourflexpay.com/v2/terminal/transaction',
+  {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'x-client-id': 'your_partner_id',
+      'x-api-key': 'your_api_key',
+      'x-terminal': 'TERM-12345'
+    },
+    body: JSON.stringify({
+      amount: 5000,
+      reference: 'TXN-12345',
+      description: 'Product purchase',
+      metadata: {
+        product_id: 'PROD-123',
+        cashier: 'John Doe'
+      }
+    })
+  }
+);
+
+const transactionToken = await response.json();
+```
+</CodeGroup>
+
+**Response**: Transaction reference or QR payload token for customer to complete payment
+
+---
+
+## List Terminal Transactions
+
+Retrieve paginated transaction history for the terminal.
+
+**Endpoint**: `GET /terminal/transactions`
+
+**Query Parameters**:
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| limit | integer | Results per page (default: 20) |
+| offset | integer | Pagination offset |
+| search | string | Search by reference or customer name |
+| reference | string | Filter by specific reference |
+| status | string | Filter by status: `Pending`, `Successful`, `Failed`, etc. |
+| startDate | string | Start date filter (YYYYMMDD format) |
+| endDate | string | End date filter (YYYYMMDD format) |
+
+### Response Example
+
+```json
+{
+  "items": [
+    {
+      "Amount": 5000,
+      "Fee": 50,
+      "Commission": 25,
+      "Net": 4925,
+      "Reference": "TXN-12345",
+      "Sender": "@customer1",
+      "SenderDetails": {
+        "Name": "John Customer",
+        "Paytag": "@customer1",
+        "Amount": 5000,
+        "Fee": 50,
+        "Currency": "NGN"
+      },
+      "Recipient": "@mybusiness_term1",
+      "Status": "Successful",
+      "Comment": "Product purchase",
+      "Date": "2026-07-30T10:00:00Z",
+      "CompletedAt": "2026-07-30T10:00:15Z",
+      "Metadata": {
+        "product_id": "PROD-123"
+      }
+    }
+  ],
+  "count": 1,
+  "limit": 20,
+  "offset": 0
+}
+```
+
+---
+
+## Create Split Payment
+
+Create a split payment configuration that allows multiple parties to contribute to a total amount.
+
+**Endpoint**: `POST /terminal/split`
+
+**Request Body**:
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| amount | number | Yes | Total amount to be split |
+| title | string | No | Split title (max 50 chars) |
+| description | string | No | Split description (max 255 chars) |
+| reference | string | No | Custom reference (auto-generated if not provided) |
+
+### Request Example
+
+<CodeGroup>
+```bash cURL
+curl --request POST \
+  --url https://staging-api.yourflexpay.com/v2/terminal/split \
+  --header 'Content-Type: application/json' \
+  --header 'x-client-id: your_partner_id' \
+  --header 'x-api-key: your_api_key' \
+  --header 'x-terminal: TERM-12345' \
+  --data '{
+    "amount": 10000,
+    "title": "Table 5 Bill",
+    "description": "Dinner bill for 4 people"
+  }'
+```
+
+```javascript JavaScript
+const response = await fetch(
+  'https://staging-api.yourflexpay.com/v2/terminal/split',
+  {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'x-client-id': 'your_partner_id',
+      'x-api-key': 'your_api_key',
+      'x-terminal': 'TERM-12345'
+    },
+    body: JSON.stringify({
+      amount: 10000,
+      title: 'Table 5 Bill',
+      description: 'Dinner bill for 4 people'
+    })
+  }
+);
+
+const split = await response.json();
+```
+</CodeGroup>
+
+### Response
+
+```json
+{
+  "Amount": 10000,
+  "Reference": "SPLIT-ABC123",
+  "Title": "Table 5 Bill",
+  "Description": "Dinner bill for 4 people",
+  "TotalPaid": 0,
+  "Remaining": 10000,
+  "Status": "Pending"
+}
+```
+
+---
+
+## Generate Split Payment QR
+
+Generate a QR code for a customer to contribute a specific amount to a split payment.
+
+**Endpoint**: `GET /terminal/split/{split}/qr`
+
+**Path Parameters**:
+- `split`: Split reference
+
+**Query Parameters**:
+- `amount` (required): Amount this customer will pay
+
+### Request Example
+
+<CodeGroup>
+```bash cURL
+curl --request GET \
+  --url 'https://staging-api.yourflexpay.com/v2/terminal/split/SPLIT-ABC123/qr?amount=2500' \
+  --header 'x-client-id: your_partner_id' \
+  --header 'x-api-key: your_api_key' \
+  --header 'x-terminal: TERM-12345'
+```
+
+```javascript JavaScript
+const response = await fetch(
+  'https://staging-api.yourflexpay.com/v2/terminal/split/SPLIT-ABC123/qr?amount=2500',
+  {
+    headers: {
+      'x-client-id': 'your_partner_id',
+      'x-api-key': 'your_api_key',
+      'x-terminal': 'TERM-12345'
+    }
+  }
+);
+
+const qrPayload = await response.json();
+```
+</CodeGroup>
+
+**Response**: QR payload string to be encoded into QR code image
+
+---
+
+## Split Payment Flow
+
+<Steps>
+  <Step title="Create Split">
+    Create a split payment with the total amount (e.g., ₦10,000 dinner bill)
+  </Step>
+
+  <Step title="Generate Individual QRs">
+    Generate separate QR codes for each contributing party with their share (e.g., ₦2,500 each for 4 people)
+  </Step>
+
+  <Step title="Customers Scan & Pay">
+    Each customer scans their QR code and pays their portion
+  </Step>
+
+  <Step title="Monitor Progress">
+    Track payments using `GET /terminal/split/{split}` to see TotalPaid and Remaining
+  </Step>
+
+  <Step title="Complete">
+    When TotalPaid reaches Amount, the split status changes to "Completed"
+  </Step>
+</Steps>
+
+---
+
+## Transaction Statuses
+
+| Status | Description |
+|--------|-------------|
+| `Pending` | Transaction initiated, awaiting completion |
+| `Successful` | Transaction completed successfully |
+| `Failed` | Transaction failed |
+| `Cancelled` | Transaction was cancelled |
+| `Expired` | Transaction expired before completion |
+| `Pending Review` | Transaction under review |
+| `Waiting on Provider` | Awaiting external provider response |
+
+## Error Responses
+
+| Status | Description |
+|--------|-------------|
+| 400 | Invalid parameters or validation failed |
+| 401 | Invalid partner credentials |
+| 404 | Terminal or transaction not found |
+| 500 | Server error |
+
+---
+
+## Quick Links
+
+<CardGroup cols={2}>
+  <Card title="Transactions API" icon="exchange" href="/partner/transactions">
+    Partner-level transaction management
+  </Card>
+  <Card title="Overview" icon="home" href="/partner/index">
+    Partner API overview
+  </Card>
+  <Card title="OpenAPI Spec" icon="file-code" href="/openapi/partner.openapi.json">
+    Complete API specification
+  </Card>
+</CardGroup>
+
+<Info>
+For complete request/response schemas, parameters, and examples, refer to the [Partner OpenAPI Specification](/openapi/partner.openapi.json).
+</Info>
+

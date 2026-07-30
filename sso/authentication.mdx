@@ -1,0 +1,542 @@
+---
+title: 'Authentication'
+description: 'Implement OAuth 2.0 authorization code flow for customer authentication'
+---
+
+## Overview
+
+The FLEX SSO API uses **OAuth 2.0 Authorization Code Flow** to securely authenticate customers and grant access to their wallets. This flow ensures that customer credentials never pass through your servers.
+
+## Authentication Flow
+
+<Steps>
+  <Step title="Customer Login">
+    User provides PayTag and password
+  </Step>
+
+  <Step title="Request Auth Code">
+    Your backend calls `/sso/auth-code` to get authorization code
+  </Step>
+
+  <Step title="Redirect Customer">
+    Redirect user to the returned URL containing the auth code
+  </Step>
+
+  <Step title="Exchange for Token">
+    Extract auth code from redirect and exchange it for a customer JWT token
+  </Step>
+
+  <Step title="Make Authenticated Requests">
+    Use the JWT token in the `Authorization: Bearer` header for all wallet operations
+  </Step>
+</Steps>
+
+## Required Headers
+
+### For Partner-Only Endpoints
+These endpoints only require partner credentials (PayTag creation, auth flow):
+
+<ParamField header="x-client-id" type="string" required>
+  Your partner client identifier
+</ParamField>
+
+<ParamField header="x-api-key" type="string" required>
+  Your partner API key
+</ParamField>
+
+### For Customer-Authenticated Endpoints
+These endpoints require both partner credentials AND customer token (wallet operations):
+
+<ParamField header="x-client-id" type="string" required>
+  Your partner client identifier
+</ParamField>
+
+<ParamField header="x-api-key" type="string" required>
+  Your partner API key
+</ParamField>
+
+<ParamField header="Authorization" type="string" required>
+  Customer JWT token in format: `Bearer {token}`
+</ParamField>
+
+## Step 1: Request Authorization Code
+
+When a customer wants to log in, send their credentials to get an authorization code.
+
+<CodeGroup>
+```bash cURL
+curl --request POST \
+  --url 'https://staging-api.yourflexpay.com/v2/sso/auth-code?scope=profile' \
+  --header 'Content-Type: application/json' \
+  --header 'x-client-id: your_partner_id' \
+  --header 'x-api-key: your_api_key' \
+  --data '{
+    "paytag": "@johndoe",
+    "password": "customer_password"
+  }'
+```
+
+```javascript Node.js
+const response = await fetch(
+  'https://staging-api.yourflexpay.com/v2/sso/auth-code?scope=profile',
+  {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'x-client-id': process.env.PARTNER_CLIENT_ID,
+      'x-api-key': process.env.PARTNER_API_KEY
+    },
+    body: JSON.stringify({
+      paytag: '@johndoe',
+      password: 'customer_password'
+    })
+  }
+);
+
+const redirectUrl = await response.text();
+console.log('Redirect URL:', redirectUrl);
+// Output: https://your-app.com/callback?auth-code=abc123xyz
+```
+
+```python Python
+import requests
+
+response = requests.post(
+    'https://staging-api.yourflexpay.com/v2/sso/auth-code',
+    params={'scope': 'profile'},
+    headers={
+        'Content-Type': 'application/json',
+        'x-client-id': os.getenv('PARTNER_CLIENT_ID'),
+        'x-api-key': os.getenv('PARTNER_API_KEY')
+    },
+    json={
+        'paytag': '@johndoe',
+        'password': 'customer_password'
+    }
+)
+
+redirect_url = response.text
+print(f'Redirect URL: {redirect_url}')
+```
+</CodeGroup>
+
+**Response**: A redirect URL containing the authorization code
+```
+https://your-app.com/callback?auth-code=abc123xyz
+```
+
+<Note>
+  The redirect URL is configured during partner onboarding. Contact support to set or update your redirect URLs.
+</Note>
+
+## Step 2: Exchange Auth Code for Token
+
+After redirecting the customer and receiving the auth code in your callback endpoint, exchange it for a JWT token.
+
+<CodeGroup>
+```bash cURL
+curl --request GET \
+  --url 'https://staging-api.yourflexpay.com/v2/sso/token?auth-code=abc123xyz' \
+  --header 'x-client-id: your_partner_id' \
+  --header 'x-api-key: your_api_key'
+```
+
+```javascript Node.js
+// Extract auth code from redirect URL
+const urlParams = new URLSearchParams(window.location.search);
+const authCode = urlParams.get('auth-code');
+
+// Exchange for token (backend)
+const response = await fetch(
+  `https://staging-api.yourflexpay.com/v2/sso/token?auth-code=${authCode}`,
+  {
+    headers: {
+      'x-client-id': process.env.PARTNER_CLIENT_ID,
+      'x-api-key': process.env.PARTNER_API_KEY
+    }
+  }
+);
+
+const customerToken = await response.text();
+// Store this token securely (session, encrypted cookie, etc.)
+```
+
+```python Python
+# Extract auth code from redirect
+auth_code = request.args.get('auth-code')
+
+# Exchange for token
+response = requests.get(
+    f'https://staging-api.yourflexpay.com/v2/sso/token',
+    params={'auth-code': auth_code},
+    headers={
+        'x-client-id': os.getenv('PARTNER_CLIENT_ID'),
+        'x-api-key': os.getenv('PARTNER_API_KEY')
+    }
+)
+
+customer_token = response.text
+# Store in session
+session['flex_token'] = customer_token
+```
+</CodeGroup>
+
+**Response**: A JWT token for the authenticated customer
+```
+eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyfQ.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c
+```
+
+<Warning>
+  Store the customer token securely! Never expose it in client-side JavaScript or logs. Use server-side sessions or encrypted cookies.
+</Warning>
+
+## Step 3: Make Authenticated Requests
+
+Use the customer token to access wallet features:
+
+<CodeGroup>
+```javascript Node.js
+const response = await fetch(
+  'https://staging-api.yourflexpay.com/v2/sso/wallet',
+  {
+    headers: {
+      'x-client-id': process.env.PARTNER_CLIENT_ID,
+      'x-api-key': process.env.PARTNER_API_KEY,
+      'Authorization': `Bearer ${customerToken}`
+    }
+  }
+);
+
+const wallet = await response.json();
+console.log('Balance:', wallet.Balance);
+```
+
+```python Python
+response = requests.get(
+    'https://staging-api.yourflexpay.com/v2/sso/wallet',
+    headers={
+        'x-client-id': os.getenv('PARTNER_CLIENT_ID'),
+        'x-api-key': os.getenv('PARTNER_API_KEY'),
+        'Authorization': f'Bearer {customer_token}'
+    }
+)
+
+wallet = response.json()
+print(f"Balance: {wallet['Balance']}")
+```
+</CodeGroup>
+
+## Complete Implementation Example
+
+Here's a complete OAuth flow implementation:
+
+<CodeGroup>
+```javascript Express.js
+const express = require('express');
+const app = express();
+
+// Step 1: Login endpoint
+app.post('/auth/flex/login', async (req, res) => {
+  const { paytag, password } = req.body;
+
+  try {
+    const response = await fetch(
+      'https://staging-api.yourflexpay.com/v2/sso/auth-code?scope=profile',
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-client-id': process.env.PARTNER_CLIENT_ID,
+          'x-api-key': process.env.PARTNER_API_KEY
+        },
+        body: JSON.stringify({ paytag, password })
+      }
+    );
+
+    const redirectUrl = await response.text();
+    res.json({ redirectUrl });
+  } catch (error) {
+    res.status(401).json({ error: 'Authentication failed' });
+  }
+});
+
+// Step 2: Callback endpoint
+app.get('/auth/flex/callback', async (req, res) => {
+  const authCode = req.query['auth-code'];
+
+  if (!authCode) {
+    return res.status(400).json({ error: 'Missing auth code' });
+  }
+
+  try {
+    const response = await fetch(
+      `https://staging-api.yourflexpay.com/v2/sso/token?auth-code=${authCode}`,
+      {
+        headers: {
+          'x-client-id': process.env.PARTNER_CLIENT_ID,
+          'x-api-key': process.env.PARTNER_API_KEY
+        }
+      }
+    );
+
+    const customerToken = await response.text();
+
+    // Store in session
+    req.session.flexToken = customerToken;
+
+    // Redirect to wallet dashboard
+    res.redirect('/wallet/dashboard');
+  } catch (error) {
+    res.status(401).json({ error: 'Token exchange failed' });
+  }
+});
+
+// Example authenticated endpoint
+app.get('/wallet/balance', async (req, res) => {
+  const token = req.session.flexToken;
+
+  if (!token) {
+    return res.status(401).json({ error: 'Not authenticated' });
+  }
+
+  const response = await fetch(
+    'https://staging-api.yourflexpay.com/v2/sso/wallet',
+    {
+      headers: {
+        'x-client-id': process.env.PARTNER_CLIENT_ID,
+        'x-api-key': process.env.PARTNER_API_KEY,
+        'Authorization': `Bearer ${token}`
+      }
+    }
+  );
+
+  const wallet = await response.json();
+  res.json({ balance: wallet.Balance });
+});
+```
+
+```python Flask
+from flask import Flask, request, session, redirect, jsonify
+import requests
+import os
+
+app = Flask(__name__)
+app.secret_key = 'your-secret-key'
+
+FLEX_BASE_URL = 'https://staging-api.yourflexpay.com/v2'
+PARTNER_CLIENT_ID = os.getenv('PARTNER_CLIENT_ID')
+PARTNER_API_KEY = os.getenv('PARTNER_API_KEY')
+
+# Step 1: Login endpoint
+@app.route('/auth/flex/login', methods=['POST'])
+def flex_login():
+    data = request.json
+    paytag = data.get('paytag')
+    password = data.get('password')
+
+    try:
+        response = requests.post(
+            f'{FLEX_BASE_URL}/sso/auth-code',
+            params={'scope': 'profile'},
+            headers={
+                'Content-Type': 'application/json',
+                'x-client-id': PARTNER_CLIENT_ID,
+                'x-api-key': PARTNER_API_KEY
+            },
+            json={'paytag': paytag, 'password': password}
+        )
+
+        redirect_url = response.text
+        return jsonify({'redirectUrl': redirect_url})
+    except Exception as e:
+        return jsonify({'error': 'Authentication failed'}), 401
+
+# Step 2: Callback endpoint
+@app.route('/auth/flex/callback')
+def flex_callback():
+    auth_code = request.args.get('auth-code')
+
+    if not auth_code:
+        return jsonify({'error': 'Missing auth code'}), 400
+
+    try:
+        response = requests.get(
+            f'{FLEX_BASE_URL}/sso/token',
+            params={'auth-code': auth_code},
+            headers={
+                'x-client-id': PARTNER_CLIENT_ID,
+                'x-api-key': PARTNER_API_KEY
+            }
+        )
+
+        customer_token = response.text
+        session['flex_token'] = customer_token
+
+        return redirect('/wallet/dashboard')
+    except Exception as e:
+        return jsonify({'error': 'Token exchange failed'}), 401
+
+# Example authenticated endpoint
+@app.route('/wallet/balance')
+def wallet_balance():
+    token = session.get('flex_token')
+
+    if not token:
+        return jsonify({'error': 'Not authenticated'}), 401
+
+    response = requests.get(
+        f'{FLEX_BASE_URL}/sso/wallet',
+        headers={
+            'x-client-id': PARTNER_CLIENT_ID,
+            'x-api-key': PARTNER_API_KEY,
+            'Authorization': f'Bearer {token}'
+        }
+    )
+
+    wallet = response.json()
+    return jsonify({'balance': wallet['Balance']})
+```
+</CodeGroup>
+
+## Token Management
+
+### Token Lifecycle
+
+- **Expiration**: Customer tokens have a limited lifespan (check with support for exact duration)
+- **Refresh**: Currently, tokens must be re-obtained through the auth flow
+- **Storage**: Store securely server-side, never in client-side storage
+
+### Best Practices
+
+<Check>
+  **Use HTTPS only** - Never transmit tokens over unencrypted connections
+</Check>
+
+<Check>
+  **Server-side storage** - Store tokens in encrypted server-side sessions
+</Check>
+
+<Check>
+  **Token validation** - Check for 401 errors and prompt re-authentication
+</Check>
+
+<Check>
+  **Logout handling** - Clear tokens from session when user logs out
+</Check>
+
+## Error Responses
+
+<AccordionGroup>
+  <Accordion title="401 - Unauthorized">
+    **Cause**: Invalid credentials or expired/invalid token
+
+    **Solution**:
+    - For auth-code: Verify customer PayTag and password are correct
+    - For token exchange: Verify auth code is valid and not expired
+    - For authenticated requests: Token may be expired, prompt re-login
+  </Accordion>
+
+  <Accordion title="400 - Bad Request">
+    **Cause**: Missing or invalid parameters
+
+    **Solution**: Check that all required fields are included and properly formatted
+  </Accordion>
+
+  <Accordion title="404 - Not Found">
+    **Cause**: Customer PayTag doesn't exist
+
+    **Solution**: Guide user to create a PayTag using the PayTag creation flow
+  </Accordion>
+</AccordionGroup>
+
+## Security Considerations
+
+<Warning>
+  **Never store passwords!** The OAuth flow ensures passwords never hit your database. Only store the customer token.
+</Warning>
+
+<CardGroup cols={2}>
+  <Card title="Use Environment Variables" icon="shield">
+    Store partner credentials in environment variables
+  </Card>
+  <Card title="Implement Rate Limiting" icon="gauge-high">
+    Prevent brute force attacks on login endpoints
+  </Card>
+  <Card title="Log Security Events" icon="clipboard-list">
+    Monitor failed authentication attempts
+  </Card>
+  <Card title="HTTPS Required" icon="lock">
+    Always use HTTPS in production
+  </Card>
+</CardGroup>
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="PayTag Creation" icon="user-plus" href="/sso/paytag-creation">
+    Learn how to create new customer accounts
+  </Card>
+  <Card title="Integration Guide" icon="rocket" href="/sso/integration-guide">
+    Build complete wallet features
+  </Card>
+  <Card title="Wallet API" icon="wallet" href="/sso/wallet">
+    Explore wallet management endpoints
+  </Card>
+  <Card title="Transactions API" icon="exchange" href="/sso/transactions">
+    Process payments and transfers
+  </Card>
+</CardGroup>
+
+---
+
+## API Reference
+
+### OAuth Flow Endpoints
+
+<CardGroup cols={2}>
+  <Card title="Get Authorization Code" icon="key">
+    `POST /sso/auth-code` - Authenticate customer and get authorization code
+  </Card>
+  <Card title="Exchange Token" icon="arrow-right-arrow-left">
+    `GET /sso/token` - Exchange authorization code for customer JWT token
+  </Card>
+</CardGroup>
+
+### PayTag Creation Endpoints
+
+<CardGroup cols={2}>
+  <Card title="Verify PayTag" icon="check">
+    `GET /sso/verify-tag` - Check if a PayTag is available
+  </Card>
+  <Card title="Initiate Creation" icon="user-plus">
+    `POST /sso/create-tag` - Start PayTag creation with BVN verification
+  </Card>
+  <Card title="Send OTP" icon="envelope">
+    `GET /sso/{session}/otp` - Send OTP for verification
+  </Card>
+  <Card title="Validate OTP" icon="shield-check">
+    `POST /sso/{session}/otp` - Validate OTP code
+  </Card>
+  <Card title="Complete Creation" icon="circle-check">
+    `POST /sso/create-tag/{session}/complete` - Create PayTag
+  </Card>
+  <Card title="Get Session" icon="info">
+    `GET /sso` - Get PayTag creation session payload
+  </Card>
+</CardGroup>
+
+### Required Headers
+
+**Partner Authentication (PayTag Creation):**
+- `x-client-id`: Your partner ID
+- `x-api-key`: Your partner API key
+
+**Customer Authentication (Wallet Operations):**
+- `x-client-id`: Your partner ID
+- `x-api-key`: Your partner API key
+- `Authorization: Bearer {customer_token}`
+
+<Note>
+  **Complete API Specification**: View the full [SSO OpenAPI Spec](/openapi/sso.openapi.json) for detailed schemas and all endpoint specifications.
+</Note>
+

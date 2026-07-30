@@ -30,6 +30,11 @@
           "Partner Terminal"
         ],
         "summary": "Get terminal profile",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/TerminalHeaderParam"
+          }
+        ],
         "responses": {
           "200": {
             "description": "Terminal info",
@@ -56,6 +61,11 @@
           "Partner Terminal"
         ],
         "summary": "Initiate terminal transaction",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/TerminalHeaderParam"
+          }
+        ],
         "requestBody": {
           "required": true,
           "content": {
@@ -93,6 +103,9 @@
         ],
         "summary": "List terminal transactions",
         "parameters": [
+          {
+            "$ref": "#/components/parameters/TerminalHeaderParam"
+          },
           {
             "name": "limit",
             "in": "query",
@@ -175,6 +188,9 @@
         "summary": "Get transaction by reference",
         "parameters": [
           {
+            "$ref": "#/components/parameters/TerminalHeaderParam"
+          },
+          {
             "name": "reference",
             "in": "path",
             "required": true,
@@ -209,6 +225,11 @@
           "Partner Terminal"
         ],
         "summary": "Create split",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/TerminalHeaderParam"
+          }
+        ],
         "requestBody": {
           "required": true,
           "content": {
@@ -246,6 +267,9 @@
         ],
         "summary": "List splits",
         "parameters": [
+          {
+            "$ref": "#/components/parameters/TerminalHeaderParam"
+          },
           {
             "name": "limit",
             "in": "query",
@@ -314,6 +338,9 @@
         "summary": "Get split by reference",
         "parameters": [
           {
+            "$ref": "#/components/parameters/TerminalHeaderParam"
+          },
+          {
             "name": "split",
             "in": "path",
             "required": true,
@@ -349,6 +376,9 @@
         ],
         "summary": "Generate split payment QR payload",
         "parameters": [
+          {
+            "$ref": "#/components/parameters/TerminalHeaderParam"
+          },
           {
             "name": "split",
             "in": "path",
@@ -559,6 +589,23 @@
         "type": "apiKey",
         "in": "header",
         "name": "x-api-key"
+      },
+      "TerminalHeader": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "x-terminal",
+        "description": "Terminal serial number"
+      }
+    },
+    "parameters": {
+      "TerminalHeaderParam": {
+        "name": "x-terminal",
+        "in": "header",
+        "required": true,
+        "schema": {
+          "type": "string"
+        },
+        "description": "Terminal serial number"
       }
     },
     "schemas": {
