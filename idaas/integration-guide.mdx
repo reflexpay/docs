@@ -17,15 +17,15 @@ description: Comprehensive IDaaS integration guide covering registration, authen
 2. [Core Concepts](#2-core-concepts)
 3. [How the Platform Works End to End](#3-how-the-platform-works-end-to-end)
 4. [Quick-Start Checklist](#4-quick-start-checklist)
-5. [Step 1 — Register Your Application](#5-step-1-register-your-application) ← includes `appHandle`
-6. [Step 2 — Authenticate (Get a Token)](#6-step-2-authenticate-get-a-token)
-7. [Step 3 — Create Subjects and Tags](#7-step-3-create-subjects-and-tags)
-8. [Step 4 — Initiate a Payment](#8-step-4-initiate-a-payment)
-9. [Step 5 — Receive and Handle Webhooks](#9-step-5-receive-and-handle-webhooks)
-10. [Step 6 — Accept or Reject a Transaction](#10-step-6-accept-or-reject-a-transaction)
-11. [Step 7 — Monitor Webhooks and Delivery](#11-step-7-monitor-webhooks-and-delivery)
-12. [Step 8 — Wallet and Ledger](#12-step-8-wallet-and-ledger)
-13. [Step 9 — Settlement](#13-step-9-settlement)
+5. [Step 1 — Register Your Application](#5-step-1---register-your-application) ← includes `appHandle`
+6. [Step 2 — Authenticate (Get a Token)](#6-step-2---authenticate-get-a-token)
+7. [Step 3 — Create Subjects and Tags](#7-step-3---create-subjects-and-tags)
+8. [Step 4 — Initiate a Payment](#8-step-4---initiate-a-payment)
+9. [Step 5 — Receive and Handle Webhooks](#9-step-5---receive-and-handle-webhooks)
+10. [Step 6 — Accept or Reject a Transaction](#10-step-6---accept-or-reject-a-transaction)
+11. [Step 7 — Monitor Webhooks and Delivery](#11-step-7---monitor-webhooks-and-delivery)
+12. [Step 8 — Wallet and Ledger](#12-step-8---wallet-and-ledger)
+13. [Step 9 — Settlement](#13-step-9---settlement)
 14. [Payload Encryption (JWE)](#14-payload-encryption-jwe)
 15. [Webhook Signature Verification](#15-webhook-signature-verification)
 16. [Idempotency](#16-idempotency)
@@ -168,7 +168,7 @@ An outbound HTTP POST from IDaaS to your application notifying you of transactio
 
 ---
 
-## 5. Step 1 — Register Your Application
+## 5. Step 1 - Register Your Application
 
 Registration is public (no auth required). Each application registration creates an independent tenant.
 
@@ -229,7 +229,7 @@ Content-Type: application/json
 
 ---
 
-## 6. Step 2 — Authenticate (Get a Token)
+## 6. Step 2 - Authenticate (Get a Token)
 
 All protected endpoints require a Bearer JWT. Tokens expire after 1 hour (configurable via `IDAAS_APP_TOKEN_TTL`).
 
@@ -296,7 +296,7 @@ Authorization: Bearer eyJhbGciOiJIUzI1NiJ9...
 
 ---
 
-## 7. Step 3 — Create Subjects and Tags
+## 7. Step 3 - Create Subjects and Tags
 
 ### 7.1 Create a Subject
 
@@ -410,7 +410,7 @@ Use this before initiating a payment to confirm the destination tag exists and i
 
 ---
 
-## 8. Step 4 — Initiate a Payment
+## 8. Step 4 - Initiate a Payment
 
 The sending application calls this endpoint to begin a cross-application payment.
 
@@ -480,7 +480,7 @@ Idempotency-Key: 550e8400-e29b-41d4-a716-446655440000
 
 ---
 
-## 9. Step 5 — Receive and Handle Webhooks
+## 9. Step 5 - Receive and Handle Webhooks
 
 IDaaS POSTs notifications to your `transactionWebhookUrl`. You must:
 1. Expose a publicly reachable HTTPS endpoint
@@ -570,7 +570,7 @@ X-IDaaS-Timestamp: 1741082700
 
 ---
 
-## 10. Step 6 — Accept or Reject a Transaction
+## 10. Step 6 - Accept or Reject a Transaction
 
 Only the **receiving application** can accept or reject. IDaaS enforces this — calling accept/reject with the wrong token returns `403`.
 
@@ -628,7 +628,7 @@ The `reason` field is optional (max 500 chars). On success:
 
 ---
 
-## 11. Step 7 — Monitor Webhooks and Delivery
+## 11. Step 7 - Monitor Webhooks and Delivery
 
 ### Check delivery status for a transaction
 
@@ -683,7 +683,7 @@ Use this for operational monitoring — set up an alert if this list is non-empt
 
 ---
 
-## 12. Step 8 — Wallet and Ledger
+## 12. Step 8 - Wallet and Ledger
 
 ### Provision wallet (call on startup)
 
@@ -753,7 +753,7 @@ Authorization: Bearer <token>
 
 ---
 
-## 13. Step 9 — Settlement
+## 13. Step 9 - Settlement
 
 IDaaS automatically runs an end-of-day settlement job at **23:59 UTC** every day. It aggregates all completed transactions for the day and produces per-application net positions.
 
