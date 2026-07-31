@@ -1414,6 +1414,43 @@
         }
       }
     },
+    "/sso/qr/{reference}": {
+      "get": {
+        "tags": [
+          "SSO QR"
+        ],
+        "summary": "Get QR transaction data by reference",
+        "security": [
+          {
+            "ClientIdHeader": [],
+            "ApiKeyHeader": [],
+            "BearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "reference",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "QR transaction data",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ITransactionQr"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/sso/beneficiary/p2p": {
       "post": {
         "tags": [
@@ -1792,6 +1829,99 @@
           "Metadata": {
             "type": "object",
             "additionalProperties": true
+          }
+        }
+      },
+      "ITransactionQr": {
+        "type": "object",
+        "required": [
+          "Tag",
+          "Name",
+          "Email",
+          "Type",
+          "Amount"
+        ],
+        "properties": {
+          "Tag": {
+            "type": "string"
+          },
+          "Name": {
+            "type": "string"
+          },
+          "Email": {
+            "type": "string"
+          },
+          "Type": {
+            "type": "string",
+            "enum": [
+              "AdminAuth",
+              "Customer",
+              "Merchant",
+              "MerchantUser",
+              "Partner"
+            ]
+          },
+          "Amount": {
+            "type": "number"
+          },
+          "HostID": {
+            "type": "number"
+          },
+          "QrType": {
+            "type": "string",
+            "enum": [
+              "P2P Transaction",
+              "Partner Transaction",
+              "Split Transaction",
+              "Flex Terminal Transaction",
+              "Partner Terminal Transaction"
+            ]
+          },
+          "Reference": {
+            "type": "string"
+          },
+          "Description": {
+            "type": "string"
+          },
+          "Metadata": {
+            "type": "object",
+            "additionalProperties": true
+          },
+          "Timestamp": {
+            "type": "number"
+          },
+          "VirtualAccount": {
+            "$ref": "#/components/schemas/DynamicVirtualAccount"
+          },
+          "Payment": {
+            "$ref": "#/components/schemas/TransactionDetail"
+          }
+        }
+      },
+      "DynamicVirtualAccount": {
+        "type": "object",
+        "required": [
+          "AccountName",
+          "AccountNumber",
+          "BankName",
+          "Reference"
+        ],
+        "properties": {
+          "AccountName": {
+            "type": "string"
+          },
+          "AccountNumber": {
+            "type": "string"
+          },
+          "BankName": {
+            "type": "string"
+          },
+          "Reference": {
+            "type": "string"
+          },
+          "ExpiresAt": {
+            "type": "string",
+            "nullable": true
           }
         }
       },
