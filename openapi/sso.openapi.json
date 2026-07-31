@@ -45,6 +45,33 @@
     }
   ],
   "paths": {
+    "/sso/me": {
+      "get": {
+        "tags": [
+          "SSO Auth"
+        ],
+        "summary": "Get the authenticated user's PayTag identity",
+        "security": [
+          {
+            "ClientIdHeader": [],
+            "ApiKeyHeader": [],
+            "BearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Authenticated user's PayTag",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PayTag"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/sso/auth-code": {
       "post": {
         "tags": [
