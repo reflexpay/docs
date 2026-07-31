@@ -32,6 +32,9 @@
       "name": "SSO PayTag"
     },
     {
+      "name": "SSO QR"
+    },
+    {
       "name": "SSO Beneficiary"
     }
   ],
@@ -1339,6 +1342,78 @@
         }
       }
     },
+    "/sso/qr": {
+      "get": {
+        "tags": [
+          "SSO QR"
+        ],
+        "summary": "Generate a QR code base64 image for paytag",
+        "security": [
+          {
+            "ClientIdHeader": [],
+            "ApiKeyHeader": [],
+            "BearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "query",
+            "name": "amount",
+            "required": false,
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "QR payload",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "SSO QR"
+        ],
+        "summary": "Complete a QR payment transaction",
+        "security": [
+          {
+            "ClientIdHeader": [],
+            "ApiKeyHeader": [],
+            "BearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/QrTransactionDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Transaction details",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TransactionDetail"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/sso/beneficiary/p2p": {
       "post": {
         "tags": [
@@ -1665,6 +1740,60 @@
             }
           }
         ]
+      },
+      "QrTransactionDto": {
+        "type": "object",
+        "required": [
+          "Type",
+          "Amount"
+        ],
+        "properties": {
+          "Tag": {
+            "type": "string"
+          },
+          "Name": {
+            "type": "string"
+          },
+          "Email": {
+            "type": "string"
+          },
+          "Type": {
+            "type": "string",
+            "enum": [
+              "Customer",
+              "Merchant",
+              "MerchantUser",
+              "Partner"
+            ]
+          },
+          "QrType": {
+            "type": "string",
+            "enum": [
+              "P2P Transaction",
+              "Partner Transaction",
+              "Split Transaction",
+              "Flex Terminal Transaction",
+              "Partner Terminal Transaction"
+            ]
+          },
+          "Amount": {
+            "type": "number",
+            "minimum": 1
+          },
+          "HostID": {
+            "type": "number"
+          },
+          "Reference": {
+            "type": "string"
+          },
+          "Description": {
+            "type": "string"
+          },
+          "Metadata": {
+            "type": "object",
+            "additionalProperties": true
+          }
+        }
       },
       "PaymentRequestDto": {
         "allOf": [
