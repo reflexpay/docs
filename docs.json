@@ -20,10 +20,10 @@
               "sso/authentication",
               "sso/paytag-creation",
               "sso/wallet",
-              "sso/transactions",
-              "sso/payment-requests",
+              "sso/transaction",
+              "sso/payment-request",
               "sso/paytag-lookup",
-              "sso/beneficiaries",
+              "sso/beneficiary",
               "sso/integration-guide"
             ]
           },
@@ -33,7 +33,7 @@
               "merchant/index",
               "merchant/authentication",
               "merchant/payment-request",
-              "merchant/qr-codes",
+              "merchant/qr-code",
               "merchant/integration-guide"
             ]
           },
