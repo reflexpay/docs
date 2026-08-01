@@ -613,6 +613,7 @@
         "type": "object",
         "required": [
           "SerialNumber",
+          "TerminalID",
           "Merchant",
           "Email",
           "PhoneNumber",
@@ -624,6 +625,9 @@
         ],
         "properties": {
           "SerialNumber": {
+            "type": "string"
+          },
+          "TerminalID": {
             "type": "string"
           },
           "Merchant": {
