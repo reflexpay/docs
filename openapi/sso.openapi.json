@@ -11,8 +11,12 @@
       "description": "Staging"
     },
     {
+      "url": "https://sandbox-api.yourflexpay.com/v2",
+      "description": "Sandbox"
+    },
+    {
       "url": "https://api.yourflexpay.com/v2",
-      "description": "Production"
+      "description": "Live"
     }
   ],
   "tags": [
