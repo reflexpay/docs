@@ -64,11 +64,11 @@
         ],
         "responses": {
           "200": {
-            "description": "Authenticated user's PayTag",
+            "description": "Authenticated user's PayTag and connected host",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/PayTag"
+                  "$ref": "#/components/schemas/SsoAuthenticatedPayTag"
                 }
               }
             }
@@ -106,7 +106,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/CustomerAuthSsoRequestDto"
+                "$ref": "#/components/schemas/PayTagSsoAuthRequestDto"
               }
             }
           }
@@ -243,16 +243,24 @@
         }
       }
     },
-    "/sso": {
+    "/sso/{onboarding}": {
       "get": {
-        "tags": [
-          "SSO Auth"
-        ],
+        "tags": ["SSO Auth"],
         "summary": "Get onboarding payload",
         "security": [
           {
             "ClientIdHeader": [],
             "ApiKeyHeader": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "onboarding",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
           }
         ],
         "responses": {
@@ -416,7 +424,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/SsoCustomer"
+                  "$ref": "#/components/schemas/PayTagSso"
                 }
               }
             }
@@ -429,22 +437,12 @@
         "tags": [
           "SSO Wallet"
         ],
-        "summary": "Get or create partner-scoped wallet for authenticated customer",
+        "summary": "Get host-scoped wallet for authenticated customer",
         "security": [
           {
             "ClientIdHeader": [],
             "ApiKeyHeader": [],
             "BearerAuth": []
-          }
-        ],
-        "parameters": [
-          {
-            "in": "query",
-            "name": "currency",
-            "required": false,
-            "schema": {
-              "type": "string"
-            }
           }
         ],
         "responses": {
@@ -457,6 +455,36 @@
                 }
               }
             }
+          }
+        }
+      }
+    },
+    "/sso/wallet/bank-account": {
+      "post": {
+        "tags": [
+          "SSO Wallet"
+        ],
+        "summary": "Link bank account to wallet",
+        "security": [
+          {
+            "ClientIdHeader": [],
+            "ApiKeyHeader": [],
+            "BearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BankAccountDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Bank account linked"
           }
         }
       }
@@ -1008,7 +1036,7 @@
         }
       }
     },
-    "/sso/payment-transfer": {
+    "/sso/request": {
       "post": {
         "tags": [
           "SSO Payment Request"
@@ -1111,7 +1139,7 @@
         }
       }
     },
-    "/sso/payment-transfer/{id}": {
+    "/sso/request/{id}": {
       "get": {
         "tags": [
           "SSO Payment Request"
@@ -1148,7 +1176,7 @@
         }
       }
     },
-    "/sso/payment-transfer/{id}/accept": {
+    "/sso/request/{id}/accept": {
       "post": {
         "tags": [
           "SSO Payment Request"
@@ -1185,7 +1213,7 @@
         }
       }
     },
-    "/sso/payment-transfer/{id}/cancel": {
+    "/sso/request/{id}/cancel": {
       "post": {
         "tags": [
           "SSO Payment Request"
@@ -1222,7 +1250,7 @@
         }
       }
     },
-    "/sso/payment-transfer/{id}/decline": {
+    "/sso/request/{id}/decline": {
       "post": {
         "tags": [
           "SSO Payment Request"
@@ -1333,12 +1361,12 @@
         }
       }
     },
-    "/sso/paytag/{tag}/partners": {
+    "/sso/paytag/{tag}/hosts": {
       "get": {
         "tags": [
           "SSO PayTag"
         ],
-        "summary": "List partners connected to paytag through wallet provisioning",
+        "summary": "List hosts connected to paytag through wallet provisioning",
         "security": [
           {
             "ClientIdHeader": [],
@@ -1358,13 +1386,13 @@
         ],
         "responses": {
           "200": {
-            "description": "Connected partners",
+            "description": "Connected hosts",
             "content": {
               "application/json": {
                 "schema": {
                   "type": "array",
                   "items": {
-                    "$ref": "#/components/schemas/SsoPayTagConnectedPartnerDto"
+                    "$ref": "#/components/schemas/PayTagSsoConnectedHostDto"
                   }
                 }
               }
@@ -1482,7 +1510,7 @@
         }
       }
     },
-    "/sso/beneficiary/p2p": {
+    "/sso/beneficiary": {
       "post": {
         "tags": [
           "SSO Beneficiary"
@@ -1519,7 +1547,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/P2pBeneficiary"
+                  "$ref": "#/components/schemas/PayTagBeneficiary"
                 }
               }
             }
@@ -1652,7 +1680,7 @@
       }
     },
     "schemas": {
-      "CustomerAuthSsoRequestDto": {
+      "PayTagSsoAuthRequestDto": {
         "type": "object",
         "required": [
           "paytag",
@@ -1743,7 +1771,7 @@
         "type": "object",
         "additionalProperties": true
       },
-      "SsoCustomer": {
+      "PayTagSso": {
         "type": "object",
         "additionalProperties": true
       },
@@ -1966,10 +1994,31 @@
             "properties": {
               "duration": {
                 "type": "number"
+              },
+              "hostId": {
+                "type": "number"
+              },
+              "payerHostId": {
+                "type": "number"
               }
             }
           }
         ]
+      },
+      "BankAccountDto": {
+        "type": "object",
+        "required": [
+          "accountNumber",
+          "bankCode"
+        ],
+        "properties": {
+          "accountNumber": {
+            "type": "string"
+          },
+          "bankCode": {
+            "type": "string"
+          }
+        }
       },
       "Wallet": {
         "type": "object",
@@ -1999,24 +2048,69 @@
         "type": "object",
         "additionalProperties": true
       },
-      "P2pBeneficiary": {
+      "PayTagBeneficiary": {
         "type": "object",
-        "additionalProperties": true
+        "properties": {
+          "ID": {
+            "type": "integer"
+          },
+          "PayTag": {
+            "$ref": "#/components/schemas/PayTag"
+          },
+          "Beneficiary": {
+            "$ref": "#/components/schemas/PayTag"
+          },
+          "CreatedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "UpdatedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "DeletedAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          }
+        }
       },
-      "SsoPayTagConnectedPartnerDto": {
+      "PayTagSsoConnectedHostDto": {
         "type": "object",
         "required": [
           "ID",
-          "Name"
+          "Name",
+          "LogoUrl"
         ],
         "properties": {
           "ID": {
             "type": "integer"
           },
+          "LogoUrl": {
+            "type": "string"
+          },
           "Name": {
             "type": "string"
           }
         }
+      },
+      "SsoAuthenticatedPayTag": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/PayTag"
+          },
+          {
+            "type": "object",
+            "required": [
+              "Host"
+            ],
+            "properties": {
+              "Host": {
+                "$ref": "#/components/schemas/PayTagSsoConnectedHostDto"
+              }
+            }
+          }
+        ]
       },
       "WalletHistoryResponse": {
         "type": "object",
