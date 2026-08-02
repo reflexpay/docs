@@ -243,7 +243,7 @@
         }
       }
     },
-    "/sso/{onboarding}": {
+    "/sso/create-tag/{onboarding}": {
       "get": {
         "tags": ["SSO Auth"],
         "summary": "Get onboarding payload",
@@ -277,7 +277,7 @@
         }
       }
     },
-    "/sso/{onboarding}/otp": {
+    "/sso/create-tag/{onboarding}/otp": {
       "get": {
         "tags": [
           "SSO Auth"
@@ -391,7 +391,7 @@
         "tags": [
           "SSO Auth"
         ],
-        "summary": "Complete onboarding and create SSO customer",
+        "summary": "Complete onboarding and create PayTag",
         "security": [
           {
             "ClientIdHeader": [],
