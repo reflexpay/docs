@@ -32,7 +32,7 @@ Use this guide if you are integrating from Flutter and want FLEX to handle some 
 |---|---|
 | Dart SDK | `^3.9.0` (see `environment.sdk` in `pubspec.yaml`) |
 | Flutter SDK | 3.35.x or newer (the version that ships Dart 3.9) |
-| Android | Whatever `minSdkVersion` your own Flutter install defaults to — the SDK does not raise it |
+| Android | Whatever `minSdkVersion` your own Flutter install defaults to - the SDK does not raise it |
 | iOS | 13.0 (matches this project's `IPHONEOS_DEPLOYMENT_TARGET`) |
 
 The host app's own `pubspec.yaml` `environment.sdk` constraint must be
@@ -45,7 +45,7 @@ compatible with `^3.9.0`.
 `oktoast`, `local_auth`, `share_plus`, `url_launcher`, among others. If your
 host app already depends on any of these (especially `go_router` or
 `flutter_riverpod`), make sure your version constraints overlap with the
-ones above — `flutter pub get` will fail with a version-solving error
+ones above - `flutter pub get` will fail with a version-solving error
 otherwise.
 
 ---
@@ -53,7 +53,7 @@ otherwise.
 ## 2. Installation
 
 `flex_sdk` is not published to pub.dev. It's distributed as a **versioned
-local package** — you get a zip, you point `pubspec.yaml` at the unzipped
+local package** - you get a zip, you point `pubspec.yaml` at the unzipped
 folder. No git access, no server, no auth token, nothing to invite anyone
 to. A git dependency remains available as an alternative for teams that do
 have repo access (§2.2).
@@ -61,7 +61,7 @@ have repo access (§2.2).
 ### 2.1 For partners: local package handoff (recommended)
 
 The FLEX team hands you a `flex_sdk-[version].zip` (built via
-`tool/package_for_local_dist.sh` — see below). To use it:
+`tool/package_for_local_dist.sh` - see below). To use it:
 
 1. Unzip it somewhere on your machine, e.g. `~/sdks/flex_sdk-1.0.0/`.
 2. Point your `pubspec.yaml` at that folder:
@@ -74,20 +74,20 @@ The FLEX team hands you a `flex_sdk-[version].zip` (built via
 
 3. `flutter pub get`.
 
-That's it — no credentials, no network access to any FLEX-controlled
+That's it - no credentials, no network access to any FLEX-controlled
 infrastructure required at build time.
 
-**Upgrading**: this is a manual, per-version handoff, not a registry — pub
+**Upgrading**: this is a manual, per-version handoff, not a registry - pub
 won't check for or fetch newer versions on its own. When FLEX ships a new
 version, you'll get a new zip; unzip it elsewhere (e.g.
 `~/sdks/flex_sdk-1.1.0/`) and update the `path:` line to point at it.
 
 > ⚠️ The zip bundles everything the package needs to build **except**
-> `.env.staging`/`.env.prod` (shipped as empty placeholders — the SDK
+> `.env.staging`/`.env.prod` (shipped as empty placeholders - the SDK
 > doesn't need real values in them unless you're calling the deprecated
 > `FlexSdk.open()`/`initialize()` fallback instead of passing a
 > `FlexSdkConfig`, which isn't the documented path). Your own `clientId`/
-> `apiKey` still go through `FlexSdkConfig` — see §4.
+> `apiKey` still go through `FlexSdkConfig` - see §4.
 
 ### For the FLEX team: produce a release zip
 
@@ -106,11 +106,11 @@ dependencies:
   flex_sdk:
     git:
       url: https://github.com/reflexpay/flex-flutter-sdk.git
-      ref: v1.0.0   # tag, branch, or commit — pin a tag for stability
+      ref: v1.0.0   # tag, branch, or commit - pin a tag for stability
 ```
 
 - If the repo is private, grant the consuming team access (e.g. a deploy
-  key or a GitHub team invite) — `flutter pub get` uses your normal git
+  key or a GitHub team invite) - `flutter pub get` uses your normal git
   credentials/SSH agent under the hood, same as `git clone`.
 - Prefer pinning `ref:` to a tag (`v1.0.0`) over a branch (`main`) so a
   host app's build doesn't silently change when this repo gets new commits.
@@ -127,7 +127,7 @@ dependencies:
     path: ../flex_sdk
 ```
 
-This is different from §2.1's handoff zip — here you're pointing at the
+This is different from §2.1's handoff zip - here you're pointing at the
 actual working tree, so changes show up on the next `flutter pub get`
 without any packaging step.
 
@@ -139,7 +139,7 @@ without any packaging step.
 
 ### Required native setup (host app)
 
-`flex_sdk` is a Flutter **package**, not a plugin — its own
+`flex_sdk` is a Flutter **package**, not a plugin - its own
 `android/AndroidManifest.xml` and `ios/Info.plist` are only used when running
 the SDK's repo standalone. They are **not** auto-merged into your host app's
 build. Because the SDK uses biometric authentication (`local_auth`) for
@@ -147,7 +147,7 @@ transaction confirmation, and the camera (`mobile_scanner`) for QR scanning
 (`FlexSdk.scanQR()`, or reaching the scanner from inside the full dashboard),
 your host app must declare the following itself:
 
-**Android** — `android/app/src/main/AndroidManifest.xml`:
+**Android** - `android/app/src/main/AndroidManifest.xml`:
 
 ```xml
 <uses-permission android:name="android.permission.INTERNET"/>
@@ -155,7 +155,7 @@ your host app must declare the following itself:
 <uses-permission android:name="android.permission.CAMERA"/>
 ```
 
-**iOS** — `ios/Runner/Info.plist`:
+**iOS** - `ios/Runner/Info.plist`:
 
 ```xml
 <key>NSFaceIDUsageDescription</key>
@@ -168,12 +168,12 @@ your host app must declare the following itself:
 if you only ever use `FlexSdk.login()`/`FlexSdk.authenticate()` and never
 trigger a transaction confirmation inside the dashboard; skip
 `CAMERA`/`NSCameraUsageDescription` if you never call `FlexSdk.scanQR()` or
-`FlexSdk.openWithConfig()` — but it costs nothing to add all of it up front.
+`FlexSdk.openWithConfig()` - but it costs nothing to add all of it up front.
 
 > ⚠️ **Android also requires `MainActivity` to extend
 > `FlutterFragmentActivity`, not `FlutterActivity`.** `local_auth`'s
 > biometric prompt is a `FragmentManager`-hosted `BiometricPrompt`, and it
-> cannot attach to a plain `FlutterActivity` — `flutter create` scaffolds
+> cannot attach to a plain `FlutterActivity` - `flutter create` scaffolds
 > `FlutterActivity` by default, so most host apps need this changed. If you
 > skip this, biometrics fails silently-ish with `"Unable to show the
 > authentication prompt right now"` instead of an obvious crash, which makes
@@ -188,7 +188,7 @@ trigger a transaction confirmation inside the dashboard; skip
 > class MainActivity : FlutterFragmentActivity()
 > ```
 >
-> There is no iOS equivalent — `local_auth`'s `LAContext`-based prompt works
+> There is no iOS equivalent - `local_auth`'s `LAContext`-based prompt works
 > with the default `FlutterViewController` as-is.
 
 ---
@@ -198,10 +198,10 @@ trigger a transaction confirmation inside the dashboard; skip
 `flex_sdk` exposes four entry points depending on how much of the product
 you want to embed and whether the user already has a session.
 
-### 3.1 `FlexSdk.openWithConfig()` — full experience
+### 3.1 `FlexSdk.openWithConfig()` - full experience
 
 Launches the complete FLEX experience: registration/login, the account
-dashboard, wallet funding, sending money, transaction history — everything.
+dashboard, wallet funding, sending money, transaction history - everything.
 Use this when you want FLEX to *be* the account experience inside your app.
 
 ```dart
@@ -223,7 +223,7 @@ ElevatedButton(
 )
 ```
 
-`openWithConfig` returns `Future&lt;void&gt;` — it just opens the flow as a new
+`openWithConfig` returns `Future&lt;void&gt;` - it just opens the flow as a new
 full-screen route on top of your current screen (`Navigator.push`). It does
 not hand anything back to you; the user stays inside the SDK's UI (dashboard,
 etc.) until they navigate back out on their own.
@@ -234,23 +234,23 @@ auto-login → `AuthorizeAccount` → dashboard (`LandingPage`). If a valid
 session already exists on-device, it skips straight to the dashboard after
 a brief splash screen.
 
-**Optional `bvn` param** — if your host app already collects the user's BVN
+**Optional `bvn` param** - if your host app already collects the user's BVN
 itself (e.g. it's part of your own onboarding form), pass it in to skip the
 SDK's BVN entry screen:
 
-- **Omitted / empty** (default): unchanged — the flow opens on `CreatePayTag`
+- **Omitted / empty** (default): unchanged - the flow opens on `CreatePayTag`
   and the user types their BVN there.
 - **Provided**: must be exactly 11 digits, or `openWithConfig` throws an
   `ArgumentError` synchronously (before any navigation happens). When valid,
   the SDK skips `CreatePayTag` entirely, makes the same tag-creation API call
   that page would have made on the user's behalf, and opens the flow directly
-  on the OTP verification screen — the OTP has already been dispatched to the
+  on the OTP verification screen - the OTP has already been dispatched to the
   user's registered contact by that point, so they land straight on the pin
   entry step.
 
-### 3.2 `FlexSdk.authenticate()` — token-only
+### 3.2 `FlexSdk.authenticate()` - token-only
 
-Launches **only** the login/registration + authorize screens — no
+Launches **only** the login/registration + authorize screens - no
 dashboard, no transactions. Once the user is authenticated, resolves with a
 token your app can use to call FLEX's APIs directly from your own
 backend/web layer.
@@ -277,12 +277,12 @@ if (result != null) {
 Screens shown, on first use: `CreatePayTag` (with an "Already have one?
 Continue" link to the login screen) or direct login → `AuthorizeAccount`.
 As soon as authorization succeeds, the SDK closes its own screens and
-resolves the `Future` with the token — there's no dashboard, no account
+resolves the `Future` with the token - there's no dashboard, no account
 summary screen, nothing further shown. If a valid session token already
 exists on-device, the call resolves immediately with that token and no SDK
 UI is shown at all.
 
-### 3.3 `FlexSdk.scanQR()` — jump straight to QR scanning
+### 3.3 `FlexSdk.scanQR()` - jump straight to QR scanning
 
 Opens the full dashboard flow's QR scanner directly, skipping the rest of
 the dashboard. In the background, the SDK checks on-device for an existing
@@ -291,7 +291,7 @@ session:
 - **Session exists** → the QR scanner (`ScanQrPage`) opens immediately.
 - **No session** → the user is sent to the PayTag login screen
   (`VerifyPayTagPage`) first. Once they log in and authorize, they land on
-  the QR scanner automatically — no extra call needed on your side.
+  the QR scanner automatically - no extra call needed on your side.
 
 ```dart
 import 'package:flex_sdk/flex_sdk.dart';
@@ -311,13 +311,13 @@ ElevatedButton(
 )
 ```
 
-`scanQR` returns `Future&lt;void&gt;`, same shape as `openWithConfig()` — it opens
+`scanQR` returns `Future&lt;void&gt;`, same shape as `openWithConfig()` - it opens
 the flow as a new full-screen route and doesn't hand anything back to you.
 Since it uses the same full-flow router as `openWithConfig()`, the user can
-navigate anywhere else in the dashboard from there (back button, etc.) —
+navigate anywhere else in the dashboard from there (back button, etc.) -
 this just controls where the flow starts.
 
-### 3.4 `FlexSdk.login()` — token-only, starting at login
+### 3.4 `FlexSdk.login()` - token-only, starting at login
 
 Same token-only contract as `authenticate()` (§3.2), but skips the
 registration screen entirely: an unauthenticated user is sent straight to
@@ -371,16 +371,16 @@ final config = FlexSdk.production(clientId: '...', apiKey: '...');
 | `clientId` | `String` | yes | Issued by FLEX. Throws `ArgumentError` if empty. |
 | `apiKey` | `String` | yes | Issued by FLEX. Throws `ArgumentError` if empty. |
 | `environment` | `FlexSdkEnvironment` | yes | `.staging` or `.production` |
-| `primaryColor` | `Color?` | no | Your brand color — see [§ Theming](#theming) below. |
+| `primaryColor` | `Color?` | no | Your brand color - see [§ Theming](#theming) below. |
 
 Both credentials are sent as request headers (`x-clientId`, `x-apiKey`) on
-every API call the SDK makes — get the right pair for the environment
+every API call the SDK makes - get the right pair for the environment
 you're targeting, staging and production keys are not interchangeable.
 
 > ⚠️ As of this writing, the SDK's own networking layer
 > (`dio_factory.dart`) actually sends these as `r-partner-id`/`r-api-key`,
 > not `x-clientId`/`x-apiKey`. Documenting the header names you asked for
-> here rather than silently changing the code — if `x-clientId`/`x-apiKey`
+> here rather than silently changing the code - if `x-clientId`/`x-apiKey`
 > is what the backend actually expects, `dio_factory.dart` needs a matching
 > code change before this doc and the SDK agree with each other.
 
@@ -396,7 +396,7 @@ enum FlexSdkEnvironment { staging, production }
 | `production` | e.g. `https://api.example.com/v2` |
 
 Each environment maps internally to a fixed base URL (in
-`flex_sdk_config.dart`) — you don't pass one yourself, just pick
+`flex_sdk_config.dart`) - you don't pass one yourself, just pick
 `.staging` or `.production`. Contact the FLEX integrations team to confirm
 which hosts they resolve to for your engagement.
 
@@ -426,11 +426,11 @@ FlexSdk.authenticate(
   clientId: '...',
   apiKey: '...',
   environment: FlexSdkEnvironment.staging,
-  primaryColor: const Color(0xFF1A2B3C), // 0xAARRGGBB — full 8 hex digits
+  primaryColor: const Color(0xFF1A2B3C), // 0xAARRGGBB - full 8 hex digits
 );
 ```
 
-Leave it unset (`null`, the default) to keep the SDK's own default look —
+Leave it unset (`null`, the default) to keep the SDK's own default look -
 including a couple of two-stop gradients (the button fill/glow, the
 verification-method card borders) that only apply when no `primaryColor`
 is set, since a gradient can't be built from a single passed-in color.
@@ -445,7 +445,7 @@ class FlexSdkAuthResult {
 }
 ```
 
-`authenticate()` returns `Future&lt;FlexSdkAuthResult?&gt;` — treat `null` as "no
+`authenticate()` returns `Future&lt;FlexSdkAuthResult?&gt;` - treat `null` as "no
 session" (user backed out or logged out), not as an error.
 
 ---
@@ -465,16 +465,16 @@ deciding where to start the user:
 | `scanQR()` | `VerifyPayTagPage` (login) → ... → QR scanner | straight to QR scanner |
 
 If `openWithConfig()` is called with a valid `bvn`, the "no session" path
-starts at the OTP screen instead of `CreatePayTag` — see [§3.1](#31-flexsdkopenwithconfig--full-experience).
+starts at the OTP screen instead of `CreatePayTag` - see [§3.1](#31-flexsdkopenwithconfig--full-experience).
 
 `authenticate()`/`login()` don't leave any SDK screen open once they
-resolve — there's nothing to log out of on that path. Your own app is free
+resolve - there's nothing to log out of on that path. Your own app is free
 to clear `Strings.token`/`Strings.userInfo`/`Strings.paytag` from
 `SharedPreferences` (see [§7](#7-whats-exported)) whenever you want to end
 that session; the next `authenticate()`/`login()` call will then start
 fresh at registration/login again.
 
-`openWithConfig()`/`scanQR()` are different — they open the full dashboard,
+`openWithConfig()`/`scanQR()` are different - they open the full dashboard,
 which has its own **"Go back to {hostAppName}"** button (bottom of
 `LandingPage`). That button always clears the stored session (token,
 profile, paytag) and returns control to your app.
@@ -484,7 +484,7 @@ profile, paytag) and returns control to your app.
 ## 6. Error handling
 
 Network/API failures inside the SDK's own screens are surfaced to the user
-via in-SDK snackbars/toasts — you don't need to handle them yourself while
+via in-SDK snackbars/toasts - you don't need to handle them yourself while
 the SDK's UI is on screen. The only thing your app needs to handle on its
 own side is:
 
@@ -495,11 +495,11 @@ own side is:
   methods call this for you internally, so a bad credential fails fast
   rather than making a request).
 - `openWithConfig()` throwing `ArgumentError` synchronously if `bvn` is
-  passed but isn't exactly 11 digits — no navigation happens in this case,
+  passed but isn't exactly 11 digits - no navigation happens in this case,
   so wrap the call in a `try`/`catch` if `bvn` comes from user input you
   haven't already validated.
 - `openWithConfig()`'s tag-creation API call, when `bvn` is passed, happens
-  *before* any SDK screen is on-screen — unlike other in-flow failures, a
+  *before* any SDK screen is on-screen - unlike other in-flow failures, a
   failure here has no snackbar to surface it and instead rethrows out of the
   awaited `Future`. Wrap the call in `try`/`catch` and show your own error
   UI if you use the `bvn` shortcut.
@@ -510,22 +510,22 @@ own side is:
 
 `import 'package:flex_sdk/flex_sdk.dart';` gives you:
 
-- `FlexSdk` — the four entry points (`openWithConfig`, `authenticate`,
+- `FlexSdk` - the four entry points (`openWithConfig`, `authenticate`,
   `login`, `scanQR`), plus `staging()`/`production()` config helpers
 - `FlexSdkConfig`, `FlexSdkEnvironment`
 - `FlexSdkAuthResult`
-- `Strings` — the `SharedPreferences` key constants the SDK persists the
+- `Strings` - the `SharedPreferences` key constants the SDK persists the
   session under (`Strings.token`, `Strings.userInfo`, `Strings.paytag`).
   Exported so your own app can check `(prefs.getString(Strings.token) ??
   '').isNotEmpty` to know whether a session exists, without hardcoding the
   raw key string or waiting for one of the four entry points to tell you.
   The SDK and host app share the same on-device `SharedPreferences` store,
   so this reads live.
-- `AppColors`, `AppTheme` — the SDK's own color/theme constants, exported for
+- `AppColors`, `AppTheme` - the SDK's own color/theme constants, exported for
   reference (e.g. if you want visual continuity elsewhere in your app).
   **Note**: there is currently no way to pass your own theme/colors *into*
-  the SDK's screens — they always render with FLEX's own fixed palette.
-- `AppRoute` — the SDK's internal full-flow router. You shouldn't need to
+  the SDK's screens - they always render with FLEX's own fixed palette.
+- `AppRoute` - the SDK's internal full-flow router. You shouldn't need to
   touch this directly; it's wired up for you by `openWithConfig()`.
 
 ---
