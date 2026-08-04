@@ -14,7 +14,7 @@
         "tab": "Guides",
         "groups": [
           {
-            "group": "SSO",
+            "group": "Wallet SSO",
             "pages": [
               "sso/index",
               "sso/authentication",
@@ -79,6 +79,17 @@
           {
             "group": "IDAAS",
             "openapi": "openapi/idaas.openapi.json"
+          }
+        ]
+      },
+      {
+        "tab": "SDK",
+        "groups": [
+          {
+            "group": "Wallet",
+            "pages": [
+              "sdk/wallet"
+            ]
           }
         ]
       }
