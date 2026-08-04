@@ -211,8 +211,8 @@ ElevatedButton(
   onPressed: () {
     FlexSdk.openWithConfig(
       context,
-      rPartnerId: 'clientId',
-      rApiKey: 'apiKey',
+      clientId: 'clientId',
+      apiKey: 'apiKey',
       environment: FlexSdkEnvironment.staging,
       hostAppName: 'MyApp',           // optional, defaults to 'FLEX'
       primaryColor: const Color(0xFF1A2B3C), // optional, see §4
@@ -260,8 +260,8 @@ import 'package:flex_sdk/flex_sdk.dart';
 
 final result = await FlexSdk.authenticate(
   context,
-  rPartnerId: 'clientId',
-  rApiKey: 'apiKey',
+  clientId: 'clientId',
+  apiKey: 'apiKey',
   environment: FlexSdkEnvironment.staging,
   hostAppName: 'MyApp', // shown as "Authorize MyApp" on the consent screen
   primaryColor: const Color(0xFF1A2B3C), // optional, see §4
@@ -300,8 +300,8 @@ ElevatedButton(
   onPressed: () {
     FlexSdk.scanQR(
       context,
-      rPartnerId: 'clientId',
-      rApiKey: 'apiKey',
+      clientId: 'clientId',
+      apiKey: 'apiKey',
       environment: FlexSdkEnvironment.staging,
       hostAppName: 'MyApp',           // optional, defaults to 'FLEX'
       primaryColor: const Color(0xFF1A2B3C), // optional, see §4
@@ -328,8 +328,8 @@ import 'package:flex_sdk/flex_sdk.dart';
 
 final result = await FlexSdk.login(
   context,
-  rPartnerId: 'clientId',
-  rApiKey: 'apiKey',
+  clientId: 'clientId',
+  apiKey: 'apiKey',
   environment: FlexSdkEnvironment.staging,
   hostAppName: 'MyApp',
   primaryColor: const Color(0xFF1A2B3C), // optional, see §4
@@ -549,8 +549,8 @@ class HomePage extends StatelessWidget {
             ElevatedButton(
               onPressed: () => FlexSdk.openWithConfig(
                 context,
-                rPartnerId: 'clientId',
-                rApiKey: 'apiKey',
+                clientId: 'clientId',
+                apiKey: 'apiKey',
                 environment: FlexSdkEnvironment.staging,
               ),
               child: const Text('Continue with SDK'),
@@ -559,8 +559,8 @@ class HomePage extends StatelessWidget {
               onPressed: () async {
                 final result = await FlexSdk.authenticate(
                   context,
-                  rPartnerId: 'clientId',
-                  rApiKey: 'apiKey',
+                  clientId: 'clientId',
+                  apiKey: 'apiKey',
                   environment: FlexSdkEnvironment.staging,
                   hostAppName: 'MyApp',
                 );
@@ -574,8 +574,8 @@ class HomePage extends StatelessWidget {
               onPressed: () async {
                 final result = await FlexSdk.login(
                   context,
-                  rPartnerId: 'clientId',
-                  rApiKey: 'apiKey',
+                  clientId: 'clientId',
+                  apiKey: 'apiKey',
                   environment: FlexSdkEnvironment.staging,
                   hostAppName: 'MyApp',
                 );
@@ -588,8 +588,8 @@ class HomePage extends StatelessWidget {
             ElevatedButton(
               onPressed: () => FlexSdk.scanQR(
                 context,
-                rPartnerId: 'clientId',
-                rApiKey: 'apiKey',
+                clientId: 'clientId',
+                apiKey: 'apiKey',
                 environment: FlexSdkEnvironment.staging,
                 hostAppName: 'MyApp',
               ),
