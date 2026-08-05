@@ -98,12 +98,12 @@
       "anchors": [
         {
           "anchor": "FLEX",
-          "href": "https://www.yourflexpay.com/",
+          "href": "https://yourflexpay.com/",
           "icon": "book-open-cover"
         },
         {
           "anchor": "Blog",
-          "href": "https://www.yourflexpay.com/blog",
+          "href": "https://yourflexpay.com/blog",
           "icon": "newspaper"
         }
       ]
@@ -116,14 +116,18 @@
   "navbar": {
     "links": [
       {
-        "label": "Support",
-        "href": "mailto:techsupport@yourflexpay.com"
+        "label": "Merchant",
+        "href": "https://business.yourflexpay.com"
+      },
+      {
+        "label": "Partner",
+        "href": "https://partner.yourflexpay.com"
       }
     ],
     "primary": {
       "type": "button",
-      "label": "Dashboard",
-      "href": "https://business.yourflexpay.com"
+      "label": "Support",
+      "href": "mailto:developer@yourflexpay.com"
     }
   },
   "contextual": {

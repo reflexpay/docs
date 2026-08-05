@@ -1,56 +1,85 @@
 ---
 title: "Introduction To FLEX"
-description: "FLEX documentation for payment collections via various channels"
+description: "Build with FLEX APIs for wallet SSO, merchant collections, partner gateway flows, and switching services."
 ---
 
-## Setting up
+## Build with FLEX
 
-Get your documentation site up and running in minutes.
+FLEX helps you move money with wallet-native experiences and API-first payment rails.
+You can use PayTag-based identity, direct payment requests, partner collection flows, and end-of-day settlement.
 
-<Card icon="rocket" horizontal href="/quickstart" title="Start here">
-  Follow our three step quickstart guide.
+<Card icon="rocket" horizontal href="/sso/index" title="Start with wallet SSO">
+  Launch payTag-based authentication, wallet access, transfers, and payment request flows.
 </Card>
 
-## Make it yours
+## Choose your integration path
 
-Design a docs site that looks great and empowers your users.
+<CardGroup cols={2}>
+  <Card icon="wallet" href="/sso/index" title="Wallet SSO">
+    Let users sign in with PayTag, access wallets, and transact inside your app.
+  </Card>
+  <Card icon="store" href="/merchant/index" title="Merchant API">
+    Accept collections with payment requests (OneTap), QR code flows, and payTag resolution.
+  </Card>
+  <Card icon="cash-register" href="/partner/index" title="Partner gateway API">
+    Collect funds from FLEX wallet users using partner and terminal-oriented endpoints.
+  </Card>
+  <Card icon="arrows-rotate" href="/idaas/index" title="Switching service (IDAAS)">
+    Route cross-application transactions with participant acceptance and daily settlement.
+  </Card>
+</CardGroup>
 
-<Columns cols={2}>
-  <Card icon="pen-to-square" href="/development" title="Edit locally">
-    Edit your docs locally and preview them in real time.
-  </Card>
-  <Card icon="palette" href="/essentials/settings" title="Customize your site">
-    Customize the design and colors of your site to match your brand.
-  </Card>
-  <Card icon="map" href="/essentials/navigation" title="Set up navigation">
-    Organize your docs to help users find what they need and succeed with your product.
-  </Card>
-  <Card icon="terminal" href="/api-reference/introduction" title="API documentation">
-    Auto-generate API documentation from OpenAPI specifications.
-  </Card>
-</Columns>
+## What you can build
 
-## Create beautiful pages
-
-Everything you need to create world-class documentation.
-
-<Columns cols={2}>
-  <Card icon="pen-fancy" href="/essentials/markdown" title="Write with MDX">
-    Use MDX to style your docs pages.
+<CardGroup cols={2}>
+  <Card icon="user-check" href="/sso/authentication" title="Authentication and consent">
+    Authenticate users, capture consent, and issue tokens for secure API access.
   </Card>
-  <Card icon="code" href="/essentials/code" title="Code samples">
-    Add sample code to demonstrate how to use your product.
+  <Card icon="money-bill-transfer" href="/sso/transaction" title="Wallet and transfer flows">
+    Create wallet-native transfer experiences for P2P and merchant-related use cases.
   </Card>
-  <Card icon="image" href="/essentials/images" title="Images">
-    Display images and other media.
+  <Card icon="qrcode" href="/merchant/qr-code" title="QR and payment requests">
+    Generate payment requests and QR payloads for fast in-app or assisted checkout.
   </Card>
-  <Card icon="recycle" href="/essentials/reusable-snippets" title="Reusable snippets">
-    Write once and reuse across your docs.
+  <Card icon="scale-balanced" href="/idaas/payments" title="Settlement-aware switching">
+    Orchestrate transaction honoring and reconcile net positions during settlement cycles.
   </Card>
-</Columns>
+</CardGroup>
 
-## Need inspiration?
+## Integrate in four steps
 
-<Card icon="stars" href="https://mintlify.com/customers" title="See complete examples">
-  Browse our showcase of exceptional documentation sites.
-</Card>
+<Steps>
+  <Step title="Pick your product surface">
+    Choose **Wallet SSO**, **Merchant API**, **Partner API**, or **IDAAS** based on your business model.
+  </Step>
+  <Step title="Set up credentials and authentication">
+    Configure your `x-client-id` and `x-api-key`, then complete the required auth flow.
+  </Step>
+  <Step title="Implement core transaction journeys">
+    Build your required flow: wallet transfers, payment requests, partner collections, or switching routes.
+  </Step>
+  <Step title="Go live with webhooks and monitoring">
+    Verify webhook signatures, handle retries, and track transaction and settlement states.
+  </Step>
+</Steps>
+
+## API references and SDK
+
+<CardGroup cols={2}>
+  <Card icon="file-code" href="/api-reference/wallet-sso" title="Wallet SSO API reference">
+    Explore request and response schemas for the SSO API surface.
+  </Card>
+  <Card icon="file-code" href="/api-reference/merchant" title="Merchant API reference">
+    Review Merchant endpoints for payment requests and QR flows.
+  </Card>
+  <Card icon="file-code" href="/api-reference/partner" title="Partner API reference">
+    Review Partner and terminal endpoints for collection workflows.
+  </Card>
+  <Card icon="mobile-screen" href="/sdk/wallet" title="Flutter SDK">
+    Embed FLEX wallet onboarding, login, and transaction experiences in your Flutter app.
+  </Card>
+</CardGroup>
+
+## Need help?
+
+If you need credentials or architecture guidance, email `developer@yourflexpay.com`.
