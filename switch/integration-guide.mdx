@@ -166,7 +166,7 @@ An outbound HTTP POST from the switch to your application notifying you of trans
 - [ ] **Create subjects** for your users (`POST /v1/subjects`)
 - [ ] **Create paytags** for your users (`POST /v1/tags`)
 - [ ] **Expose a webhook endpoint** at your `transactionWebhookUrl` to receive `TRANSACTION_INITIATED` events
-- [ ] **Verify webhook signatures** using `X-IDaaS-Signature` on every inbound webhook
+- [ ] **Verify webhook signatures** using `X-Switch-Signature` on every inbound webhook
 - [ ] **Respond with 2xx** within 10 seconds on webhook delivery; the switch retries 3 times
 - [ ] **Set up a callback endpoint** for `TRANSACTION_COMPLETED` / `TRANSACTION_REJECTED` / `TRANSACTION_EXPIRED` notifications
 

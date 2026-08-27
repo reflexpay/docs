@@ -479,9 +479,7 @@
           "Mobile Data Purchase",
           "Terminal Settlement",
           "Virtual Account Transfer",
-          "QR Virtual Account Transfer",
-          "Idaas Outward Transfer",
-          "Idaas Inward Transfer"
+          "QR Virtual Account Transfer"
         ]
       }
     }

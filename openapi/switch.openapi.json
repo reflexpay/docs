@@ -16,15 +16,15 @@
   },
   "externalDocs": {
     "description": "FLEX Switch GitHub repository",
-    "url": "https://github.com/reflexpay/idaas"
+    "url": "https://github.com/reflexpay/switch"
   },
   "servers": [
     {
-      "url": "https://staging-idaas.yourflexpay.com/api",
+      "url": "https://staging-switch.yourflexpay.com/api",
       "description": "Staging"
     },
     {
-      "url": "https://idaas.yourflexpay.com/api",
+      "url": "https://switch.yourflexpay.com/api",
       "description": "Production"
     }
   ],
@@ -40,7 +40,7 @@
     },
     {
       "name": "Encryption",
-      "description": "JWE payload encryption – end-to-end security for API request bodies and webhook payloads.\nEach application receives an EC P-256 keypair at registration:\n- FLEX Switch encrypts **outbound webhooks** with the application's public key.\n- Applications encrypt **inbound request bodies** with the FLEX Switch public key.\nAlgorithm: ECDH-ES+A256KW + A256GCM (JSON Web Encryption, RFC 7516).\nUse `GET /v1/keys/idaas` to fetch the FLEX Switch public key.\nUse `POST /v1/applications/keys/rotate` to rotate your application keypair.\n"
+      "description": "JWE payload encryption – end-to-end security for API request bodies and webhook payloads.\nEach application receives an EC P-256 keypair at registration:\n- FLEX Switch encrypts **outbound webhooks** with the application's public key.\n- Applications encrypt **inbound request bodies** with the FLEX Switch public key.\nAlgorithm: ECDH-ES+A256KW + A256GCM (JSON Web Encryption, RFC 7516). Use `POST /v1/applications/keys/rotate` to rotate your application keypair.\n"
     },
     {
       "name": "Wallet",
@@ -1905,29 +1905,6 @@
             }
           }
         }
-      }
-    },
-    "/v1/keys/idaas": {
-      "get": {
-        "tags": [
-          "Encryption"
-        ],
-        "summary": "Get the FLEX Switch public encryption key",
-        "description": "Returns the FLEX Switch EC P-256 public key in two formats:\n- **`jwk`** – JSON Web Key (JWK) format; import directly into any JOSE library.\n- **`publicKeyBase64`** – Base64-encoded X.509 (SubjectPublicKeyInfo) DER; use with\n  `KeyFactory.getInstance(\"EC\").generatePublic(new X509EncodedKeySpec(decoded))` in Java.\n\nUse this key to **encrypt request payloads** before sending them to FLEX Switch:\n```\n1. Serialize your JSON request body.\n2. Encrypt with JWE (alg=ECDH-ES+A256KW, enc=A256GCM) using this public key.\n3. Set header: Content-Encryption: JWE\n4. Send the JWE compact string as the request body.\n```\n\nThis endpoint is **unauthenticated** – public keys are safe to distribute.\nCache the response; refresh only if you encounter a JWE decryption error (HTTP 400).\n",
-        "operationId": "getIdaasPublicKey",
-        "responses": {
-          "200": {
-            "description": "FLEX Switch public key returned",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResponseMapStringObject"
-                }
-              }
-            }
-          }
-        },
-        "security": []
       }
     },
     "/v1/consent/{consentToken}": {

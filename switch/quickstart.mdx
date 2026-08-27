@@ -10,7 +10,7 @@ Use this path when you want to get a switching integration working quickly in st
 ## 1. Register your application
 
 ```bash
-curl -X POST https://staging-idaas.yourflexpay.com/api/v1/applications \
+curl -X POST https://staging-switch.yourflexpay.com/api/v1/applications \
   -H 'Content-Type: application/json' \
   -d '{
     "name": "WalletApp",
@@ -29,7 +29,7 @@ Save these values immediately from the response:
 ## 2. Exchange credentials for a token
 
 ```bash
-curl -X POST https://staging-idaas.yourflexpay.com/api/v1/auth/token \
+curl -X POST https://staging-switch.yourflexpay.com/api/v1/auth/token \
   -H 'Content-Type: application/json' \
   -d '{
     "client_id": "<clientId>",
@@ -46,7 +46,7 @@ Authorization: Bearer <token>
 ## 3. Create a subject
 
 ```bash
-curl -X POST https://staging-idaas.yourflexpay.com/api/v1/subjects \
+curl -X POST https://staging-switch.yourflexpay.com/api/v1/subjects \
   -H 'Authorization: Bearer <token>' \
   -H 'Content-Type: application/json' \
   -d '{
@@ -58,7 +58,7 @@ curl -X POST https://staging-idaas.yourflexpay.com/api/v1/subjects \
 ## 4. Create a paytag
 
 ```bash
-curl -X POST https://staging-idaas.yourflexpay.com/api/v1/tags \
+curl -X POST https://staging-switch.yourflexpay.com/api/v1/tags \
   -H 'Authorization: Bearer <token>' \
   -H 'Content-Type: application/json' \
   -d '{
@@ -72,7 +72,7 @@ The globally unique paytag becomes `alice@walletapp`.
 ## 5. Route a transaction
 
 ```bash
-curl -X POST https://staging-idaas.yourflexpay.com/api/v1/transactions \
+curl -X POST https://staging-switch.yourflexpay.com/api/v1/transactions \
   -H 'Authorization: Bearer <token>' \
   -H 'Content-Type: application/json' \
   -H 'Idempotency-Key: txn-001' \
@@ -89,7 +89,7 @@ curl -X POST https://staging-idaas.yourflexpay.com/api/v1/transactions \
 
 The switch sends a `TRANSACTION_INITIATED` webhook to the receiving application. The receiver must:
 
-1. Verify `X-IDaaS-Signature`
+1. Verify `X-Switch-Signature`
 2. Optionally decrypt the payload if encryption is enabled
 3. Accept or reject the transaction through the API
 
