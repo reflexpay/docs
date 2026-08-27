@@ -46,17 +46,17 @@
             ]
           },
           {
-            "group": "IDAAS",
+            "group": "Switch",
             "pages": [
-              "idaas/index",
-              "idaas/quickstart",
-              "idaas/architecture",
-              "idaas/authentication",
-              "idaas/encryption",
-              "idaas/integration-guide",
-              "idaas/payments",
-              "idaas/webhooks",
-              "idaas/errors"
+              "switch/index",
+              "switch/quickstart",
+              "switch/architecture",
+              "switch/authentication",
+              "switch/encryption",
+              "switch/integration-guide",
+              "switch/payments",
+              "switch/webhooks",
+              "switch/errors"
             ]
           }
         ]
@@ -77,8 +77,12 @@
             "openapi": "openapi/merchant.openapi.json"
           },
           {
-            "group": "IDAAS",
-            "openapi": "openapi/idaas.openapi.json"
+            "group": "Switch",
+            "openapi": "openapi/switch.openapi.json"
+          },
+          {
+            "group": "Miscellaneous",
+            "openapi": "openapi/miscellaneous.openapi.json"
           }
         ]
       },

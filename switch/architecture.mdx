@@ -1,12 +1,12 @@
 ---
-title: "Architecture"
-description: "High-level architecture and runtime behavior of the IDaaS platform."
+title: Architecture
+description: High-level architecture and runtime behavior of the switching service.
 hidden: true
 ---
 
 # Architecture
 
-IDaaS is built as a Spring Boot API with asynchronous side effects handled through Kafka consumers.
+The switching service is built as an API with asynchronous side effects handled through Kafka consumers.
 
 ## Request path
 
@@ -33,13 +33,13 @@ HTTP Request
 | MySQL | Primary transactional store |
 | Redis | Cache, rate limiting, idempotency keys, and token blacklist |
 
-## Tag addressing model
+## Paytag addressing model
 
-IDaaS supports namespaced tags to prevent collisions between applications.
+The switch supports namespaced paytags to prevent collisions between applications.
 
-- `alice@walletapp` and `alice@shopapp` are different identities.
+- `alice@walletapp` and `alice@shopapp` are different identifiers.
 - Bare lookups such as `alice` are allowed only when the name is unambiguous.
-- Qualified addresses are the preferred form for transactions and public resolution.
+- Qualified addresses are the preferred form for transaction routing and public resolution.
 
 ## Transaction lifecycle
 
@@ -50,7 +50,7 @@ AWAITING_ACCEPTANCE
   -> EXPIRED
 ```
 
-A transaction is only settled when the receiver explicitly accepts it.
+A transaction is only settled when the receiving application explicitly accepts it.
 
 ## Security model
 
@@ -60,4 +60,5 @@ A transaction is only settled when the receiver explicitly accepts it.
 - Distributed Redis-backed rate limiting
 - Hardened security headers and stateless request processing
 
-For implementation details, continue with [Authentication](/idaas/authentication), [Payments](/idaas/payments), and [Encryption](/idaas/encryption).
+For implementation details, continue with [Authentication](/switch/authentication), [Payments](/switch/payments), and [Encryption](/switch/encryption).
+

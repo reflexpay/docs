@@ -1,0 +1,32 @@
+---
+title: Encryption
+description: End-to-end JWE payload encryption for requests and webhooks in the switching service.
+---
+
+# Encryption
+
+The switching service supports end-to-end payload encryption using JWE.
+Use it when you want the switch to protect request bodies and webhook payloads in transit at the application layer.
+
+## What is encrypted
+
+- Inbound request bodies
+- Outbound webhook payloads
+
+## Key model
+
+Each application receives an EC P-256 keypair.
+The switch uses the public key to encrypt payloads for your application.
+You decrypt payloads with your private key.
+
+## Recommended use
+
+Enable encryption when your integration handles sensitive payment metadata or customer data.
+Make sure your webhook handler can decrypt payloads before validation.
+
+## Related topics
+
+- [Authentication](/switch/authentication)
+- [Webhooks](/switch/webhooks)
+- [Integration guide](/switch/integration-guide)
+

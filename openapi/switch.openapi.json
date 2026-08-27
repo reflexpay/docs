@@ -1,8 +1,8 @@
 {
   "openapi": "3.0.3",
   "info": {
-    "title": "IDaaS – Identity as a Service API",
-    "description": "## Overview\nIDaaS provides globally unique, portable identity **tags** that travel with users across applications.  Each tag is a short handle (e.g. `@alice`) that can carry verified claims, participate in cross-application payments, and be federated to external identity providers.\n\n## Key Capabilities\n- **Tags** – create, transfer, disable, and attach claims to identity handles.\n- **Cross-application payments** – send money from any tag on Application A   to any tag on Application B; each application has a single escrow wallet   tracked for end-of-day settlement.\n- **Ledger** – every completed payment produces an immutable double-entry   `DEBIT` / `CREDIT` pair recorded against application wallets.\n- **Webhooks** – real-time callbacks with HMAC-SHA256 signatures and   automatic retry (up to 3 attempts with exponential back-off).\n- **Settlement** – a scheduled end-of-day job aggregates daily wallet   movements and emits `SETTLEMENT_BATCH` Kafka events.\n\n## Authentication\n1. Register an application: `POST /v1/applications`\n2. Exchange credentials for a JWT: `POST /v1/auth/token`\n3. Include the JWT as `Authorization: Bearer \u003Ctoken\u003E` on all protected calls.\n\n## Rate Limits\n| Endpoint | Limit |\n|---|---|\n| `POST /v1/auth/token` | 10 req / min per IP |\n| `POST /v1/transactions` | 60 req / min per application |\n| All other | 300 req / min per IP |\n",
+    "title": "FLEX Switch API",
+    "description": "## Overview\nFLEX Switch provides globally unique, portable identity **tags** that travel with users across applications. Each tag is a short handle (e.g. `@alice`) that can carry verified claims, participate in cross-application payments, and be federated to external identity providers.\n\n## Key Capabilities\n- **Tags** – create, transfer, disable, and attach claims to identity handles.\n- **Cross-application payments** – send money from any tag on Application A to any tag on Application B; each application has a single escrow wallet tracked for end-of-day settlement.\n- **Ledger** – every completed payment produces an immutable double-entry `DEBIT` / `CREDIT` pair recorded against application wallets.\n- **Webhooks** – real-time callbacks with HMAC-SHA256 signatures and automatic retry (up to 3 attempts with exponential back-off).\n- **Settlement** – a scheduled end-of-day job aggregates daily wallet movements and emits `SETTLEMENT_BATCH` Kafka events.\n\n## Authentication\n1. Register an application: `POST /v1/applications`\n2. Exchange credentials for a JWT: `POST /v1/auth/token`\n3. Include the JWT as `Authorization: Bearer \u003Ctoken\u003E` on all protected calls.\n\n## Rate Limits\n| Endpoint | Limit |\n|---|---|\n| `POST /v1/auth/token` | 10 req / min per IP |\n| `POST /v1/transactions` | 60 req / min per application |\n| All other | 300 req / min per IP |\n",
     "contact": {
       "name": "ReflexPay Platform Team",
       "url": "https://yourflexpay.com",
@@ -15,7 +15,7 @@
     "version": "1.0.0"
   },
   "externalDocs": {
-    "description": "IDaaS GitHub Repository",
+    "description": "FLEX Switch GitHub repository",
     "url": "https://github.com/reflexpay/idaas"
   },
   "servers": [
@@ -40,7 +40,7 @@
     },
     {
       "name": "Encryption",
-      "description": "JWE payload encryption – end-to-end security for API request bodies and webhook payloads.\nEach application receives an EC P-256 keypair at registration:\n- IDaaS encrypts **outbound webhooks** with the application's public key.\n- Applications encrypt **inbound request bodies** with the IDaaS public key.\nAlgorithm: ECDH-ES+A256KW + A256GCM (JSON Web Encryption, RFC 7516).\nUse `GET /v1/keys/idaas` to fetch the IDaaS public key.\nUse `POST /v1/applications/keys/rotate` to rotate your application keypair.\n"
+      "description": "JWE payload encryption – end-to-end security for API request bodies and webhook payloads.\nEach application receives an EC P-256 keypair at registration:\n- FLEX Switch encrypts **outbound webhooks** with the application's public key.\n- Applications encrypt **inbound request bodies** with the FLEX Switch public key.\nAlgorithm: ECDH-ES+A256KW + A256GCM (JSON Web Encryption, RFC 7516).\nUse `GET /v1/keys/idaas` to fetch the FLEX Switch public key.\nUse `POST /v1/applications/keys/rotate` to rotate your application keypair.\n"
     },
     {
       "name": "Wallet",
@@ -1009,7 +1009,7 @@
           "Encryption"
         ],
         "summary": "Rotate the calling application's webhook signing secret",
-        "description": "Generates a new webhook signing secret for the authenticated application,\nstores only its hash, and returns the raw secret once.\n\nUse the returned `webhookSecret` to verify `X-IDaaS-Signature` on inbound webhooks.\nThe previous webhook secret becomes invalid immediately.\n",
+        "description": "Generates a new webhook signing secret for the authenticated application,\nstores only its hash, and returns the raw secret once.\n\nUse the returned `webhookSecret` to verify `X-FLEX-Switch-Signature` on inbound webhooks.\nThe previous webhook secret becomes invalid immediately.\n",
         "operationId": "rotateWebhookSecret",
         "responses": {
           "401": {
@@ -1052,7 +1052,7 @@
           "Encryption"
         ],
         "summary": "Rotate the calling application's EC keypair",
-        "description": "Generates a fresh EC P-256 keypair for the authenticated application and\nreturns the new public key (JWK) and private key material (`appPrivateJwk`).\n\n**The private JWK is returned only once** - store it securely.\nAfter rotation:\n- IDaaS will encrypt all outbound webhooks with the **new** public key.\n- Requests encrypted with the **old** public key will be rejected (Content-Encryption: JWE decryption will fail).\n- Allow a brief migration window for in-flight messages before destroying the old private key.\n\nThe `keyVersion` field is incremented on each rotation.\n",
+        "description": "Generates a fresh EC P-256 keypair for the authenticated application and\nreturns the new public key (JWK) and private key material (`appPrivateJwk`).\n\n**The private JWK is returned only once** - store it securely.\nAfter rotation:\n- FLEX Switch will encrypt all outbound webhooks with the **new** public key.\n- Requests encrypted with the **old** public key will be rejected (Content-Encryption: JWE decryption will fail).\n- Allow a brief migration window for in-flight messages before destroying the old private key.\n\nThe `keyVersion` field is incremented on each rotation.\n",
         "operationId": "rotateKeys",
         "responses": {
           "401": {
@@ -1912,12 +1912,12 @@
         "tags": [
           "Encryption"
         ],
-        "summary": "Get the IDaaS public encryption key",
-        "description": "Returns the IDaaS EC P-256 public key in two formats:\n- **`jwk`** – JSON Web Key (JWK) format; import directly into any JOSE library.\n- **`publicKeyBase64`** – Base64-encoded X.509 (SubjectPublicKeyInfo) DER; use with\n  `KeyFactory.getInstance(\"EC\").generatePublic(new X509EncodedKeySpec(decoded))` in Java.\n\nUse this key to **encrypt request payloads** before sending them to IDaaS:\n```\n1. Serialize your JSON request body.\n2. Encrypt with JWE (alg=ECDH-ES+A256KW, enc=A256GCM) using this public key.\n3. Set header: Content-Encryption: JWE\n4. Send the JWE compact string as the request body.\n```\n\nThis endpoint is **unauthenticated** – public keys are safe to distribute.\nCache the response; refresh only if you encounter a JWE decryption error (HTTP 400).\n",
+        "summary": "Get the FLEX Switch public encryption key",
+        "description": "Returns the FLEX Switch EC P-256 public key in two formats:\n- **`jwk`** – JSON Web Key (JWK) format; import directly into any JOSE library.\n- **`publicKeyBase64`** – Base64-encoded X.509 (SubjectPublicKeyInfo) DER; use with\n  `KeyFactory.getInstance(\"EC\").generatePublic(new X509EncodedKeySpec(decoded))` in Java.\n\nUse this key to **encrypt request payloads** before sending them to FLEX Switch:\n```\n1. Serialize your JSON request body.\n2. Encrypt with JWE (alg=ECDH-ES+A256KW, enc=A256GCM) using this public key.\n3. Set header: Content-Encryption: JWE\n4. Send the JWE compact string as the request body.\n```\n\nThis endpoint is **unauthenticated** – public keys are safe to distribute.\nCache the response; refresh only if you encounter a JWE decryption error (HTTP 400).\n",
         "operationId": "getIdaasPublicKey",
         "responses": {
           "200": {
-            "description": "IDaaS public key returned",
+            "description": "FLEX Switch public key returned",
             "content": {
               "*/*": {
                 "schema": {
@@ -2133,7 +2133,7 @@
             "maxLength": 500,
             "minLength": 0,
             "type": "string",
-            "description": "Optional HTTPS URL that IDaaS will POST the final transaction status to once accepted or rejected",
+            "description": "Optional HTTPS URL that FLEX Switch will POST the final transaction status to once accepted or rejected",
             "example": "https://my-app.example.com/webhooks/transactions"
           },
           "idempotencyKey": {
@@ -3062,7 +3062,7 @@
           },
           "active": {
             "type": "boolean",
-            "description": "Whether this application can still use IDaaS"
+            "description": "Whether this application can still use FLEX Switch"
           },
           "redirectUris": {
             "type": "string",
@@ -3070,11 +3070,11 @@
           },
           "transactionWebhookUrl": {
             "type": "string",
-            "description": "URL that IDaaS POSTs transaction notifications to"
+            "description": "URL that FLEX Switch POSTs transaction notifications to"
           },
           "webhookSecret": {
             "type": "string",
-            "description": "Raw webhook signing secret – returned ONLY on first registration. Used to verify X-IDaaS-Signature headers on inbound webhooks via HMAC-SHA256.",
+            "description": "Raw webhook signing secret – returned ONLY on first registration. Used to verify X-FLEX-Switch-Signature headers on inbound webhooks via HMAC-SHA256.",
             "readOnly": true
           },
           "metadata": {
@@ -3097,7 +3097,7 @@
           },
           "encryptionEnabled": {
             "type": "boolean",
-            "description": "Whether JWE payload encryption is enabled for this application. When true, IDaaS requires encrypted inbound request bodies and encrypts outbound webhooks."
+            "description": "Whether JWE payload encryption is enabled for this application. When true, FLEX Switch requires encrypted inbound request bodies and encrypts outbound webhooks."
           },
           "keyVersion": {
             "type": "integer",

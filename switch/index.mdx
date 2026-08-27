@@ -1,0 +1,42 @@
+---
+title: "Switching Service Documentation"
+description: "Integration guides and API reference for the ReflexPay switching service, where paytags route transactions between participating applications and settlement happens end of day."
+---
+
+# Switching Service Documentation
+
+The Flex switching service routes payments between participating applications.
+PayTags act as the payment identifier.
+Each application receives, honors, or rejects transactions for its own users.
+The platform then aggregates completed activity into end-of-day settlement.
+
+## What you can do with the switching service
+
+- Register an application and receive API credentials.
+- Create subjects and paytags such as `alice@walletapp`.
+- Route transactions between participating applications.
+- Verify webhook signatures and optionally decrypt JWE payloads.
+- Track wallet balances, ledger entries, and settlement batches.
+
+## Base URLs
+
+- **Staging API:** `https://staging-idaas.yourflexpay.com/api`
+- **Production API:** `https://idaas.yourflexpay.com/api`
+
+## Start here
+
+1. Read the [Quickstart](/switch/quickstart).
+2. Follow the full [End-to-End Integration Guide](/switch/integration-guide).
+3. Review the [Authentication](/switch/authentication) flow.
+4. Set up [Webhooks](/switch/webhooks) before you process transactions.
+
+## Core capabilities
+
+| Capability | Summary |
+| --- | --- |
+| Paytags | Portable payment identifiers that route value to the right application |
+| Transactions | Switch-mediated payments that the receiving application must honor or reject |
+| Application wallets | Per-application escrow wallet plus immutable DEBIT/CREDIT ledger entries |
+| Settlement | End-of-day net position generation for reconciliation |
+| Security | JWT auth, JWE payload encryption, HMAC webhook signatures, and rate limiting |
+

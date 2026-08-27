@@ -25,6 +25,9 @@
     },
     {
       "name": "Partner Transactions"
+    },
+    {
+      "name": "Partner Wallet"
     }
   ],
   "paths": {
@@ -580,6 +583,80 @@
           }
         ]
       }
+    },
+    "/sso/transaction/debit": {
+      "post": {
+        "tags": [
+          "Partner Wallet"
+        ],
+        "summary": "Debit a customer's wallet into partner wallet",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/WalletTransferDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Wallet debit transaction details",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WalletTransactionDetail"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ClientIdHeader": [],
+            "ApiKeyHeader": [],
+            "BearerAuth": []
+          }
+        ]
+      }
+    },
+    "/sso/transaction/credit": {
+      "post": {
+        "tags": [
+          "Partner Wallet"
+        ],
+        "summary": "Credit a customer's wallet from partner wallet",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/WalletTransferDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Wallet credit transaction details",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WalletTransactionDetail"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ClientIdHeader": [],
+            "ApiKeyHeader": [],
+            "BearerAuth": []
+          }
+        ]
+      }
     }
   },
   "components": {
@@ -593,6 +670,11 @@
         "type": "apiKey",
         "in": "header",
         "name": "x-api-key"
+      },
+      "BearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT"
       },
       "TerminalHeader": {
         "type": "apiKey",
@@ -898,6 +980,84 @@
           },
           "offset": {
             "type": "integer"
+          }
+        }
+      },
+      "WalletTransferDto": {
+        "type": "object",
+        "required": [
+          "amount"
+        ],
+        "properties": {
+          "amount": {
+            "type": "number",
+            "minimum": 1,
+            "maximum": 999999999
+          },
+          "comment": {
+            "type": "string",
+            "maxLength": 250
+          },
+          "reference": {
+            "type": "string",
+            "maxLength": 100
+          },
+          "currency": {
+            "$ref": "#/components/schemas/WalletCurrency"
+          },
+          "metadata": {
+            "type": "object",
+            "additionalProperties": true
+          }
+        }
+      },
+      "WalletTransactionDetail": {
+        "type": "object",
+        "required": [
+          "Amount",
+          "Fee",
+          "Net",
+          "Reference",
+          "Status",
+          "Sender",
+          "Recipient",
+          "Date"
+        ],
+        "properties": {
+          "Amount": {
+            "type": "number"
+          },
+          "Fee": {
+            "type": "number"
+          },
+          "Net": {
+            "type": "number"
+          },
+          "Reference": {
+            "type": "string"
+          },
+          "ExternalReference": {
+            "type": "string"
+          },
+          "Comment": {
+            "type": "string"
+          },
+          "Status": {
+            "$ref": "#/components/schemas/TransactionStatus"
+          },
+          "Sender": {
+            "$ref": "#/components/schemas/TransactionPartyDetail"
+          },
+          "Recipient": {
+            "$ref": "#/components/schemas/TransactionPartyDetail"
+          },
+          "Metadata": {
+            "type": "object",
+            "additionalProperties": true
+          },
+          "Date": {
+            "type": "string",
+            "format": "date-time"
           }
         }
       },

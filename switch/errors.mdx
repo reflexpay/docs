@@ -1,0 +1,32 @@
+---
+title: Errors
+description: Common error responses and handling guidance for the switching service.
+---
+
+# Errors
+
+The switch returns structured JSON errors with an HTTP status code and a human-readable message.
+
+## Common responses
+
+- `400 Bad Request` — invalid input
+- `401 Unauthorized` — missing or invalid token
+- `403 Forbidden` — application is not allowed to perform the action
+- `404 Not Found` — resource does not exist
+- `409 Conflict` — duplicate or ambiguous paytag or transaction state
+- `422 Unprocessable Entity` — semantically invalid request
+- `429 Too Many Requests` — rate limit exceeded
+- `500 Internal Server Error` — unexpected failure
+
+## Handling guidance
+
+- Retry only when the error is transient.
+- Use idempotency keys for retriable transaction requests.
+- Treat `409 Conflict` as a signal to resolve the paytag or transaction state first.
+
+## Related topics
+
+- [Authentication](/switch/authentication)
+- [Payments](/switch/payments)
+- [Integration guide](/switch/integration-guide)
+

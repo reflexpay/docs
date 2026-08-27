@@ -1,0 +1,34 @@
+---
+title: Webhooks
+description: How the switching service notifies participating applications about routed transactions.
+---
+
+# Webhooks
+
+The switch uses webhooks to notify participating applications when a transaction reaches them.
+
+## Delivery model
+
+- The receiver application gets a `TRANSACTION_INITIATED` webhook.
+- The sender application gets a final outcome callback when the transaction is accepted, rejected, or expired.
+- The platform retries failed deliveries up to 3 times.
+
+## Verify signatures
+
+Every webhook includes a signature header. Verify it before you trust the payload.
+
+## Decrypt payloads
+
+If you enable encryption, decrypt the payload before you process it.
+
+## Respond quickly
+
+Return a 2xx response as soon as you have accepted the event for processing.
+This keeps delivery latency low and prevents unnecessary retries.
+
+## Related topics
+
+- [Quickstart](/switch/quickstart)
+- [Payments](/switch/payments)
+- [Integration guide](/switch/integration-guide)
+

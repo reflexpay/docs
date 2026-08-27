@@ -23,6 +23,9 @@ Participating applications initiate and confirm transactions through the gateway
   <Card title="QR Payments" icon="qrcode">
     Generate QR codes for collection and split payment flows
   </Card>
+  <Card title="Wallet Credit and Debit" icon="wallet">
+    Move funds between partner wallet and authenticated customer wallets
+  </Card>
 </CardGroup>
 
 ## Base URLs
@@ -58,7 +61,7 @@ All API requests are authenticated using partner credentials with support for te
     Manage collection points, route transactions, and handle splits
   </Card>
   <Card title="Transactions API" icon="exchange" href="/partner/transactions">
-    Gateway transaction management and reporting
+    Gateway transaction management, reporting, and wallet credit/debit flows
   </Card>
 </CardGroup>
 
@@ -71,6 +74,10 @@ All Partner API endpoints require authentication using your partner credentials:
 
 <Note>
   Some collection endpoints also require a valid terminal identifier in the request headers.
+</Note>
+
+<Note>
+  Wallet debit/credit endpoints also require `Authorization: Bearer <customer_token>`.
 </Note>
 
 ## Quick Start

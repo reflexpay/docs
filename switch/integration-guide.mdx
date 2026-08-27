@@ -1,0 +1,178 @@
+---
+title: End-to-End Integration Guide
+description: Switching-service integration guide covering registration, authentication, paytags, transaction routing, webhooks, encryption, settlement, and error handling.
+---
+
+# Switching Service — Integration Guide
+
+> **Audience:** Engineers integrating a client application with the Flex switching service.
+> **Base URL:** `https://<your-switch-host>/api` (all paths below omit this prefix)
+> **Interactive docs:** `GET /swagger-ui.html` · Machine-readable spec: `GET /v3/api-docs`
+
+---
+
+## Table of Contents
+
+1. [What the switching service is](#1-what-the-switching-service-is)
+2. [Core concepts](#2-core-concepts)
+3. [How the switch works end to end](#3-how-the-switch-works-end-to-end)
+4. [Quick-start checklist](#4-quick-start-checklist)
+5. [Step 1 — Register your application](#5-step-1-register-your-application)
+6. [Step 2 — Authenticate (get a token)](#6-step-2-authenticate-get-a-token)
+7. [Step 3 — Create subjects and paytags](#7-step-3-create-subjects-and-paytags)
+8. [Step 4 — Route a payment](#8-step-4-route-a-payment)
+9. [Step 5 — Receive and handle webhooks](#9-step-5-receive-and-handle-webhooks)
+10. [Step 6 — Accept or reject a transaction](#10-step-6-accept-or-reject-a-transaction)
+11. [Step 7 — Monitor webhooks and delivery](#11-step-7-monitor-webhooks-and-delivery)
+12. [Step 8 — Wallet and ledger](#12-step-8-wallet-and-ledger)
+13. [Step 9 — Settlement](#13-step-9-settlement)
+14. [Payload encryption (JWE)](#14-payload-encryption-jwe)
+15. [Webhook signature verification](#15-webhook-signature-verification)
+16. [Idempotency](#16-idempotency)
+17. [Rate limiting](#17-rate-limiting)
+18. [Cross-app paytag claims and consent](#18-cross-app-paytag-claims-and-consent)
+19. [Namespaced paytags — onboarding existing tag systems](#19-namespaced-paytags-onboarding-existing-tag-systems)
+20. [Paytag federation](#20-paytag-federation)
+21. [Error handling](#21-error-handling)
+22. [API reference summary](#22-api-reference-summary)
+23. [Integration flows — sequence diagrams](#23-integration-flows-sequence-diagrams)
+
+---
+
+## 1. What the switching service is
+
+The Flex switching service routes payments between participating applications.
+It does not hold user balances as a primary product model.
+Instead, it uses paytags to identify destination accounts across applications.
+Each receiving application is responsible for honoring the transaction for its own users.
+Completed transactions are recorded in application wallets and settled at the end of the day.
+
+| Capability | What it means for your app |
+|---|---|
+| **Paytags** | Each user gets a portable handle (for example `alice`) scoped to your app's namespace, forming a globally unique **qualified paytag** (`alice@walletapp`) that can be routed across apps |
+| **Cross-app payments** | Your app can route money to a paytag on another app without building a direct bilateral integration |
+| **Consent-based claims** | If two apps both know the same user, either can request a verified link (claim) between the user's paytags via owner-approved consent |
+| **Application wallets** | The switch maintains a single escrow wallet per application that tracks net monetary position from all completed transactions |
+| **Double-entry ledger** | Every accepted transaction creates immutable DEBIT + CREDIT ledger entries with opening/closing balances |
+| **Settlement** | A scheduled end-of-day job (23:59 UTC) produces per-application net position reports for financial reconciliation |
+| **JWE encryption** | Every request body and webhook payload can be encrypted end-to-end using EC P-256 keypairs |
+
+Your application communicates with the switch exclusively via HTTPS REST APIs. All side effects such as webhook dispatch and audit logging happen asynchronously via Kafka so API calls remain fast.
+
+---
+
+## 2. Core concepts
+
+### Application
+The top-level entity in the switch. It represents your service. Each application gets:
+- A `clientId` and `clientSecret` for authentication
+- A `webhookSecret` for verifying inbound webhook signatures
+- An EC P-256 keypair for payload encryption
+- One escrow wallet for net monetary position tracking
+
+### Subject
+A user identity within your application. A subject maps your internal user ID (`externalId`) to the switch system. One subject can own many paytags.
+
+### Paytag
+A portable payment identifier (for example `alice`, `shop-main`) **scoped to the creating application**. Each application has a short, unique **`appHandle`** slug (for example `walletapp`). The paytag's globally unique identifier is the **qualified address**: `localTag@appHandle` (for example `alice@walletapp`).
+
+This means two different applications can each have a user named `alice` without any conflict. They become `alice@walletapp` and `alice@shopapp`, clearly distinct identifiers.
+
+Paytag rules:
+- `localTag` part: 3–64 characters, lowercase alphanumeric + hyphens, not starting or ending with a hyphen
+- `appHandle` part: 3–30 characters, lowercase alphanumeric + hyphens, not starting or ending with a hyphen; **set at registration time and immutable**
+- Paytags can be resolved publicly using either the bare local name (`alice`) or the qualified address (`alice@walletapp`)
+- A bare name lookup that matches paytags in more than one application returns **409 Conflict**; use the qualified address in that case
+- Paytags can receive payments from any other application on the switch
+
+### Transaction
+A switch-routed payment from one paytag to another. Transactions go through a two-step lifecycle: the sending application initiates, and the receiving application explicitly accepts or rejects.
+
+### Wallet
+The switch maintains one `ApplicationWallet` per application. It tracks the cumulative credits and debits from all completed transactions. This is an **escrow/settlement wallet**, not an end-user wallet. Per-user balances remain the application's responsibility.
+
+### Webhook
+An outbound HTTP POST from the switch to your application notifying you of transaction events. There are two distinct notifications per transaction:
+- **RECEIVER webhook** — sent to the receiving application's `transactionWebhookUrl` when a transaction is addressed to one of its paytags
+- **SENDER callback** — sent to the `callbackUrl` provided by the sending application when the transaction outcome is determined
+
+---
+
+## 3. How the switch works end to end
+
+```text
+  App A (sender)              Switch                   App B (receiver)
+  ──────────────              ─────                    ────────────────
+
+  [Registration]
+  POST /v1/applications  ───►  Create app, generate
+                               keypair, wallet
+                        ◄───  clientId, clientSecret,
+                               webhookSecret, keys
+
+  [Auth]
+  POST /v1/auth/token    ───►  Validate credentials
+                        ◄───  JWT Bearer token
+
+  [Subject + paytag setup]
+  POST /v1/subjects      ───►  Create user record
+  POST /v1/tags          ───►  Create paytag "alice"
+
+  [Payment initiation]
+  POST /v1/transactions  ───►  Validate paytags
+  (senderTag=alice@walletapp,    Create txn (AWAITING_ACCEPTANCE)
+   receiverTag=bob@shopapp,      Persist RECEIVER webhook record
+   amount=500)                  Publish to Kafka
+                        ◄───  TXN-xxx reference
+                                      │
+                                      │ Kafka consumer (async)
+                                      ▼
+                               POST App B's webhookUrl ───► App B
+                               {event: TRANSACTION_INITIATED,  ◄─── 200 OK
+                                transaction: {...}}
+
+  [Acceptance]
+                                                       POST /v1/transactions/TXN-xxx/accept
+                                               ◄────  (App B authenticates with its own token)
+                               Debit App A wallet
+                               Credit App B wallet
+                               Write 2 LedgerEntry rows
+                               txn.status = COMPLETED
+                               Persist SENDER webhook record
+                               Publish sender callback to Kafka
+                        ◄───  COMPLETED transaction
+
+                                      │ Kafka consumer (async)
+                                      ▼
+                               POST App A's callbackUrl ───► App A
+                               {event: TRANSACTION_COMPLETED,  ◄─── 200 OK
+                                transaction: {...}}
+
+  [Daily at 23:59 UTC]
+                               Aggregate LedgerEntry rows
+                               by wallet for today
+                               Write SettlementRecord +
+                               per-app SettlementEntry rows
+                               Publish switch.settlements event
+```
+
+---
+
+## 4. Quick-start checklist
+
+- [ ] **Register** your application (`POST /v1/applications`) — save `clientSecret`, `webhookSecret`, and key material; they are shown **only once**
+- [ ] **Authenticate** (`POST /v1/auth/token`) — obtain a Bearer JWT
+- [ ] **Provision wallet** (`POST /v1/wallet`) — idempotent, safe to call on every startup
+- [ ] **Create subjects** for your users (`POST /v1/subjects`)
+- [ ] **Create paytags** for your users (`POST /v1/tags`)
+- [ ] **Expose a webhook endpoint** at your `transactionWebhookUrl` to receive `TRANSACTION_INITIATED` events
+- [ ] **Verify webhook signatures** using `X-IDaaS-Signature` on every inbound webhook
+- [ ] **Respond with 2xx** within 10 seconds on webhook delivery; the switch retries 3 times
+- [ ] **Set up a callback endpoint** for `TRANSACTION_COMPLETED` / `TRANSACTION_REJECTED` / `TRANSACTION_EXPIRED` notifications
+
+---
+
+## 5. Step 1 - Register Your Application
+
+Registration is public (no auth required). Each application registration creates an independent tenant.
+

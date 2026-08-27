@@ -1,11 +1,11 @@
 ---
 title: Payments
-description: How cross-application transactions move from initiation to completion, rejection, or expiry.
+description: How switch-routed transactions move from initiation to completion, rejection, or expiry.
 ---
 
 # Payments
 
-IDaaS transactions are cross-application tag-to-tag payments.
+Switch transactions are cross-application paytag-to-paytag payments.
 
 ## Transaction states
 
@@ -29,20 +29,20 @@ curl -X POST https://staging-idaas.yourflexpay.com/api/v1/transactions \
   -H 'Content-Type: application/json' \
   -H 'Idempotency-Key: txn-001' \
   -d '{
-    "senderTag": "alice@walletapp",
-    "receiverTag": "bob@shopapp",
-    "amount": 500,
-    "currency": "NGN",
-    "callbackUrl": "https://wallet-app.example.com/idaas/callback"
+	"senderTag": "alice@walletapp",
+	"receiverTag": "bob@shopapp",
+	"amount": 500,
+	"currency": "NGN",
+	"callbackUrl": "https://wallet-app.example.com/switch/callback"
   }'
 ```
 
 ## Best practices
 
-- Prefer qualified tag addresses such as `alice@walletapp`.
+- Prefer qualified paytag addresses such as `alice@walletapp`.
 - Always send an `Idempotency-Key` for retriable requests.
-- Expect an asynchronous webhook to the receiver application.
-- Do not treat initiation as settlement; settlement occurs after acceptance.
+- Expect an asynchronous webhook to the receiving application.
+- Do not treat initiation as settlement; settlement happens after acceptance.
 
 ## Accept a transaction
 
@@ -50,7 +50,7 @@ The receiving application accepts the transaction with:
 
 `POST /v1/transactions/{reference}/accept`
 
-On success, IDaaS:
+On success, the switch:
 
 - marks the transaction as `COMPLETED`
 - debits the sender wallet
@@ -70,8 +70,13 @@ Rejections do not create ledger movements.
 
 Transactions that stay in `AWAITING_ACCEPTANCE` beyond the configured window are expired by a scheduled job.
 
+## Settlement finality
+
+Completed transactions flow into the application wallet and settlement reports at end of day.
+That is the point where the switch turns routed volume into financial position.
+
 ## Related topics
 
-- [Webhooks](/idaas/webhooks)
-- [Errors](/idaas/errors)
+- [Webhooks](/switch/webhooks)
+- [Errors](/switch/errors)
 

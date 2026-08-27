@@ -1,11 +1,11 @@
 ---
 title: Quickstart
-description: Minimal steps to register an application, authenticate, create tags, and send transactions.
+description: Minimal steps to register an application, authenticate, create paytags, and route transactions through the switch.
 ---
 
 # Quickstart
 
-Use this path when you want to get an integration working quickly in staging.
+Use this path when you want to get a switching integration working quickly in staging.
 
 ## 1. Register your application
 
@@ -15,7 +15,7 @@ curl -X POST https://staging-idaas.yourflexpay.com/api/v1/applications \
   -d '{
     "name": "WalletApp",
     "appHandle": "walletapp",
-    "transactionWebhookUrl": "https://wallet-app.example.com/idaas/webhook"
+    "transactionWebhookUrl": "https://wallet-app.example.com/switch/webhook"
   }'
 ```
 
@@ -55,7 +55,7 @@ curl -X POST https://staging-idaas.yourflexpay.com/api/v1/subjects \
   }'
 ```
 
-## 4. Create a tag
+## 4. Create a paytag
 
 ```bash
 curl -X POST https://staging-idaas.yourflexpay.com/api/v1/tags \
@@ -67,9 +67,9 @@ curl -X POST https://staging-idaas.yourflexpay.com/api/v1/tags \
   }'
 ```
 
-The globally unique address becomes `alice@walletapp`.
+The globally unique paytag becomes `alice@walletapp`.
 
-## 5. Initiate a transaction
+## 5. Route a transaction
 
 ```bash
 curl -X POST https://staging-idaas.yourflexpay.com/api/v1/transactions \
@@ -81,17 +81,17 @@ curl -X POST https://staging-idaas.yourflexpay.com/api/v1/transactions \
     "receiverTag": "bob@shopapp",
     "amount": 500,
     "currency": "NGN",
-    "callbackUrl": "https://wallet-app.example.com/idaas/callback"
+    "callbackUrl": "https://wallet-app.example.com/switch/callback"
   }'
 ```
 
 ## 6. Handle the receiver webhook
 
-IDaaS sends a `TRANSACTION_INITIATED` webhook to the receiver application. The receiver must:
+The switch sends a `TRANSACTION_INITIATED` webhook to the receiving application. The receiver must:
 
 1. Verify `X-IDaaS-Signature`
 2. Optionally decrypt the payload if encryption is enabled
 3. Accept or reject the transaction through the API
 
-Continue with [Webhooks](/idaas/webhooks) and [Payments](/idaas/payments) for the full flow.
+Continue with [Webhooks](/switch/webhooks) and [Payments](/switch/payments) for the full flow.
 

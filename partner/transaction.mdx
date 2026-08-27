@@ -23,6 +23,12 @@ The Transactions API provides partner-level endpoints for initiating transaction
   <Card title="Get Transaction" icon="magnifying-glass">
     `GET /partner/transaction/{reference}` - Get transaction details
   </Card>
+  <Card title="Debit Wallet" icon="arrow-down-wide-short">
+    `POST /sso/transaction/debit` - Move funds from customer wallet to partner wallet
+  </Card>
+  <Card title="Credit Wallet" icon="arrow-up-wide-short">
+    `POST /sso/transaction/credit` - Move funds from partner wallet to customer wallet
+  </Card>
 </CardGroup>
 
 ---
@@ -325,6 +331,92 @@ print(f"Transaction status: {transaction['Status']}")
 ### Response
 
 Returns a single transaction object (same structure as items in the list endpoint).
+
+---
+
+## Debit Wallet
+
+Debit a signed-in customer wallet and transfer the value into your partner wallet.
+
+**Endpoint**: `POST /sso/transaction/debit`
+
+**Headers**:
+- `x-client-id`: Your partner ID
+- `x-api-key`: Your API key
+- `Authorization: Bearer <customer_token>`
+
+**Request Body**:
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| amount | number | Yes | Amount to debit (minimum: 1) |
+| comment | string | No | Transfer narration (max 250 chars) |
+| reference | string | No | Your custom reference (max 100 chars) |
+| currency | string | No | Wallet currency (`NGN` or `FP`) |
+| metadata | object | No | Additional custom data |
+
+### Request Example
+
+```bash cURL
+curl --request POST \
+  --url https://staging-api.yourflexpay.com/v2/sso/transaction/debit \
+  --header 'Content-Type: application/json' \
+  --header 'x-client-id: your_partner_id' \
+  --header 'x-api-key: your_api_key' \
+  --header 'Authorization: Bearer customer_access_token' \
+  --data '{
+    "amount": 5000,
+    "comment": "Wallet top-up via agent",
+    "reference": "DEBIT-9001",
+    "metadata": {
+      "source": "agent_portal"
+    }
+  }'
+```
+
+### Response
+
+Returns a transaction detail object including `Reference`, `Status`, `Sender`, `Recipient`, and settlement values like `Amount`, `Fee`, and `Net`.
+
+---
+
+## Credit Wallet
+
+Credit a signed-in customer wallet from your partner wallet balance.
+
+**Endpoint**: `POST /sso/transaction/credit`
+
+**Headers**:
+- `x-client-id`: Your partner ID
+- `x-api-key`: Your API key
+- `Authorization: Bearer <customer_token>`
+
+**Request Body**:
+
+Uses the same payload as wallet debit (`amount`, optional `comment`, optional `reference`, optional `currency`, optional `metadata`).
+
+### Request Example
+
+```bash cURL
+curl --request POST \
+  --url https://staging-api.yourflexpay.com/v2/sso/transaction/credit \
+  --header 'Content-Type: application/json' \
+  --header 'x-client-id: your_partner_id' \
+  --header 'x-api-key: your_api_key' \
+  --header 'Authorization: Bearer customer_access_token' \
+  --data '{
+    "amount": 2500,
+    "comment": "Promotional bonus",
+    "reference": "CREDIT-1042",
+    "metadata": {
+      "campaign": "Q3-reward"
+    }
+  }'
+```
+
+### Response
+
+Returns a transaction detail object with the same shape as the debit response.
 
 ---
 

@@ -1,0 +1,405 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "Miscellaneous API",
+    "version": "1.0.0",
+    "description": "OpenAPI spec for mock webhook payload testing."
+  },
+  "servers": [
+    {
+      "url": "https://staging-api.yourflexpay.com/v2",
+      "description": "Staging"
+    },
+    {
+      "url": "https://sandbox-api.yourflexpay.com/v2",
+      "description": "Sandbox"
+    },
+    {
+      "url": "https://api.yourflexpay.com/v2",
+      "description": "Live"
+    }
+  ],
+  "tags": [
+    {
+      "name": "Mock Webhook"
+    },
+    {
+      "name": "Banking Utility"
+    }
+  ],
+  "paths": {
+    "/webhook/mock": {
+      "post": {
+        "tags": [
+          "Mock Webhook"
+        ],
+        "summary": "Simulate mock webhook",
+        "description": "Testing endpoint for mock webhook events",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MockWebhookEvent"
+              },
+              "examples": {
+                "staticVirtualAccountTransfer": {
+                  "summary": "Static virtual account transfer",
+                  "value": {
+                    "event": "static.virtual.account.transfer",
+                    "data": {
+                      "amount": 5000,
+                      "sender": {
+                        "originatorBank": "KUDA MICROFINANCE BANK",
+                        "originatorName": "ADEDAYO MATTHEWS",
+                        "originatorAccountNumber": "1100123765"
+                      },
+                      "recipient": "2288591135",
+                      "reference": "672fb3a575602111591731179423680",
+                      "sessionId": "000000000000000000000000000080",
+                      "status": "Successful"
+                    }
+                  }
+                },
+                "dynamicVirtualAccountTransfer": {
+                  "summary": "Dynamic virtual account transfer",
+                  "value": {
+                    "event": "dynamic.virtual.account.transfer",
+                    "data": {
+                      "amount": 2000,
+                      "sender": {
+                        "originatorBank": "KUDA MICROFINANCE BANK",
+                        "originatorName": "ADEDAYO MATTHEWS",
+                        "originatorAccountNumber": "1100123765"
+                      },
+                      "recipient": "7059646004",
+                      "reference": "QR-60b2e88e-4d8a-4ffe-bb1d-e73e7895f55a",
+                      "sessionId": "000000000000000000000000000084",
+                      "status": "Successful"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Webhook accepted",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/utility/bank": {
+      "get": {
+        "tags": [
+          "Banking Utility"
+        ],
+        "summary": "List supported banks",
+        "description": "Returns supported banks, including logo and virtual account support status.",
+        "parameters": [
+          {
+            "name": "provider",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Optional bank provider to use for lookup."
+          },
+          {
+            "name": "transaction",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Optional transaction context used for bank filtering."
+          },
+          {
+            "name": "accountNumber",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Optional account number used to filter banks by valid account pattern."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Bank list",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/BankListItem"
+                  }
+                },
+                "examples": {
+                  "default": {
+                    "summary": "Sample supported bank list",
+                    "value": [
+                      {
+                        "BankName": "Kuda Microfinance Bank",
+                        "BankCode": "090267",
+                        "LogoUrl": "https://assets.yourflexpay.com/banks/090267.png",
+                        "VirtualAccountSupported": true
+                      },
+                      {
+                        "BankName": "Guaranty Trust Bank",
+                        "BankCode": "058",
+                        "LogoUrl": "https://assets.yourflexpay.com/banks/058.png",
+                        "VirtualAccountSupported": false
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/utility/bank/validate": {
+      "post": {
+        "tags": [
+          "Banking Utility"
+        ],
+        "summary": "Validate bank account",
+        "description": "Validates an account number against a bank code and returns the resolved account details.",
+        "parameters": [
+          {
+            "name": "provider",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Optional account validation provider."
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BankAccountLookupDto"
+              },
+              "example": {
+                "accountNumber": "1100123765",
+                "bankCode": "090267"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Validated account details",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidatedBankAccount"
+                },
+                "examples": {
+                  "default": {
+                    "summary": "Resolved account profile",
+                    "value": {
+                      "AccountName": "ADEDAYO MATTHEWS",
+                      "AccountNumber": "1100123765",
+                      "BankName": "KUDA MICROFINANCE BANK",
+                      "BankCode": "090267"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "MockWebhookEvent": {
+        "oneOf": [
+          {
+            "$ref": "#/components/schemas/StaticVirtualAccountTransferWebhook"
+          },
+          {
+            "$ref": "#/components/schemas/DynamicVirtualAccountTransferWebhook"
+          }
+        ],
+        "discriminator": {
+          "propertyName": "event",
+          "mapping": {
+            "static.virtual.account.transfer": "#/components/schemas/StaticVirtualAccountTransferWebhook",
+            "dynamic.virtual.account.transfer": "#/components/schemas/DynamicVirtualAccountTransferWebhook"
+          }
+        }
+      },
+      "StaticVirtualAccountTransferWebhook": {
+        "type": "object",
+        "required": [
+          "event",
+          "data"
+        ],
+        "properties": {
+          "event": {
+            "type": "string",
+            "enum": [
+              "static.virtual.account.transfer"
+            ]
+          },
+          "data": {
+            "$ref": "#/components/schemas/VirtualAccountTransferData"
+          }
+        }
+      },
+      "DynamicVirtualAccountTransferWebhook": {
+        "type": "object",
+        "required": [
+          "event",
+          "data"
+        ],
+        "properties": {
+          "event": {
+            "type": "string",
+            "enum": [
+              "dynamic.virtual.account.transfer"
+            ]
+          },
+          "data": {
+            "$ref": "#/components/schemas/VirtualAccountTransferData"
+          }
+        }
+      },
+      "VirtualAccountTransferData": {
+        "type": "object",
+        "required": [
+          "amount",
+          "sender",
+          "recipient",
+          "reference",
+          "sessionId",
+          "status"
+        ],
+        "properties": {
+          "amount": {
+            "type": "number"
+          },
+          "sender": {
+            "$ref": "#/components/schemas/VirtualAccountTransferSender"
+          },
+          "recipient": {
+            "type": "string"
+          },
+          "reference": {
+            "type": "string"
+          },
+          "sessionId": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "Successful"
+            ]
+          }
+        }
+      },
+      "VirtualAccountTransferSender": {
+        "type": "object",
+        "required": [
+          "originatorBank",
+          "originatorName",
+          "originatorAccountNumber"
+        ],
+        "properties": {
+          "originatorBank": {
+            "type": "string"
+          },
+          "originatorName": {
+            "type": "string"
+          },
+          "originatorAccountNumber": {
+            "type": "string"
+          }
+        }
+      },
+      "BankListItem": {
+        "type": "object",
+        "required": [
+          "BankName",
+          "BankCode",
+          "VirtualAccountSupported"
+        ],
+        "properties": {
+          "BankName": {
+            "type": "string"
+          },
+          "BankCode": {
+            "type": "string"
+          },
+          "LogoUrl": {
+            "type": "string",
+            "nullable": true
+          },
+          "VirtualAccountSupported": {
+            "type": "boolean"
+          }
+        }
+      },
+      "BankAccountLookupDto": {
+        "type": "object",
+        "required": [
+          "accountNumber",
+          "bankCode"
+        ],
+        "properties": {
+          "accountNumber": {
+            "type": "string"
+          },
+          "bankCode": {
+            "type": "string"
+          }
+        }
+      },
+      "ValidatedBankAccount": {
+        "type": "object",
+        "required": [
+          "AccountName",
+          "AccountNumber",
+          "BankName",
+          "BankCode"
+        ],
+        "properties": {
+          "AccountName": {
+            "type": "string"
+          },
+          "AccountNumber": {
+            "type": "string"
+          },
+          "BankName": {
+            "type": "string"
+          },
+          "BankCode": {
+            "type": "string"
+          }
+        }
+      }
+    }
+  }
+}
+
+
+

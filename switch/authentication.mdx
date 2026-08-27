@@ -1,0 +1,41 @@
+---
+title: Authentication
+description: How to get and use a Bearer token for the switching service.
+---
+
+# Authentication
+
+Use your application credentials to get a JWT access token.
+The switch uses the token to identify your application on protected endpoints.
+
+## Get a token
+
+```bash
+curl -X POST https://staging-idaas.yourflexpay.com/api/v1/auth/token \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "client_id": "<clientId>",
+    "client_secret": "<clientSecret>"
+  }'
+```
+
+## Use the token
+
+Send the token as a Bearer header on all protected requests:
+
+```text
+Authorization: Bearer <token>
+```
+
+## What the token authorizes
+
+- Route transactions
+- Create and resolve paytags
+- Receive transaction webhooks
+- Query wallet and settlement information
+
+## Related topics
+
+- [Quickstart](/switch/quickstart)
+- [Integration guide](/switch/integration-guide)
+
