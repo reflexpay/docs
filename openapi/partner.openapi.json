@@ -19,17 +19,14 @@
       "description": "Live"
     }
   ],
-  "tags": [
-    {
-      "name": "Partner Terminal"
-    },
-    {
-      "name": "Partner Transactions"
-    },
-    {
-      "name": "Partner Wallet"
-    }
-  ],
+   "tags": [
+     {
+       "name": "Partner Terminal"
+     },
+     {
+       "name": "Partner Transactions"
+     }
+   ],
   "paths": {
     "/terminal": {
       "get": {
@@ -582,82 +579,8 @@
             "ApiKeyHeader": []
           }
         ]
-      }
-    },
-    "/sso/transaction/debit": {
-      "post": {
-        "tags": [
-          "Partner Wallet"
-        ],
-        "summary": "Debit a customer's wallet into partner wallet",
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/WalletTransferDto"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "Wallet debit transaction details",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/WalletTransactionDetail"
-                }
-              }
-            }
-          }
-        },
-        "security": [
-          {
-            "ClientIdHeader": [],
-            "ApiKeyHeader": [],
-            "BearerAuth": []
-          }
-        ]
-      }
-    },
-    "/sso/transaction/credit": {
-      "post": {
-        "tags": [
-          "Partner Wallet"
-        ],
-        "summary": "Credit a customer's wallet from partner wallet",
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/WalletTransferDto"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "Wallet credit transaction details",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/WalletTransactionDetail"
-                }
-              }
-            }
-          }
-        },
-        "security": [
-          {
-            "ClientIdHeader": [],
-            "ApiKeyHeader": [],
-            "BearerAuth": []
-          }
-        ]
-      }
-    }
+       }
+     }
   },
   "components": {
     "securitySchemes": {
