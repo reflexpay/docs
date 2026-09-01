@@ -34,7 +34,8 @@
               "merchant/authentication",
               "merchant/payment-request",
               "merchant/qr-code",
-              "merchant/integration-guide"
+              "merchant/integration-guide",
+              "merchant/web-sdk"
             ]
           },
           {

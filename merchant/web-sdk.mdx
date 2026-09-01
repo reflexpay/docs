@@ -1,0 +1,525 @@
+---
+title: 'Web SDK'
+description: 'Add FLEX as a payment option on your website with the FLEX One Tap web SDK, with React and Next.js examples'
+---
+
+The FLEX Web SDK (`FlexOneTap`) drops a FLEX payment option into any website. You load one script, initialize it with your merchant credentials, and call `open()` when the customer is ready to pay — FLEX renders the checkout experience and hands control back to your callbacks when the customer finishes, fails, or closes it.
+
+<CardGroup cols={2}>
+  <Card title="No APIs required" icon="bolt">
+    The SDK runs entirely in the browser. You only need your merchant ID and API key.
+  </Card>
+  <Card title="Framework agnostic" icon="code">
+    Plain HTML, React, and Next.js examples are all covered below.
+  </Card>
+</CardGroup>
+
+<Info>
+  **Estimated Time**: 10-15 minutes
+
+  **Prerequisites**:
+  - A FLEX business account at [business.yourflexpay.com](https://business.yourflexpay.com)
+  - A settlement bank added to that account
+  - A frontend you can add a `<script>` tag to
+</Info>
+
+## Integration Steps
+
+<Steps>
+  <Step title="Get Your API Credentials">
+    Add a settlement bank, generate an API key, and copy your merchant ID from the business portal.
+  </Step>
+
+  <Step title="Load the SDK">
+    Add the FLEX CDN script to your page.
+  </Step>
+
+  <Step title="Initialize the SDK">
+    Create a `FlexOneTap` instance with your credentials.
+  </Step>
+
+  <Step title="Open the Checkout">
+    Call `open()` with the transaction details and handle the callbacks.
+  </Step>
+
+  <Step title="Confirm and Go Live">
+    Verify payments server-side, then switch to your production key.
+  </Step>
+</Steps>
+
+---
+
+## Step 1: Get Your API Credentials
+
+Everything you need for the SDK comes from the FLEX business portal.
+
+<Steps>
+  <Step title="Add a settlement bank">
+    Log in at [https://business.yourflexpay.com](https://business.yourflexpay.com), then go to **Settings → Settlement Bank → Add Settlement Bank**.
+
+    This is where FLEX pays out the money you collect, so add it before you start collecting payments.
+  </Step>
+
+  <Step title="Generate an API key">
+    Open the **API Keys** tab. Copy your **Merchant ID**, then click **Generate API Key** and copy the key as well.
+
+    <Warning>
+      The API key is shown once, at generation time. Save it somewhere safe before you leave the page — if you lose it you will have to generate a new one.
+    </Warning>
+  </Step>
+
+  <Step title="Set your webhook and redirect URLs (optional)">
+    Open the **Webhook** tab and enter your **Webhook URL** and **Redirect URL**.
+
+    Both are optional for an SDK-only integration — the SDK's `onSuccess` callback already tells your frontend the payment went through. Set the webhook URL anyway if you want a server-side notification you can trust for reconciliation, since callbacks in the browser can be missed if the customer closes the tab.
+  </Step>
+</Steps>
+
+You should now have two values:
+
+| Value | Where it came from | Used as |
+|---|---|---|
+| Merchant ID | API Keys tab | `merchantId` |
+| API Key | API Keys tab, **Generate API Key** | `apiKey` |
+
+---
+
+## Step 2: Load the SDK
+
+Add the FLEX CDN script to your page:
+
+```html
+<script src="https://cdn.yourflexpay.com/v1/sdk.min.js"></script>
+```
+
+Once it loads, the SDK is available on `window.FlexOneTap`.
+
+<Note>
+  The script must finish loading before you call `new window.FlexOneTap(...)`. In plain HTML, put the tag in `<head>` or before your own script. In React and Next.js, use the patterns in the [React](#react-example) and [Next.js](#nextjs-example) sections below, which wait for the load event.
+</Note>
+
+---
+
+## Step 3: Initialize the SDK
+
+```javascript
+const sdk = new window.FlexOneTap({
+  merchantId: 'your_merchant_id',
+  apiKey: 'your_api_key',
+  debug: false,
+});
+```
+
+### Constructor options
+
+<ParamField body="merchantId" type="string" required>
+  Your merchant ID from the **API Keys** tab of the business portal.
+</ParamField>
+
+<ParamField body="apiKey" type="string" required>
+  The API key you generated in the **API Keys** tab.
+</ParamField>
+
+<ParamField body="debug" type="boolean" default="false">
+  Enables verbose SDK logging in the browser console. Turn it on while integrating, off in production.
+</ParamField>
+
+Create the instance once and reuse it for every checkout rather than constructing a new one per click.
+
+---
+
+## Step 4: Open the Checkout
+
+Call `open()` when the customer clicks your pay button:
+
+```javascript
+sdk.open({
+  reference: 'ORDER-1042',
+  amount: 5000,
+  comment: 'Order #1042',
+  duration: 30,
+  onSuccess: () => {
+    // Payment completed
+  },
+  onError: () => {
+    // Payment failed
+  },
+  onClose: () => {
+    // Customer dismissed the checkout
+  },
+});
+```
+
+### `open()` options
+
+<ParamField body="reference" type="string" required>
+  Your own unique reference for this transaction. Use it to match the payment back to an order on your side — generate a fresh one per attempt and keep it unique.
+</ParamField>
+
+<ParamField body="amount" type="number" required>
+  Amount to collect, in NGN.
+</ParamField>
+
+<ParamField body="comment" type="string">
+  A short description shown to the customer during checkout, e.g. the order or invoice number.
+</ParamField>
+
+<ParamField body="duration" type="number">
+  How long the payment stays valid, in **minutes**. After it elapses the payment expires and the customer has to start again.
+</ParamField>
+
+<ParamField body="onSuccess" type="function">
+  Called when the payment completes successfully. Use it to show a confirmation and update your UI.
+</ParamField>
+
+<ParamField body="onError" type="function">
+  Called when the payment fails. Use it to show an error and let the customer retry.
+</ParamField>
+
+<ParamField body="onClose" type="function">
+  Called when the customer dismisses the checkout without completing payment. Use it to re-enable your pay button.
+</ParamField>
+
+---
+
+## Plain HTML Example
+
+The smallest complete integration:
+
+```html index.html
+<!DOCTYPE html>
+<html>
+  <head>
+    <script src="https://cdn.yourflexpay.com/v1/sdk.min.js"></script>
+  </head>
+  <body>
+    <button id="pay">Pay with FLEX</button>
+
+    <script>
+      const sdk = new window.FlexOneTap({
+        merchantId: 'your_merchant_id',
+        apiKey: 'your_api_key',
+        debug: true,
+      });
+
+      document.getElementById('pay').addEventListener('click', () => {
+        sdk.open({
+          reference: `ORDER-${Date.now()}`,
+          amount: 5000,
+          comment: 'Order #1042',
+          duration: 30,
+          onSuccess: () => alert('Payment successful'),
+          onError: () => alert('Payment failed'),
+          onClose: () => console.log('Checkout closed'),
+        });
+      });
+    </script>
+  </body>
+</html>
+```
+
+---
+
+## React Example
+
+In React, the script has to be loaded before the first `open()` call, and the component tree may mount before the script does. A small hook handles both: it injects the tag once, waits for `load`, and hands back a ready-to-use instance.
+
+<CodeGroup>
+```jsx useFlexOneTap.js
+import { useEffect, useRef, useState } from 'react';
+
+const SDK_URL = 'https://cdn.yourflexpay.com/v1/sdk.min.js';
+
+export function useFlexOneTap({ merchantId, apiKey, debug = false }) {
+  const sdkRef = useRef(null);
+  const [ready, setReady] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    function init() {
+      if (cancelled || !window.FlexOneTap) return;
+      sdkRef.current = new window.FlexOneTap({ merchantId, apiKey, debug });
+      setReady(true);
+    }
+
+    if (window.FlexOneTap) {
+      init();
+      return;
+    }
+
+    // Reuse the tag if another component already added it
+    let script = document.querySelector(`script[src="${SDK_URL}"]`);
+    if (!script) {
+      script = document.createElement('script');
+      script.src = SDK_URL;
+      script.async = true;
+      document.body.appendChild(script);
+    }
+
+    script.addEventListener('load', init);
+    return () => {
+      cancelled = true;
+      script.removeEventListener('load', init);
+    };
+  }, [merchantId, apiKey, debug]);
+
+  return { sdk: sdkRef.current, ready };
+}
+```
+
+```jsx CheckoutButton.jsx
+import { useState } from 'react';
+import { useFlexOneTap } from './useFlexOneTap';
+
+export function CheckoutButton({ orderId, amount }) {
+  const { sdk, ready } = useFlexOneTap({
+    merchantId: process.env.REACT_APP_FLEX_MERCHANT_ID,
+    apiKey: process.env.REACT_APP_FLEX_API_KEY,
+    debug: process.env.NODE_ENV !== 'production',
+  });
+
+  const [status, setStatus] = useState('idle');
+
+  const pay = () => {
+    if (!sdk) return;
+    setStatus('pending');
+
+    sdk.open({
+      reference: `ORDER-${orderId}`,
+      amount,
+      comment: `Order #${orderId}`,
+      duration: 30,
+      onSuccess: () => setStatus('success'),
+      onError: () => setStatus('error'),
+      onClose: () => setStatus((s) => (s === 'pending' ? 'idle' : s)),
+    });
+  };
+
+  return (
+    <div>
+      <button onClick={pay} disabled={!ready || status === 'pending'}>
+        {status === 'pending' ? 'Waiting for payment…' : 'Pay with FLEX'}
+      </button>
+
+      {status === 'success' && <p>Payment received. Confirming your order…</p>}
+      {status === 'error' && <p>Payment failed. Please try again.</p>}
+    </div>
+  );
+}
+```
+</CodeGroup>
+
+<Note>
+  `onClose` fires when the customer dismisses the checkout, including right after a successful payment in some flows. Guarding it with `status === 'pending'` keeps a close event from wiping out a success state you already set.
+</Note>
+
+---
+
+## Next.js Example
+
+Next.js ships `next/script`, which loads the SDK once per page and gives you an `onLoad` hook — no manual DOM injection needed. The checkout itself touches `window`, so it has to live in a Client Component.
+
+<CodeGroup>
+```jsx app/checkout/FlexCheckout.jsx (App Router)
+'use client';
+
+import { useRef, useState } from 'react';
+import Script from 'next/script';
+
+export default function FlexCheckout({ orderId, amount }) {
+  const sdkRef = useRef(null);
+  const [ready, setReady] = useState(false);
+  const [status, setStatus] = useState('idle');
+
+  const handleLoad = () => {
+    sdkRef.current = new window.FlexOneTap({
+      merchantId: process.env.NEXT_PUBLIC_FLEX_MERCHANT_ID,
+      apiKey: process.env.NEXT_PUBLIC_FLEX_API_KEY,
+      debug: process.env.NODE_ENV !== 'production',
+    });
+    setReady(true);
+  };
+
+  const pay = () => {
+    if (!sdkRef.current) return;
+    setStatus('pending');
+
+    sdkRef.current.open({
+      reference: `ORDER-${orderId}`,
+      amount,
+      comment: `Order #${orderId}`,
+      duration: 30,
+      onSuccess: () => setStatus('success'),
+      onError: () => setStatus('error'),
+      onClose: () => setStatus((s) => (s === 'pending' ? 'idle' : s)),
+    });
+  };
+
+  return (
+    <>
+      <Script
+        src="https://cdn.yourflexpay.com/v1/sdk.min.js"
+        strategy="afterInteractive"
+        onLoad={handleLoad}
+      />
+
+      <button onClick={pay} disabled={!ready || status === 'pending'}>
+        {status === 'pending' ? 'Waiting for payment…' : 'Pay with FLEX'}
+      </button>
+
+      {status === 'success' && <p>Payment received. Confirming your order…</p>}
+      {status === 'error' && <p>Payment failed. Please try again.</p>}
+    </>
+  );
+}
+```
+
+```jsx app/checkout/page.jsx (App Router)
+import FlexCheckout from './FlexCheckout';
+
+export default function CheckoutPage() {
+  // Fetch the order server-side, pass the amount down
+  const order = { id: '1042', amount: 5000 };
+
+  return (
+    <main>
+      <h1>Checkout</h1>
+      <FlexCheckout orderId={order.id} amount={order.amount} />
+    </main>
+  );
+}
+```
+
+```jsx pages/checkout.jsx (Pages Router)
+import { useRef, useState } from 'react';
+import Script from 'next/script';
+
+export default function CheckoutPage() {
+  const sdkRef = useRef(null);
+  const [ready, setReady] = useState(false);
+
+  return (
+    <>
+      <Script
+        src="https://cdn.yourflexpay.com/v1/sdk.min.js"
+        strategy="afterInteractive"
+        onLoad={() => {
+          sdkRef.current = new window.FlexOneTap({
+            merchantId: process.env.NEXT_PUBLIC_FLEX_MERCHANT_ID,
+            apiKey: process.env.NEXT_PUBLIC_FLEX_API_KEY,
+            debug: false,
+          });
+          setReady(true);
+        }}
+      />
+
+      <button
+        disabled={!ready}
+        onClick={() =>
+          sdkRef.current?.open({
+            reference: `ORDER-${Date.now()}`,
+            amount: 5000,
+            comment: 'Order #1042',
+            duration: 30,
+            onSuccess: () => console.log('success'),
+            onError: () => console.log('error'),
+            onClose: () => console.log('closed'),
+          })
+        }
+      >
+        Pay with FLEX
+      </button>
+    </>
+  );
+}
+```
+</CodeGroup>
+
+### Environment variables
+
+```bash .env.local
+NEXT_PUBLIC_FLEX_MERCHANT_ID=your_merchant_id
+NEXT_PUBLIC_FLEX_API_KEY=your_api_key
+```
+
+<Warning>
+  `NEXT_PUBLIC_*` variables are inlined into the browser bundle, and so is anything the Web SDK needs — the merchant ID and API key are visible to anyone who views source. That's inherent to a browser SDK, so treat this key as a public, checkout-only credential: never reuse a key that has broader Merchant API access here, and rotate it from the **API Keys** tab if you suspect misuse.
+</Warning>
+
+---
+
+## Step 5: Confirm and Go Live
+
+<AccordionGroup>
+  <Accordion title="✅ Test the happy path">
+    - [ ] The script loads and `window.FlexOneTap` is defined
+    - [ ] The checkout opens on click
+    - [ ] `onSuccess` fires and your UI updates after a completed payment
+    - [ ] The payment shows up in the business portal
+  </Accordion>
+
+  <Accordion title="✅ Test the unhappy paths">
+    - [ ] `onClose` fires when the customer dismisses the checkout
+    - [ ] `onError` fires on a failed payment and the customer can retry
+    - [ ] A payment left open past `duration` expires as expected
+    - [ ] Double-clicking the pay button doesn't open two checkouts
+  </Accordion>
+
+  <Accordion title="✅ Confirm server-side">
+    - [ ] Your webhook URL is set in the **Webhook** tab
+    - [ ] Your backend verifies the payment by `reference` before fulfilling the order
+    - [ ] Duplicate webhook deliveries for the same `reference` are handled idempotently
+  </Accordion>
+
+  <Accordion title="✅ Go live">
+    - [ ] `debug` is `false`
+    - [ ] Settlement bank is set in **Settings → Settlement Bank**
+    - [ ] Production merchant ID and API key are in your production environment variables
+  </Accordion>
+</AccordionGroup>
+
+---
+
+## Troubleshooting
+
+<AccordionGroup>
+  <Accordion title="window.FlexOneTap is undefined">
+    Your code ran before the CDN script finished loading. Initialize inside the script's `load` event (`onLoad` in `next/script`, the hook in the React example) rather than at module scope.
+  </Accordion>
+
+  <Accordion title="The checkout doesn't open">
+    Set `debug: true` and check the browser console. Most cases are a wrong `merchantId`/`apiKey` pair, or an `amount` that isn't a number.
+  </Accordion>
+
+  <Accordion title="Nothing appears in React Strict Mode">
+    Strict Mode mounts effects twice in development. The hook above reuses the existing `<script>` tag and guards with `cancelled`, so it's safe — if you wrote your own loader, make sure it doesn't inject the script twice.
+  </Accordion>
+
+  <Accordion title="onSuccess fires but the order isn't confirmed">
+    That's expected if your backend never heard about it. `onSuccess` is browser-side only — set the webhook URL in the **Webhook** tab, or poll the payment by `reference` from your server.
+  </Accordion>
+</AccordionGroup>
+
+---
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Integration Guide" icon="rocket" href="/merchant/integration-guide">
+    Server-side integration with the Merchant API
+  </Card>
+  <Card title="Payment Requests" icon="money-bill-transfer" href="/merchant/payment-request">
+    Look up and manage payments by reference
+  </Card>
+  <Card title="Authentication" icon="key" href="/merchant/authentication">
+    How Merchant API credentials work
+  </Card>
+  <Card title="Overview" icon="home" href="/merchant/index">
+    Merchant API overview
+  </Card>
+</CardGroup>
+
+## Need Help?
+
+- **Email**: developers@yourflexpay.com
