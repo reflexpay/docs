@@ -1,0 +1,307 @@
+---
+title: 'Webhooks'
+description: 'Partner webhook events for transaction status and wallet debit/credit notifications'
+---
+
+## Overview
+
+FLEX can send webhook notifications to a partner-configured webhook URL whenever important partner events occur.
+
+For the Partner API, the current webhook events are:
+
+- `transaction.status` — sent for successful partner gateway or terminal transaction flows
+- `wallet.debited` — sent when a partner-scoped wallet is debited
+- `wallet.credited` — sent when a partner-scoped wallet is credited
+
+These webhooks allow you to:
+
+- update your internal ledger in near real time
+- reconcile wallet movements against your internal references
+- react to successful partner collections and wallet operations
+
+## Delivery Model
+
+Webhooks are sent as `POST` requests to your configured webhook URL.
+
+### Retry Behavior
+
+FLEX retries webhook delivery automatically when:
+
+- the destination returns a non-`200`/`201` response, or
+- the request fails due to a network/server error
+
+Retry characteristics:
+
+- Maximum attempts: **5**
+- Backoff: **exponential backoff with jitter**
+
+<Note>
+  FLEX considers webhook delivery successful only when your endpoint responds with HTTP `200` or `201`.
+</Note>
+
+## Security
+
+Each webhook request includes this header:
+
+- `R-Signature`: HMAC-SHA512 signature of the JSON payload
+
+The signature is generated from:
+
+- the raw JSON payload body
+- your partner `ClientID` as the signing secret
+
+### Signature Verification Example
+
+```javascript
+import crypto from 'crypto';
+
+function verifyFlexWebhook(rawBody, receivedSignature, clientId) {
+  const expectedSignature = crypto
+    .createHmac('sha512', clientId)
+    .update(rawBody)
+    .digest('hex');
+
+  return crypto.timingSafeEqual(
+    Buffer.from(expectedSignature, 'hex'),
+    Buffer.from(receivedSignature, 'hex')
+  );
+}
+```
+
+<Warning>
+  Verify the signature before processing the webhook. Reject unsigned or invalidly signed webhook requests.
+</Warning>
+
+## Common Webhook Envelope
+
+All partner webhooks use the same top-level structure:
+
+```json
+{
+  "event": "wallet.credited",
+  "reference": "PW-ABC123",
+  "data": {
+    "Amount": 5000,
+    "Operation": "Credit",
+    "Transaction": {
+      "Amount": 5000,
+      "Fee": 0,
+      "Status": "Successful",
+      "Reference": "TRF-1756747777777",
+      "ExternalReference": "PARTNER-CREDIT-2042",
+      "Comment": "Incentive payout"
+    },
+    "OpeningBalance": 10000,
+    "ClosingBalance": 15000,
+    "CreatedAt": "2026-09-01T13:05:00.000Z"
+  }
+}
+```
+
+### Envelope Fields
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `event` | string | Event name such as `transaction.status`, `wallet.debited`, or `wallet.credited` |
+| `reference` | string | Event reference for correlation. For wallet events, this is the partner wallet reference; for partner transaction events, this is the partner transaction reference |
+| `data` | object | Event payload |
+
+---
+
+## Event: `transaction.status`
+
+This event is sent for successful partner transaction flows such as partner gateway or terminal transactions.
+
+### When it is sent
+
+- on successful `PARTNER_GATEWAY` transactions
+- on successful `PARTNER_TERMINAL` transactions
+
+### Payload Example
+
+```json
+{
+  "event": "transaction.status",
+  "reference": "PAR-TXN-12345",
+  "data": {
+    "Amount": 15000,
+    "Fee": 150,
+    "Commission": 75,
+    "Net": 14925,
+    "Reference": "PAR-TXN-12345",
+    "Sender": "@janedoe",
+    "SenderDetails": {
+      "Name": "Jane Doe",
+      "Paytag": "@janedoe",
+      "Type": "Customer",
+      "Amount": 15000,
+      "Fee": 150,
+      "Currency": "NGN"
+    },
+    "Recipient": "Acme Stores",
+    "Status": "Successful",
+    "Comment": "Payment for order ORD-9001",
+    "Date": "2026-09-01T13:00:00.000Z",
+    "CompletedAt": "2026-09-01T13:00:05.000Z",
+    "Metadata": {
+      "orderId": "ORD-9001"
+    },
+    "Terminal": {
+      "SerialNumber": "TERM-12345",
+      "TerminalID": "POS-001",
+      "Merchant": "Acme Stores",
+      "Email": "store@example.com",
+      "PhoneNumber": "+2348012345678",
+      "Status": "Active",
+      "CreatedAt": "2026-01-15T10:00:00Z",
+      "Metadata": {},
+      "PayTag": "@acmestore",
+      "Balance": 50000,
+      "Qr": "eyJhbW91bnQ..."
+    }
+  }
+}
+```
+
+### Processing Guidance
+
+Use this webhook to:
+
+- mark a partner transaction as successful in your system
+- reconcile the partner reference against your internal payment record
+- update terminal- or merchant-level settlement views
+
+---
+
+## Event: `wallet.debited`
+
+This event is sent when value moves **out of** a partner-scoped wallet.
+
+### When it is sent
+
+Typical cases include:
+
+- a partner wallet debit request
+- any wallet history entry where the amount is negative
+
+### Payload Example
+
+```json
+{
+  "event": "wallet.debited",
+  "reference": "PW-ABC123",
+  "data": {
+    "Amount": -5000,
+    "Operation": "Debit",
+    "Transaction": {
+      "Amount": 5000,
+      "Fee": 0,
+      "Status": "Successful",
+      "Reference": "TRF-1756747777777",
+      "ExternalReference": "PARTNER-DEBIT-1001",
+      "Comment": "Cash-out at agent"
+    },
+    "OpeningBalance": 15000,
+    "ClosingBalance": 10000,
+    "CreatedAt": "2026-09-01T13:02:00.000Z"
+  }
+}
+```
+
+### Processing Guidance
+
+Use this webhook to:
+
+- update available balance in your institution-facing systems
+- attach the wallet movement to your internal transfer or agent operation
+- trigger operational alerts for large-value debits
+
+---
+
+## Event: `wallet.credited`
+
+This event is sent when value moves **into** a partner-scoped wallet.
+
+### When it is sent
+
+Typical cases include:
+
+- a partner wallet credit request
+- a refund that returns funds into the referenced wallet
+- any wallet history entry where the amount is positive
+
+### Payload Example
+
+```json
+{
+  "event": "wallet.credited",
+  "reference": "PW-ABC123",
+  "data": {
+    "Amount": 5000,
+    "Operation": "Credit",
+    "Transaction": {
+      "Amount": 5000,
+      "Fee": 0,
+      "Status": "Successful",
+      "Reference": "REV-TRF-1756747777777",
+      "ExternalReference": "TRF-1756747777777",
+      "Comment": "Refund for TRF-1756747777777"
+    },
+    "OpeningBalance": 10000,
+    "ClosingBalance": 15000,
+    "CreatedAt": "2026-09-01T13:05:00.000Z"
+  }
+}
+```
+
+### Processing Guidance
+
+Use this webhook to:
+
+- recognize successful credits or refunds
+- update customer-facing ledger balances in your own systems
+- reconcile reversal outcomes using `data.Transaction.Reference`
+
+---
+
+## Recommended Receiver Behavior
+
+When implementing your webhook endpoint:
+
+1. Verify the `R-Signature`
+2. Parse the `event` type
+3. Check whether the `reference` is known in your system
+4. Process the webhook idempotently
+5. Return `200` or `201` as soon as the event is safely accepted
+
+### Idempotency Tips
+
+- store processed webhook events using the combination of `event`, `reference`, and `data.Transaction.Reference`
+- make all downstream updates safe to repeat
+- do not assume delivery happens only once
+
+## Example Receiver Contract
+
+```http
+POST /your/webhook/url
+Content-Type: application/json
+R-Signature: <sha512-signature>
+```
+
+## Related Pages
+
+<CardGroup cols={2}>
+  <Card title="Partner Overview" icon="home" href="/partner/index">
+    Authentication, capabilities, and base URLs
+  </Card>
+  <Card title="Wallet API" icon="wallet" href="/partner/wallet">
+    Wallet references, summaries, debit, credit, and refund endpoints
+  </Card>
+  <Card title="Transactions API" icon="exchange" href="/partner/transaction">
+    Partner transaction initiation and lookup
+  </Card>
+  <Card title="OpenAPI Spec" icon="file-code" href="/openapi/partner.openapi.json">
+    Partner API schemas including webhook payload models
+  </Card>
+</CardGroup>
+

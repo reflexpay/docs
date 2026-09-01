@@ -25,6 +25,9 @@
      },
      {
        "name": "Partner Transactions"
+     },
+     {
+       "name": "Partner Wallet"
      }
    ],
   "paths": {
@@ -579,8 +582,266 @@
             "ApiKeyHeader": []
           }
         ]
-       }
-     }
+      }
+    },
+    "/partner/wallet/{reference}": {
+      "get": {
+        "tags": [
+          "Partner Wallet"
+        ],
+        "summary": "Get partner wallet by reference",
+        "parameters": [
+          {
+            "name": "reference",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Partner wallet reference"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Partner wallet details",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PartnerWallet"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ClientIdHeader": [],
+            "ApiKeyHeader": []
+          }
+        ]
+      }
+    },
+    "/partner/wallet/{reference}/summary": {
+      "get": {
+        "tags": [
+          "Partner Wallet"
+        ],
+        "summary": "Get partner wallet summary by reference",
+        "parameters": [
+          {
+            "name": "reference",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Partner wallet reference"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Wallet summary grouped by summary bucket",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PartnerWalletSummaryResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ClientIdHeader": [],
+            "ApiKeyHeader": []
+          }
+        ]
+      }
+    },
+    "/partner/wallet/{reference}/debit": {
+      "post": {
+        "tags": [
+          "Partner Wallet"
+        ],
+        "summary": "Debit referenced wallet into partner wallet",
+        "parameters": [
+          {
+            "name": "reference",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Partner wallet reference"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/WalletTransferDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Wallet transaction detail",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WalletTransactionDetail"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ClientIdHeader": [],
+            "ApiKeyHeader": []
+          }
+        ]
+      }
+    },
+    "/partner/wallet/{reference}/credit": {
+      "post": {
+        "tags": [
+          "Partner Wallet"
+        ],
+        "summary": "Credit referenced wallet from partner wallet",
+        "parameters": [
+          {
+            "name": "reference",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Partner wallet reference"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/WalletTransferDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Wallet transaction detail",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WalletTransactionDetail"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ClientIdHeader": [],
+            "ApiKeyHeader": []
+          }
+        ]
+      }
+    },
+    "/partner/wallet/{reference}/refund/{transactionReference}": {
+      "post": {
+        "tags": [
+          "Partner Wallet"
+        ],
+        "summary": "Refund a wallet transfer by initial transaction reference",
+        "parameters": [
+          {
+            "name": "reference",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Partner wallet reference"
+          },
+          {
+            "name": "transactionReference",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Initial transaction reference to refund"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Refund transaction detail",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WalletTransactionDetail"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ClientIdHeader": [],
+            "ApiKeyHeader": []
+          }
+        ]
+      }
+    }
+  },
+  "x-webhooks": {
+    "transaction.status": {
+      "description": "Sent to the configured partner webhook URL when a partner gateway or terminal transaction completes successfully.",
+      "headers": {
+        "R-Signature": {
+          "description": "HMAC-SHA512 of the raw JSON request body using the partner ClientID as the signing secret.",
+          "schema": {
+            "type": "string"
+          }
+        }
+      },
+      "payload": {
+        "$ref": "#/components/schemas/PartnerTransactionStatusWebhook"
+      }
+    },
+    "wallet.debited": {
+      "description": "Sent when value moves out of a partner-scoped wallet.",
+      "headers": {
+        "R-Signature": {
+          "description": "HMAC-SHA512 of the raw JSON request body using the partner ClientID as the signing secret.",
+          "schema": {
+            "type": "string"
+          }
+        }
+      },
+      "payload": {
+        "$ref": "#/components/schemas/PartnerWalletDebitedWebhook"
+      }
+    },
+    "wallet.credited": {
+      "description": "Sent when value moves into a partner-scoped wallet.",
+      "headers": {
+        "R-Signature": {
+          "description": "HMAC-SHA512 of the raw JSON request body using the partner ClientID as the signing secret.",
+          "schema": {
+            "type": "string"
+          }
+        }
+      },
+      "payload": {
+        "$ref": "#/components/schemas/PartnerWalletCreditedWebhook"
+      }
+    }
   },
   "components": {
     "securitySchemes": {
@@ -933,6 +1194,265 @@
             "additionalProperties": true
           }
         }
+      },
+      "PartnerWallet": {
+        "type": "object",
+        "required": [
+          "ID",
+          "Reference",
+          "CreatedAt",
+          "UpdatedAt",
+          "Wallet"
+        ],
+        "properties": {
+          "ID": {
+            "type": "integer"
+          },
+          "Reference": {
+            "type": "string"
+          },
+          "RevokedAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "CreatedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "UpdatedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "PayTag": {
+            "$ref": "#/components/schemas/PartnerWalletPayTag"
+          },
+          "Wallet": {
+            "$ref": "#/components/schemas/PartnerWalletLedger"
+          },
+          "KycProfile": {
+            "$ref": "#/components/schemas/PartnerWalletKycProfile"
+          }
+        }
+      },
+      "PartnerWalletPayTag": {
+        "type": "object",
+        "properties": {
+          "ID": {
+            "type": "integer"
+          },
+          "Tag": {
+            "type": "string"
+          }
+        }
+      },
+      "PartnerWalletLedger": {
+        "type": "object",
+        "required": [
+          "ID",
+          "Currency"
+        ],
+        "properties": {
+          "ID": {
+            "type": "integer"
+          },
+          "Currency": {
+            "$ref": "#/components/schemas/WalletCurrency"
+          }
+        }
+      },
+      "PartnerWalletKycProfile": {
+        "type": "object",
+        "properties": {
+          "ID": {
+            "type": "integer"
+          },
+          "Name": {
+            "type": "string"
+          }
+        }
+      },
+      "PartnerWalletSummaryData": {
+        "type": "object",
+        "required": [
+          "Count",
+          "Total"
+        ],
+        "properties": {
+          "Count": {
+            "type": "integer"
+          },
+          "Total": {
+            "type": "number"
+          }
+        }
+      },
+      "PartnerWalletSummary": {
+        "type": "object",
+        "required": [
+          "Inflow",
+          "Outflow"
+        ],
+        "properties": {
+          "Inflow": {
+            "$ref": "#/components/schemas/PartnerWalletSummaryData"
+          },
+          "Outflow": {
+            "$ref": "#/components/schemas/PartnerWalletSummaryData"
+          }
+        }
+      },
+      "PartnerWalletSummaryResponse": {
+        "type": "object",
+        "additionalProperties": {
+          "$ref": "#/components/schemas/PartnerWalletSummary"
+        }
+      },
+      "PartnerWebhookEnvelope": {
+        "type": "object",
+        "required": [
+          "event",
+          "reference",
+          "data"
+        ],
+        "properties": {
+          "event": {
+            "type": "string"
+          },
+          "reference": {
+            "type": "string"
+          },
+          "data": {
+            "type": "object",
+            "additionalProperties": true
+          }
+        }
+      },
+      "PartnerWalletHistoryWebhookData": {
+        "type": "object",
+        "required": [
+          "Amount",
+          "Operation",
+          "Transaction",
+          "OpeningBalance",
+          "ClosingBalance",
+          "CreatedAt"
+        ],
+        "properties": {
+          "Amount": {
+            "type": "number"
+          },
+          "Operation": {
+            "type": "string"
+          },
+          "Transaction": {
+            "$ref": "#/components/schemas/PartnerWalletHistoryTransaction"
+          },
+          "OpeningBalance": {
+            "type": "number"
+          },
+          "ClosingBalance": {
+            "type": "number"
+          },
+          "CreatedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "PartnerWalletHistoryTransaction": {
+        "type": "object",
+        "required": [
+          "Amount",
+          "Fee",
+          "Status",
+          "Reference"
+        ],
+        "properties": {
+          "Amount": {
+            "type": "number"
+          },
+          "Fee": {
+            "type": "number"
+          },
+          "Status": {
+            "$ref": "#/components/schemas/TransactionStatus"
+          },
+          "Reference": {
+            "type": "string"
+          },
+          "ExternalReference": {
+            "type": "string",
+            "nullable": true
+          },
+          "Comment": {
+            "type": "string",
+            "nullable": true
+          }
+        }
+      },
+      "PartnerTransactionStatusWebhook": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/PartnerWebhookEnvelope"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "event": {
+                "type": "string",
+                "enum": [
+                  "transaction.status"
+                ]
+              },
+              "data": {
+                "$ref": "#/components/schemas/IPartnerTransaction"
+              }
+            }
+          }
+        ]
+      },
+      "PartnerWalletDebitedWebhook": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/PartnerWebhookEnvelope"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "event": {
+                "type": "string",
+                "enum": [
+                  "wallet.debited"
+                ]
+              },
+              "data": {
+                "$ref": "#/components/schemas/PartnerWalletHistoryWebhookData"
+              }
+            }
+          }
+        ]
+      },
+      "PartnerWalletCreditedWebhook": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/PartnerWebhookEnvelope"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "event": {
+                "type": "string",
+                "enum": [
+                  "wallet.credited"
+                ]
+              },
+              "data": {
+                "$ref": "#/components/schemas/PartnerWalletHistoryWebhookData"
+              }
+            }
+          }
+        ]
       },
       "WalletTransactionDetail": {
         "type": "object",

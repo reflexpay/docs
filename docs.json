@@ -42,7 +42,9 @@
             "pages": [
               "partner/index",
               "partner/terminal",
-              "partner/transaction"
+              "partner/wallet",
+              "partner/transaction",
+              "partner/webhooks"
             ]
           },
           {

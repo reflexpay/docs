@@ -26,6 +26,9 @@ Participating applications initiate and confirm transactions through the gateway
   <Card title="Wallet Credit and Debit" icon="wallet">
     Move funds between partner wallet and authenticated customer wallets
   </Card>
+  <Card title="Webhook Notifications" icon="webhook">
+    Receive partner transaction and wallet debit or credit events in real time
+  </Card>
 </CardGroup>
 
 ## Base URLs
@@ -60,7 +63,13 @@ All API requests are authenticated using partner credentials with support for te
   <Card title="Terminal API" icon="cash-register" href="/partner/terminal">
     Manage collection points, route transactions, and handle splits
   </Card>
-  <Card title="Transactions API" icon="exchange" href="/partner/transactions">
+  <Card title="Wallet API" icon="wallet" href="/partner/wallet">
+    Retrieve wallet references, view summaries, move funds, and issue refunds
+  </Card>
+  <Card title="Webhooks" icon="webhook" href="/partner/webhooks">
+    Receive transaction status and wallet debit or credit event notifications
+  </Card>
+  <Card title="Transactions API" icon="exchange" href="/partner/transaction">
     Gateway transaction management, reporting, and wallet credit/debit flows
   </Card>
 </CardGroup>
@@ -77,7 +86,11 @@ All Partner API endpoints require authentication using your partner credentials:
 </Note>
 
 <Note>
-  Wallet debit/credit endpoints also require `Authorization: Bearer <customer_token>`.
+  Wallet transfer and refund endpoints are available under the dedicated Wallet API using partner authentication and a partner wallet reference.
+</Note>
+
+<Note>
+  Partners can also configure a webhook URL to receive `transaction.status`, `wallet.debited`, and `wallet.credited` notifications.
 </Note>
 
 ## Quick Start
@@ -108,6 +121,12 @@ All Partner API endpoints require authentication using your partner credentials:
 <CardGroup cols={2}>
   <Card title="POS Integration" icon="cash-register">
     Integrate FLEX collections into your point-of-sale system
+  </Card>
+  <Card title="Wallet Operations" icon="wallet">
+    Perform institution-scoped debit, credit, summary, and refund operations on linked wallets
+  </Card>
+  <Card title="Webhook Automation" icon="webhook">
+    Automate reconciliation and notifications using partner webhook callbacks
   </Card>
   <Card title="Multi-Location" icon="store">
     Manage multiple collection points across different locations
@@ -142,7 +161,13 @@ Need help? Reach out to our developer support team:
   <Card title="Terminal API" icon="cash-register" href="/partner/terminal">
     Explore collection terminal endpoints
   </Card>
-  <Card title="Transactions API" icon="exchange" href="/partner/transactions">
+  <Card title="Wallet API" icon="wallet" href="/partner/wallet">
+    Explore scoped wallet operations and refunds
+  </Card>
+  <Card title="Webhooks" icon="webhook" href="/partner/webhooks">
+    Implement partner event callbacks
+  </Card>
+  <Card title="Transactions API" icon="exchange" href="/partner/transaction">
     Gateway transaction management
   </Card>
   <Card title="OpenAPI Spec" icon="file-code" href="/openapi/partner.openapi.json">

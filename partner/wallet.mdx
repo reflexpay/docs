@@ -1,0 +1,324 @@
+---
+title: 'Wallet'
+description: 'Partner wallet endpoints for retrieving scoped wallets, summaries, transfers, and refunds'
+---
+
+## Overview
+
+The Wallet API allows a partner to operate on a **partner-scoped wallet reference**.
+Each wallet reference represents a user identity mapped into your institution context through `PartnerWallet`.
+
+These endpoints support:
+
+- Retrieving the wallet profile by reference
+- Viewing the wallet transaction summary
+- Debiting the referenced wallet into your partner wallet
+- Crediting the referenced wallet from your partner wallet
+- Refunding an earlier wallet transaction using its original transaction reference
+
+<Note>
+  All wallet endpoints require **partner authentication** headers:
+  - `x-client-id`
+  - `x-api-key`
+</Note>
+
+<Note>
+  Successful wallet movements generate partner webhook callbacks: `wallet.debited` and `wallet.credited`. See the [Webhooks](/partner/webhooks) page for payloads and signature verification.
+</Note>
+
+## Wallet Endpoints
+
+<CardGroup cols={2}>
+  <Card title="Get Wallet" icon="wallet">
+    `GET /partner/wallet/{reference}` - Fetch a partner-scoped wallet by reference
+  </Card>
+  <Card title="Wallet Summary" icon="chart-line">
+    `GET /partner/wallet/{reference}/summary` - Retrieve inflow/outflow summary
+  </Card>
+  <Card title="Debit Wallet" icon="arrow-down-wide-short">
+    `POST /partner/wallet/{reference}/debit` - Move funds from the referenced wallet into your partner wallet
+  </Card>
+  <Card title="Credit Wallet" icon="arrow-up-wide-short">
+    `POST /partner/wallet/{reference}/credit` - Move funds from your partner wallet into the referenced wallet
+  </Card>
+  <Card title="Refund Wallet Transaction" icon="rotate-left">
+    `POST /partner/wallet/{reference}/refund/{transactionReference}` - Refund a previous wallet transfer by initial transaction reference
+  </Card>
+</CardGroup>
+
+---
+
+## Authentication
+
+**Headers**:
+
+- `x-client-id`: Your partner ID
+- `x-api-key`: Your partner API key
+
+## Wallet Reference
+
+The `reference` path parameter is the partner wallet reference assigned to the user wallet in your partner context.
+You should store this reference when a wallet is provisioned or linked for your institution.
+
+---
+
+## Get Wallet
+
+Retrieve the wallet profile linked to your partner for the supplied wallet reference.
+
+**Endpoint**: `GET /partner/wallet/{reference}`
+
+**Path Parameters**:
+
+- `reference` (required): Partner wallet reference
+
+### Request Example
+
+```bash cURL
+curl --request GET \
+  --url https://staging-api.yourflexpay.com/v2/partner/wallet/PW-ABC123 \
+  --header 'x-client-id: your_partner_id' \
+  --header 'x-api-key: your_api_key'
+```
+
+### Response
+
+```json
+{
+  "ID": 42,
+  "Reference": "PW-ABC123",
+  "RevokedAt": null,
+  "PayTag": {
+    "Tag": "@janedoe"
+  },
+  "Wallet": {
+    "ID": 901,
+    "Currency": "NGN"
+  },
+  "KycProfile": {
+    "ID": 3,
+    "Name": "Tier 2"
+  },
+  "CreatedAt": "2026-09-01T10:00:00Z",
+  "UpdatedAt": "2026-09-01T10:00:00Z"
+}
+```
+
+---
+
+## Wallet Summary
+
+Retrieve a high-level inflow and outflow summary for the referenced wallet.
+
+**Endpoint**: `GET /partner/wallet/{reference}/summary`
+
+**Path Parameters**:
+
+- `reference` (required): Partner wallet reference
+
+### Request Example
+
+```bash cURL
+curl --request GET \
+  --url https://staging-api.yourflexpay.com/v2/partner/wallet/PW-ABC123/summary \
+  --header 'x-client-id: your_partner_id' \
+  --header 'x-api-key: your_api_key'
+```
+
+### Response
+
+```json
+{
+  "All": {
+    "Inflow": {
+      "Count": 12,
+      "Total": 125000
+    },
+    "Outflow": {
+      "Count": 7,
+      "Total": 42000
+    }
+  }
+}
+```
+
+---
+
+## Debit Wallet
+
+Debit the referenced wallet and move the value into your partner wallet.
+
+**Endpoint**: `POST /partner/wallet/{reference}/debit`
+
+**Path Parameters**:
+
+- `reference` (required): Partner wallet reference
+
+**Request Body**:
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| amount | number | Yes | Amount to debit |
+| comment | string | No | Transfer narration |
+| reference | string | No | Your external reference |
+| currency | string | No | Wallet currency, e.g. `NGN` |
+| metadata | object | No | Additional metadata |
+
+### Request Example
+
+```bash cURL
+curl --request POST \
+  --url https://staging-api.yourflexpay.com/v2/partner/wallet/PW-ABC123/debit \
+  --header 'Content-Type: application/json' \
+  --header 'x-client-id: your_partner_id' \
+  --header 'x-api-key: your_api_key' \
+  --data '{
+    "amount": 5000,
+    "comment": "Cash-out at agent",
+    "reference": "PARTNER-DEBIT-1001",
+    "metadata": {
+      "channel": "agent"
+    }
+  }'
+```
+
+### Response
+
+Returns a wallet transaction detail object containing `Reference`, `Status`, `Amount`, `Fee`, `Net`, `Sender`, `Recipient`, and `Metadata`.
+
+---
+
+## Credit Wallet
+
+Credit the referenced wallet from your partner wallet balance.
+
+**Endpoint**: `POST /partner/wallet/{reference}/credit`
+
+**Path Parameters**:
+
+- `reference` (required): Partner wallet reference
+
+**Request Body**:
+
+Uses the same payload as the debit endpoint.
+
+### Request Example
+
+```bash cURL
+curl --request POST \
+  --url https://staging-api.yourflexpay.com/v2/partner/wallet/PW-ABC123/credit \
+  --header 'Content-Type: application/json' \
+  --header 'x-client-id: your_partner_id' \
+  --header 'x-api-key: your_api_key' \
+  --data '{
+    "amount": 2500,
+    "comment": "Incentive payout",
+    "reference": "PARTNER-CREDIT-2042",
+    "metadata": {
+      "campaign": "Q3-bonus"
+    }
+  }'
+```
+
+### Response
+
+Returns the same wallet transaction detail structure as the debit endpoint.
+
+---
+
+## Refund Wallet Transaction
+
+Refund a previous partner wallet transfer using the **initial transaction reference**.
+This endpoint only supports refunding wallet transfers that belong to the supplied partner wallet context.
+
+**Endpoint**: `POST /partner/wallet/{reference}/refund/{transactionReference}`
+
+**Path Parameters**:
+
+- `reference` (required): Partner wallet reference
+- `transactionReference` (required): Initial transaction reference to reverse/refund
+
+### Request Example
+
+```bash cURL
+curl --request POST \
+  --url https://staging-api.yourflexpay.com/v2/partner/wallet/PW-ABC123/refund/TRF-1756747777777 \
+  --header 'x-client-id: your_partner_id' \
+  --header 'x-api-key: your_api_key'
+```
+
+### Response
+
+Returns a wallet transaction detail object for the generated refund/reversal transaction.
+
+```json
+{
+  "Amount": 5000,
+  "Fee": 0,
+  "Net": 5000,
+  "Reference": "REV-TRF-1756747777777",
+  "ExternalReference": "TRF-1756747777777",
+  "Status": "Successful",
+  "Comment": "Refund for TRF-1756747777777",
+  "Sender": {
+    "Name": "Partner Wallet",
+    "Amount": 5000,
+    "Fee": 0,
+    "Currency": "NGN"
+  },
+  "Recipient": {
+    "Name": "Jane Doe",
+    "Amount": 5000,
+    "Fee": 0,
+    "Currency": "NGN"
+  },
+  "Date": "2026-09-01T13:05:00Z",
+  "Metadata": {
+    "InitialTransaction": "TRF-1756747777777"
+  }
+}
+```
+
+---
+
+## Common Error Cases
+
+| Status Code | Description |
+|-------------|-------------|
+| `400` | Invalid request, unsupported refund target, or transaction does not belong to the partner wallet context |
+| `401` | Invalid partner credentials |
+| `404` | Wallet reference or transaction reference not found |
+| `500` | Unexpected server error |
+
+## Best Practices
+
+<Check>
+  Persist both the partner wallet `reference` and the returned transaction `Reference` values for reconciliation and refund workflows.
+</Check>
+
+<Check>
+  Use your own `reference` in debit and credit requests so you can map FLEX transaction outcomes back to your internal ledger.
+</Check>
+
+<Check>
+  Only issue refunds for completed partner wallet transfer flows that were initiated from your institution context.
+</Check>
+
+## Related Pages
+
+<CardGroup cols={2}>
+  <Card title="Partner Overview" icon="home" href="/partner/index">
+    General partner API capabilities and authentication
+  </Card>
+  <Card title="Transactions API" icon="exchange" href="/partner/transaction">
+    Cross-partner transaction reporting and lookup
+  </Card>
+  <Card title="Webhooks" icon="webhook" href="/partner/webhooks">
+    Partner transaction and wallet event callback payloads
+  </Card>
+  <Card title="OpenAPI Spec" icon="file-code" href="/openapi/partner.openapi.json">
+    Complete machine-readable API schema
+  </Card>
+</CardGroup>
+
+
