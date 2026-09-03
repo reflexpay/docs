@@ -24,7 +24,8 @@
               "sso/payment-request",
               "sso/paytag-lookup",
               "sso/beneficiary",
-              "sso/integration-guide"
+              "sso/integration-guide",
+              "sso/flutter-sdk"
             ]
           },
           {
@@ -86,17 +87,6 @@
           {
             "group": "Miscellaneous",
             "openapi": "openapi/miscellaneous.openapi.json"
-          }
-        ]
-      },
-      {
-        "tab": "SDK",
-        "groups": [
-          {
-            "group": "Wallet",
-            "pages": [
-              "sdk/wallet"
-            ]
           }
         ]
       }
