@@ -420,11 +420,11 @@
         },
         "responses": {
           "200": {
-            "description": "SSO customer",
+            "description": "Host-scoped wallet created for onboarded customer",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/PayTagSso"
+                  "$ref": "#/components/schemas/PartnerWallet"
                 }
               }
             }
@@ -447,11 +447,11 @@
         ],
         "responses": {
           "200": {
-            "description": "Wallet",
+            "description": "Host-scoped wallet",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/Wallet"
+                  "$ref": "#/components/schemas/PartnerWallet"
                 }
               }
             }
@@ -553,11 +553,11 @@
         ],
         "responses": {
           "200": {
-            "description": "Wallet with paginated history",
+            "description": "Paginated wallet history",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/WalletHistoryResponse"
+                  "$ref": "#/components/schemas/PaginatedWalletHistory"
                 }
               }
             }
@@ -987,11 +987,11 @@
         ],
         "responses": {
           "200": {
-            "description": "Wallet and paginated transactions",
+            "description": "Paginated wallet transactions",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/TransactionListResponse"
+                  "$ref": "#/components/schemas/PaginatedTransactionDetail"
                 }
               }
             }
@@ -1843,11 +1843,96 @@
       },
       "CustomerOnboardingDto": {
         "type": "object",
-        "additionalProperties": true
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "ref": {
+            "type": "string"
+          },
+          "uid": {
+            "type": "string"
+          },
+          "bvn": {
+            "type": "string"
+          },
+          "nin": {
+            "type": "string"
+          },
+          "first_name": {
+            "type": "string"
+          },
+          "last_name": {
+            "type": "string"
+          },
+          "other_name": {
+            "type": "string"
+          },
+          "gender": {
+            "$ref": "#/components/schemas/Gender"
+          },
+          "dob": {
+            "type": "string"
+          },
+          "tag": {
+            "type": "string"
+          },
+          "verification": {
+            "$ref": "#/components/schemas/BvnVerification"
+          },
+          "ninVerification": {
+            "$ref": "#/components/schemas/NinVerification"
+          },
+          "bankAccount": {
+            "$ref": "#/components/schemas/VerifiedBankAccount"
+          },
+          "address": {
+            "$ref": "#/components/schemas/Address"
+          },
+          "selfie": {
+            "$ref": "#/components/schemas/KycDocument"
+          },
+          "idDoc": {
+            "$ref": "#/components/schemas/KycDocument"
+          },
+          "email": {
+            "type": "string",
+            "format": "email"
+          },
+          "phone": {
+            "type": "string"
+          },
+          "providers": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string"
+            }
+          },
+          "otp": {
+            "$ref": "#/components/schemas/CustomerOnboardingOtp"
+          },
+          "phone_otp": {
+            "$ref": "#/components/schemas/CustomerOnboardingOtp"
+          },
+          "email_otp": {
+            "$ref": "#/components/schemas/CustomerOnboardingOtp"
+          },
+          "skip_otp": {
+            "type": "boolean"
+          },
+          "status": {
+            "type": "string"
+          },
+          "kycReference": {
+            "type": "string"
+          },
+          "timestamp": {
+            "$ref": "#/components/schemas/FirestoreDocumentTimestamp"
+          }
+        }
       },
       "PayTagSso": {
-        "type": "object",
-        "additionalProperties": true
+        "$ref": "#/components/schemas/PartnerWallet"
       },
       "TagAvailabilityResponse": {
         "type": "object",
@@ -2094,29 +2179,614 @@
           }
         }
       },
+      "PartnerWallet": {
+        "type": "object",
+        "required": [
+          "ID",
+          "Wallet",
+          "Reference",
+          "CreatedAt",
+          "UpdatedAt"
+        ],
+        "properties": {
+          "ID": {
+            "type": "integer"
+          },
+          "Wallet": {
+            "$ref": "#/components/schemas/Wallet"
+          },
+          "PayTag": {
+            "$ref": "#/components/schemas/PayTag"
+          },
+          "KycProfile": {
+            "$ref": "#/components/schemas/KycProfile"
+          },
+          "Reference": {
+            "type": "string",
+            "nullable": true
+          },
+          "RevokedAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "Metadata": {
+            "type": "object",
+            "additionalProperties": true
+          },
+          "CreatedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "UpdatedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
       "Wallet": {
         "type": "object",
-        "additionalProperties": true
+        "required": [
+          "ID",
+          "Currency",
+          "TotalAmount",
+          "Status",
+          "Amount",
+          "CreatedAt",
+          "UpdatedAt"
+        ],
+        "properties": {
+          "ID": {
+            "type": "integer"
+          },
+          "Type": {
+            "$ref": "#/components/schemas/CommonWalletType"
+          },
+          "PayTag": {
+            "$ref": "#/components/schemas/PayTag"
+          },
+          "TotalAmount": {
+            "type": "number"
+          },
+          "SuspendedAmount": {
+            "type": "number"
+          },
+          "BlockedAmount": {
+            "type": "number"
+          },
+          "AvailableAmount": {
+            "type": "number"
+          },
+          "Amount": {
+            "type": "number"
+          },
+          "Currency": {
+            "$ref": "#/components/schemas/WalletCurrency"
+          },
+          "Status": {
+            "$ref": "#/components/schemas/WalletStatus"
+          },
+          "Name": {
+            "type": "string"
+          },
+          "Nuban": {
+            "type": "string"
+          },
+          "Metadata": {
+            "type": "object",
+            "additionalProperties": true
+          },
+          "CreatedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "UpdatedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
       },
       "WalletHistory": {
         "type": "object",
-        "additionalProperties": true
+        "required": [
+          "ID",
+          "Amount",
+          "OpeningBalance",
+          "ClosingBalance",
+          "CreatedAt"
+        ],
+        "properties": {
+          "ID": {
+            "type": "integer"
+          },
+          "Amount": {
+            "type": "number"
+          },
+          "OpeningBalance": {
+            "type": "number"
+          },
+          "ClosingBalance": {
+            "type": "number"
+          },
+          "Operation": {
+            "$ref": "#/components/schemas/CommonOperation"
+          },
+          "Transaction": {
+            "$ref": "#/components/schemas/WalletHistoryTransaction"
+          },
+          "CreatedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "UpdatedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
       },
       "WalletSummary": {
         "type": "object",
-        "additionalProperties": true
+        "required": [
+          "Inflow",
+          "Outflow"
+        ],
+        "properties": {
+          "Inflow": {
+            "$ref": "#/components/schemas/WalletSummaryData"
+          },
+          "Outflow": {
+            "$ref": "#/components/schemas/WalletSummaryData"
+          }
+        }
       },
       "WalletStaticVirtualAccount": {
         "type": "object",
-        "additionalProperties": true
+        "required": [
+          "ID",
+          "ProviderID",
+          "Status",
+          "CreatedAt",
+          "UpdatedAt"
+        ],
+        "properties": {
+          "ID": {
+            "type": "integer"
+          },
+          "ProviderID": {
+            "type": "integer"
+          },
+          "Provider": {
+            "$ref": "#/components/schemas/TransactionProvider"
+          },
+          "AccountNumber": {
+            "type": "string",
+            "nullable": true
+          },
+          "AccountName": {
+            "type": "string",
+            "nullable": true
+          },
+          "BankName": {
+            "type": "string",
+            "nullable": true
+          },
+          "Reference": {
+            "type": "string",
+            "nullable": true
+          },
+          "Status": {
+            "$ref": "#/components/schemas/VirtualAccountStatus"
+          },
+          "Metadata": {
+            "type": "object",
+            "additionalProperties": true
+          },
+          "CreatedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "UpdatedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
       },
       "PaymentRequest": {
         "type": "object",
-        "additionalProperties": true
+        "required": [
+          "ID",
+          "Amount",
+          "Reference",
+          "Status",
+          "CreatedAt",
+          "UpdatedAt"
+        ],
+        "properties": {
+          "ID": {
+            "type": "integer"
+          },
+          "PayTag": {
+            "$ref": "#/components/schemas/PayTag"
+          },
+          "Payer": {
+            "$ref": "#/components/schemas/PayTag"
+          },
+          "Payment": {
+            "$ref": "#/components/schemas/PaymentRequestPayment"
+          },
+          "Amount": {
+            "type": "number"
+          },
+          "Reference": {
+            "type": "string"
+          },
+          "Description": {
+            "type": "string",
+            "nullable": true
+          },
+          "Status": {
+            "$ref": "#/components/schemas/PaymentRequestStatus"
+          },
+          "Type": {
+            "type": "string"
+          },
+          "ExpiresAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "Metadata": {
+            "type": "object",
+            "additionalProperties": true
+          },
+          "CreatedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "UpdatedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
       },
       "PayTag": {
         "type": "object",
-        "additionalProperties": true
+        "required": [
+          "ID",
+          "Tag",
+          "AccountType",
+          "CreatedAt",
+          "UpdatedAt"
+        ],
+        "properties": {
+          "ID": {
+            "type": "integer"
+          },
+          "Tag": {
+            "type": "string"
+          },
+          "Name": {
+            "type": "string"
+          },
+          "Email": {
+            "type": "string",
+            "format": "email"
+          },
+          "PhoneNumber": {
+            "type": "string"
+          },
+          "ProfileImage": {
+            "type": "string"
+          },
+          "AccountType": {
+            "$ref": "#/components/schemas/CommonAccountType"
+          },
+          "CreatedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "UpdatedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "CommonAccountType": {
+        "type": "object",
+        "required": [
+          "Name"
+        ],
+        "properties": {
+          "Name": {
+            "$ref": "#/components/schemas/AccountType"
+          }
+        }
+      },
+      "CommonWalletType": {
+        "type": "object",
+        "required": [
+          "Name"
+        ],
+        "properties": {
+          "Name": {
+            "type": "string"
+          }
+        }
+      },
+      "KycProfile": {
+        "type": "object",
+        "required": [
+          "ID",
+          "Name",
+          "Level"
+        ],
+        "properties": {
+          "ID": {
+            "type": "integer"
+          },
+          "Name": {
+            "type": "string"
+          },
+          "Description": {
+            "type": "string",
+            "nullable": true
+          },
+          "Reserved": {
+            "type": "boolean"
+          },
+          "Level": {
+            "type": "integer"
+          },
+          "AccountType": {
+            "$ref": "#/components/schemas/CommonAccountType"
+          },
+          "Metadata": {
+            "type": "object",
+            "additionalProperties": true
+          },
+          "CreatedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "UpdatedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "CommonOperation": {
+        "type": "object",
+        "required": [
+          "Name"
+        ],
+        "properties": {
+          "Name": {
+            "type": "string"
+          },
+          "Description": {
+            "type": "string",
+            "nullable": true
+          }
+        }
+      },
+      "WalletHistoryTransaction": {
+        "type": "object",
+        "properties": {
+          "Amount": {
+            "type": "number"
+          },
+          "Fee": {
+            "type": "number"
+          },
+          "Type": {
+            "type": "string"
+          },
+          "Status": {
+            "$ref": "#/components/schemas/TransactionStatus"
+          },
+          "Reference": {
+            "type": "string"
+          },
+          "ExternalReference": {
+            "type": "string"
+          },
+          "Comment": {
+            "type": "string"
+          }
+        }
+      },
+      "WalletSummaryData": {
+        "type": "object",
+        "required": [
+          "Count",
+          "Total"
+        ],
+        "properties": {
+          "Count": {
+            "type": "integer"
+          },
+          "Total": {
+            "type": "number"
+          }
+        }
+      },
+      "TransactionProvider": {
+        "type": "object",
+        "required": [
+          "ID",
+          "Name"
+        ],
+        "properties": {
+          "ID": {
+            "type": "integer"
+          },
+          "Name": {
+            "type": "string"
+          },
+          "Metadata": {
+            "type": "object",
+            "additionalProperties": true
+          },
+          "CreatedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "UpdatedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "PaymentRequestPayment": {
+        "type": "object",
+        "properties": {
+          "Amount": {
+            "type": "number"
+          },
+          "Reference": {
+            "type": "string"
+          },
+          "Date": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "VerifiedBankAccount": {
+        "type": "object",
+        "properties": {
+          "AccountName": {
+            "type": "string"
+          },
+          "AccountNumber": {
+            "type": "string"
+          },
+          "BankName": {
+            "type": "string"
+          },
+          "BankCode": {
+            "type": "string"
+          }
+        }
+      },
+      "Address": {
+        "type": "object",
+        "properties": {
+          "Address": {
+            "type": "string"
+          },
+          "Landmark": {
+            "type": "string"
+          },
+          "Utility": {
+            "$ref": "#/components/schemas/KycDocument"
+          }
+        }
+      },
+      "KycDocument": {
+        "type": "object",
+        "properties": {
+          "url": {
+            "type": "string"
+          },
+          "base64": {
+            "type": "string"
+          }
+        }
+      },
+      "BvnVerification": {
+        "type": "object",
+        "properties": {
+          "FirstName": {
+            "type": "string"
+          },
+          "LastName": {
+            "type": "string"
+          },
+          "OtherName": {
+            "type": "string"
+          },
+          "Bvn": {
+            "type": "string"
+          },
+          "PhoneNumber": {
+            "type": "string"
+          },
+          "Email": {
+            "type": "string"
+          },
+          "DOB": {
+            "type": "string"
+          },
+          "Gender": {
+            "$ref": "#/components/schemas/Gender"
+          },
+          "Address": {
+            "type": "string"
+          },
+          "Image": {
+            "$ref": "#/components/schemas/KycDocument"
+          },
+          "Provider": {
+            "type": "string"
+          }
+        }
+      },
+      "NinVerification": {
+        "type": "object",
+        "properties": {
+          "FirstName": {
+            "type": "string"
+          },
+          "LastName": {
+            "type": "string"
+          },
+          "OtherName": {
+            "type": "string"
+          },
+          "Nin": {
+            "type": "string"
+          },
+          "Email": {
+            "type": "string"
+          },
+          "DOB": {
+            "type": "string"
+          },
+          "Gender": {
+            "$ref": "#/components/schemas/Gender"
+          },
+          "Address": {
+            "type": "string"
+          },
+          "Image": {
+            "$ref": "#/components/schemas/KycDocument"
+          },
+          "Provider": {
+            "type": "string"
+          }
+        }
+      },
+      "FirestoreDocumentTimestamp": {
+        "type": "object",
+        "properties": {
+          "created_at": {
+            "type": "number"
+          },
+          "updated_at": {
+            "type": "number"
+          },
+          "deleted_at": {
+            "type": "number"
+          }
+        }
+      },
+      "Gender": {
+        "type": "string",
+        "enum": [
+          "Male",
+          "Female"
+        ]
       },
       "PayTagBeneficiary": {
         "type": "object",
@@ -2414,6 +3084,33 @@
            "FP"
          ]
        },
+       "WalletStatus": {
+         "type": "string",
+         "enum": [
+           "Enabled",
+           "Blocked",
+           "PND",
+           "PNC"
+         ]
+       },
+       "VirtualAccountStatus": {
+         "type": "string",
+         "enum": [
+           "Pending",
+           "Enabled",
+           "Disabled"
+         ]
+       },
+       "PaymentRequestStatus": {
+         "type": "string",
+         "enum": [
+           "Pending",
+           "Accepted",
+           "Declined",
+           "Cancelled",
+           "Expired"
+         ]
+       },
        "TransactionStatus": {
          "type": "string",
          "enum": [
@@ -2422,7 +3119,7 @@
            "Successful",
            "Cancelled",
            "Expired",
-           "Pending Review",
+           "Pending Review"
          ]
        }
      }
