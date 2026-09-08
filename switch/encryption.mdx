@@ -1,6 +1,6 @@
 ---
 title: Encryption
-description: End-to-end JWE payload encryption for requests and webhooks in the switching service.
+description: JWE payload encryption, key usage, and operational guidance for secure Switch integrations.
 ---
 
 # Encryption
@@ -8,21 +8,67 @@ description: End-to-end JWE payload encryption for requests and webhooks in the 
 The switching service supports end-to-end payload encryption using JWE.
 Use it when you want the switch to protect request bodies and webhook payloads in transit at the application layer.
 
-## What is encrypted
+Every application is expected to own and manage its own encryption identity:
 
-- Inbound request bodies
-- Outbound webhook payloads
+- `appPublicKey` / `appPublicKeyJwk` — public material shared with Switch
+- `appPrivateKeyEnc` / `appPrivateJwk` — private material kept only by the application owner
 
-## Key model
+## Algorithms
 
-Each application receives an EC P-256 keypair.
-The switch uses the public key to encrypt payloads for your application.
-You decrypt payloads with your private key.
+The platform uses:
 
-## Recommended use
+- `ECDH-ES+A256KW` for key agreement and key wrapping
+- `A256GCM` for content encryption
+- EC P-256 keypairs for all application encryption identities
 
-Enable encryption when your integration handles sensitive payment metadata or customer data.
-Make sure your webhook handler can decrypt payloads before validation.
+## Request encryption (application -> Switch)
+
+When an application sends a sensitive request body to Switch, it must:
+
+1. use its own application keypair
+2. serialize the JSON payload
+3. encrypt it with JWE using the application's public key
+4. set `Content-Encryption: JWE`
+5. send the compact JWE string as the request body
+
+## Webhook encryption (Switch -> application)
+
+When Switch sends an outbound webhook to an application, it encrypts the JSON payload with that application's public key.
+
+- target app must decrypt with its own private key
+- the app should validate the webhook signature before decrypting the payload
+- the callback body may arrive as a JWE compact string with `Content-Encryption: JWE`
+
+## Key endpoints
+
+Use the API reference for the exact contract, especially:
+
+- `POST /v1/applications/keys/rotate` — rotates the application’s own keypair
+
+## Registration-time key material
+
+When an application is registered, the response contains one-time key material used by the application to establish its encryption identity:
+
+- `appPublicKeyJwk`
+- `appPublicKey`
+- `appPrivateJwk` (private material for local decryption)
+- `keyVersion`
+
+Store the private material securely in a secrets manager or keystore immediately after registration or rotation.
+
+## Recommended flow
+
+1. Register the application and persist the app private key securely.
+2. Enforce `Content-Encryption: JWE` for encrypted request bodies.
+3. Verify webhook signatures before parsing the body.
+4. Decrypt webhook payloads only after signature validation when `Content-Encryption: JWE` is present.
+
+## Operational guidance
+
+- Rotate application keys when compromise is suspected.
+- Track `keyVersion` for all consuming systems.
+- Never expose private keys to browser or frontend code.
+- Keep signature verification and decryption as separate steps.
 
 ## Related topics
 
