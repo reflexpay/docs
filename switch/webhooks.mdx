@@ -1,30 +1,145 @@
 ---
 title: Webhooks
-description: How the switching service notifies participating applications about routed transactions.
+description: Delivery model, signature verification, retries, and receiver responsibilities for webhook events.
 ---
 
 # Webhooks
 
-The switch uses webhooks to notify participating applications when a transaction reaches them.
+Switch sends outbound HTTP callbacks for transaction lifecycle events.
 
-## Delivery model
+A single transaction can produce up to two webhook deliveries:
 
-- The receiver application gets a `TRANSACTION_INITIATED` webhook.
-- The sender application gets a final outcome callback when the transaction is accepted, rejected, or expired.
-- The platform retries failed deliveries up to 3 times.
+- a **receiver webhook** to the receiving application's `transactionWebhookUrl`
+- a **sender callback** to the sender's `callbackUrl` (or sender app `transactionWebhookUrl` fallback)
 
-## Verify signatures
+## 1) Receiver webhook
 
-Every webhook includes a signature header. Verify it before you trust the payload.
+Sent when a transaction is initiated and addressed to a tag owned by the receiving application.
 
-## Decrypt payloads
+- Target: `transactionWebhookUrl` on the receiving app
+- Event name: `TRANSACTION_INITIATED`
+- Purpose: notify the receiver that a payment request needs acceptance or rejection
 
-If you enable encryption, decrypt the payload before you process it.
+Example payload:
 
-## Respond quickly
+```json
+{
+  "event": "TRANSACTION_INITIATED",
+  "transaction": {
+    "reference": "TXN-9812345678-A1B2C3D4",
+    "senderTag": "alice",
+    "senderAppName": "WalletApp",
+    "receiverTag": "bob",
+    "receiverAppName": "ShopApp",
+    "amount": 500.0000,
+    "currency": "NGN",
+    "narration": "Payment for order #99",
+    "expiresAt": "2024-03-16T12:00:00Z",
+    "createdAt": "2024-03-16T11:55:00Z"
+  }
+}
+```
 
-Return a 2xx response as soon as you have accepted the event for processing.
-This keeps delivery latency low and prevents unnecessary retries.
+This is the webhook the receiving app should act on. After validating it, the app calls the accept or reject endpoint for that transaction.
+
+## 2) Sender callback
+
+Sent after the transaction reaches a terminal outcome.
+
+- Target: sender's `callbackUrl`, or if not supplied, the sender app's `transactionWebhookUrl`
+- Event names:
+  - `TRANSACTION_COMPLETED`
+  - `TRANSACTION_REJECTED`
+  - `TRANSACTION_EXPIRED`
+- Purpose: inform the sender of the final result
+
+The payload shape is the same as the receiver webhook, with a different `event` value and the same transaction metadata.
+
+Example:
+
+```json
+{
+  "event": "TRANSACTION_COMPLETED",
+  "transaction": {
+    "reference": "TXN-9812345678-A1B2C3D4",
+    "senderTag": "alice",
+    "senderAppName": "WalletApp",
+    "receiverTag": "bob",
+    "receiverAppName": "ShopApp",
+    "amount": 500.0000,
+    "currency": "NGN",
+    "narration": "Payment for order #99",
+    "expiresAt": "2024-03-16T12:00:00Z",
+    "createdAt": "2024-03-16T11:55:00Z"
+  }
+}
+```
+
+## Payload rules
+
+All delivery payloads include:
+
+- `event`: one of `TRANSACTION_INITIATED`, `TRANSACTION_COMPLETED`, `TRANSACTION_REJECTED`, `TRANSACTION_EXPIRED`
+- `transaction`: the transaction snapshot with:
+  - `reference`
+  - sender and receiver tag names
+  - sender and receiver app IDs/names
+  - `amount`, `currency`, `narration`
+  - `createdAt` and `expiresAt`
+
+## Encryption
+
+If the target application has JWE encryption enabled, the body may be sent as a JWE compact string rather than raw JSON.
+
+- Header: `Content-Encryption: JWE`
+- Decrypt using the application's own private key after validating the webhook signature
+- The signature is still computed over the raw HTTP body that was delivered
+
+## Signature verification
+
+Every outbound webhook includes:
+
+- `X-Switch-Timestamp`
+- `X-Switch-Signature`
+
+Signature format:
+
+```text
+v0=<hex(HMAC-SHA256(webhookSecret, "v0:" + timestamp + ":" + body))>
+```
+
+## Verification flow
+
+1. Read the raw request body exactly as received.
+2. Reject stale timestamps.
+3. Recompute the HMAC with your `webhookSecret`.
+4. Compare signatures in constant time.
+5. If encryption is enabled, decrypt the payload next.
+6. Return a `2xx` response promptly.
+
+## Delivery expectations
+
+- Switch retries failed webhook deliveries up to 3 times.
+- Retry backoff is exponential.
+- Failed deliveries can be inspected later through webhook-related endpoints.
+
+## Operational recommendations
+
+- Treat webhook handling as idempotent.
+- Persist delivery attempts by transaction/reference.
+- Verify the signature before parsing business data.
+- Decrypt only after signature validation when encryption is enabled.
+
+## Typical flow
+
+```text
+Receive webhook
+  -> verify X-Switch-Signature
+  -> decrypt if Content-Encryption: JWE
+  -> validate business rules
+  -> for TRANSACTION_INITIATED: accept or reject
+  -> return 2xx promptly
+```
 
 ## Related topics
 
