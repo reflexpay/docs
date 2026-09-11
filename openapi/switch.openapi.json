@@ -1,8 +1,8 @@
 {
-  "openapi": "3.0.3",
+  "openapi": "3.0.1",
   "info": {
-    "title": "FLEX Switch API",
-    "description": "## Overview\nFLEX Switch provides globally unique, portable identity **tags** that travel with users across applications. Each tag is a short handle (e.g. `@alice`) that can carry verified claims, participate in cross-application payments, and be federated to external identity providers.\n\n## Key Capabilities\n- **Tags** – create, transfer, disable, and attach claims to identity handles.\n- **Cross-application payments** – send money from any tag on Application A to any tag on Application B; each application has a single escrow wallet tracked for end-of-day settlement.\n- **Ledger** – every completed payment produces an immutable double-entry `DEBIT` / `CREDIT` pair recorded against application wallets.\n- **Webhooks** – real-time callbacks with HMAC-SHA256 signatures and automatic retry (up to 3 attempts with exponential back-off).\n- **Settlement** – a scheduled end-of-day job aggregates daily wallet movements and emits `SETTLEMENT_BATCH` Kafka events.\n\n## Authentication\n1. Register an application: `POST /v1/applications`\n2. Exchange credentials for a JWT: `POST /v1/auth/token`\n3. Include the JWT as `Authorization: Bearer \u003Ctoken\u003E` on all protected calls.\n\n## Rate Limits\n| Endpoint | Limit |\n|---|---|\n| `POST /v1/auth/token` | 10 req / min per IP |\n| `POST /v1/transactions` | 60 req / min per application |\n| All other | 300 req / min per IP |\n",
+    "title": "Switch – Cross-Platform Tag-to-Tag Payment API",
+    "description": "## Overview\nSwitch provides globally unique, portable identity **tags** that travel with users across applications.  Each tag is a short handle (e.g. `@alice`) that can carry verified claims, participate in cross-application payments, and be federated to external identity providers.\n\n## Key Capabilities\n- **Tags** – create, transfer, disable, and attach claims to identity handles.\n- **Cross-application payments** – send money from any tag on Application A   to any tag on Application B; each application has a single escrow wallet   tracked for end-of-day settlement.\n- **Ledger** – every completed payment produces an immutable double-entry   `DEBIT` / `CREDIT` pair recorded against application wallets.\n- **Webhooks** – real-time callbacks with HMAC-SHA256 signatures and   automatic retry (up to 3 attempts with exponential back-off).\n- **Settlement** – a scheduled end-of-day job aggregates daily wallet   movements and emits `SETTLEMENT_BATCH` Kafka events.\n\n## Authentication\n1. Exchange credentials for a JWT: `POST /v1/auth/token`\n2. Include the JWT as `Authorization: Bearer <token>` on all protected calls.\n\n## Rate Limits\n| Endpoint | Limit |\n|---|---|\n| `POST /v1/auth/token` | 10 req / min per IP |\n| `POST /v1/transactions` | 60 req / min per application |\n| All other | 300 req / min per IP |\n",
     "contact": {
       "name": "ReflexPay Platform Team",
       "url": "https://yourflexpay.com",
@@ -15,7 +15,7 @@
     "version": "1.0.0"
   },
   "externalDocs": {
-    "description": "FLEX Switch GitHub repository",
+    "description": "Switch GitHub Repository",
     "url": "https://github.com/reflexpay/switch"
   },
   "servers": [
@@ -39,24 +39,52 @@
       "description": "Exchange client credentials for a JWT access token."
     },
     {
-      "name": "Encryption",
-      "description": "JWE payload encryption – end-to-end security for API request bodies and webhook payloads.\nEach application receives an EC P-256 keypair at registration:\n- FLEX Switch encrypts **outbound webhooks** with the application's public key.\n- Applications encrypt **inbound request bodies** with the FLEX Switch public key.\nAlgorithm: ECDH-ES+A256KW + A256GCM (JSON Web Encryption, RFC 7516). Use `POST /v1/applications/keys/rotate` to rotate your application keypair.\n"
+      "name": "Claims",
+      "description": "Attach and revoke verifiable claims on tags."
     },
     {
-      "name": "Wallet",
-      "description": "View application escrow wallet balance and paginated ledger statement."
+      "name": "Encryption",
+      "description": "JWE payload encryption – end-to-end security for API request bodies and webhook payloads.\nEach application receives an EC P-256 keypair at registration:\n- Switch encrypts **outbound webhooks** with the application's public key.\n- Applications encrypt **inbound request bodies** with the Switch public key.\nAlgorithm: ECDH-ES+A256KW + A256GCM (JSON Web Encryption, RFC 7516).\nUse `GET /v1/keys/switch` to fetch the Switch public key.\nUse `POST /v1/applications/keys/rotate` to rotate your application keypair.\n"
+    },
+    {
+      "name": "Authentication",
+      "description": "Exchange credentials for access tokens and rotate integration credentials"
+    },
+    {
+      "name": "Settlement",
+      "description": "Query end-of-day settlement batches and per-application net positions."
     },
     {
       "name": "Subjects",
       "description": "Manage the real-world entities (users / organisations) behind tags."
     },
     {
-      "name": "Tags",
-      "description": "Create, transfer, disable and resolve globally unique identity tags."
+      "name": "Webhooks",
+      "description": "Inspect outbound webhook delivery records for transactions. Each transaction has at most two webhook records: one RECEIVER (sent on initiation) and one SENDER (sent on acceptance/rejection/expiry)."
     },
     {
-      "name": "Claims",
-      "description": "Attach and revoke verifiable claims on tags."
+      "name": "Admin Applications",
+      "description": "Administrative application provisioning and lifecycle endpoints."
+    },
+    {
+      "name": "Webhooks",
+      "description": "Inspect outbound webhook delivery records (RECEIVER and SENDER) for transactions."
+    },
+    {
+      "name": "Wallet",
+      "description": "View application escrow wallet balance and paginated ledger statement."
+    },
+    {
+      "name": "Wallet",
+      "description": "View application escrow wallet balance and paginated ledger statement (DEBIT / CREDIT entries)."
+    },
+    {
+      "name": "Admin Entities",
+      "description": "Admin-only cross-entity record management: list, read, patch, and delete supported entities."
+    },
+    {
+      "name": "Encryption",
+      "description": "Public key distribution and keypair management for JWE payload encryption."
     },
     {
       "name": "Consent",
@@ -67,12 +95,8 @@
       "description": "Initiate, accept/reject, and query cross-application tag-to-tag payments."
     },
     {
-      "name": "Settlement",
-      "description": "Query end-of-day settlement batches and per-application net positions."
-    },
-    {
-      "name": "Webhooks",
-      "description": "Inspect outbound webhook delivery records for transactions. Each transaction has at most two webhook records: one RECEIVER (sent on initiation) and one SENDER (sent on acceptance/rejection/expiry)."
+      "name": "Tags",
+      "description": "Create, transfer, disable and resolve globally unique identity tags."
     }
   ],
   "paths": {
@@ -1009,7 +1033,7 @@
           "Encryption"
         ],
         "summary": "Rotate the calling application's webhook signing secret",
-        "description": "Generates a new webhook signing secret for the authenticated application,\nstores only its hash, and returns the raw secret once.\n\nUse the returned `webhookSecret` to verify `X-FLEX-Switch-Signature` on inbound webhooks.\nThe previous webhook secret becomes invalid immediately.\n",
+        "description": "Generates a new webhook signing secret for the authenticated application,\nstores only its hash, and returns the raw secret once.\n\nUse the returned `webhookSecret` to verify `X-Switch-Signature` on inbound webhooks.\nThe previous webhook secret becomes invalid immediately.\n",
         "operationId": "rotateWebhookSecret",
         "responses": {
           "401": {
@@ -1052,7 +1076,7 @@
           "Encryption"
         ],
         "summary": "Rotate the calling application's EC keypair",
-        "description": "Generates a fresh EC P-256 keypair for the authenticated application and\nreturns the new public key (JWK) and private key material (`appPrivateJwk`).\n\n**The private JWK is returned only once** - store it securely.\nAfter rotation:\n- FLEX Switch will encrypt all outbound webhooks with the **new** public key.\n- Requests encrypted with the **old** public key will be rejected (Content-Encryption: JWE decryption will fail).\n- Allow a brief migration window for in-flight messages before destroying the old private key.\n\nThe `keyVersion` field is incremented on each rotation.\n",
+        "description": "Generates a fresh EC P-256 keypair for the authenticated application and\nreturns the new public key (JWK) and private key material (`appPrivateJwk`).\n\n**The private JWK is returned only once** - store it securely.\nAfter rotation:\n- Switch will encrypt all outbound webhooks with the **new** public key.\n- Requests encrypted with the **old** public key will be rejected (Content-Encryption: JWE decryption will fail).\n- Allow a brief migration window for in-flight messages before destroying the old private key.\n\nThe `keyVersion` field is incremented on each rotation.\n",
         "operationId": "rotateKeys",
         "responses": {
           "401": {
@@ -1907,6 +1931,29 @@
         }
       }
     },
+    "/v1/keys/switch": {
+      "get": {
+        "tags": [
+          "Encryption"
+        ],
+        "summary": "Get the Switch public encryption key",
+        "description": "Returns the Switch EC P-256 public key in two formats:\n- **`jwk`** – JSON Web Key (JWK) format; import directly into any JOSE library.\n- **`publicKeyBase64`** – Base64-encoded X.509 (SubjectPublicKeyInfo) DER; use with\n  `KeyFactory.getInstance(\"EC\").generatePublic(new X509EncodedKeySpec(decoded))` in Java.\n\nUse this key to **encrypt request payloads** before sending them to Switch:\n```\n1. Serialize your JSON request body.\n2. Encrypt with JWE (alg=ECDH-ES+A256KW, enc=A256GCM) using this public key.\n3. Set header: Content-Encryption: JWE\n4. Send the JWE compact string as the request body.\n```\n\nThis endpoint is **unauthenticated** – public keys are safe to distribute.\nCache the response; refresh only if you encounter a JWE decryption error (HTTP 400).\n",
+        "operationId": "getSwitchPublicKey",
+        "responses": {
+          "200": {
+            "description": "Switch public key returned",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseMapStringObject"
+                }
+              }
+            }
+          }
+        },
+        "security": []
+      }
+    },
     "/v1/consent/{consentToken}": {
       "get": {
         "tags": [
@@ -1942,6 +1989,38 @@
               "*/*": {
                 "schema": {
                   "$ref": "#/components/schemas/ApiResponseConsentResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/applications/me": {
+      "get": {
+        "tags": [
+          "Authentication"
+        ],
+        "summary": "Get the calling application's basic information",
+        "description": "Returns the authenticated application's basic profile without sensitive credentials.",
+        "operationId": "currentApplication",
+        "responses": {
+          "401": {
+            "description": "Missing or invalid bearer token",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseApplicationResponse"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "Application information returned",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseApplicationResponse"
                 }
               }
             }
@@ -2058,6 +2137,9 @@
           "totalCredited": {
             "type": "number"
           },
+          "walletNetThreshold": {
+            "type": "number"
+          },
           "createdAt": {
             "type": "string",
             "format": "date-time"
@@ -2091,7 +2173,7 @@
             "exclusiveMinimum": false,
             "type": "number",
             "description": "Positive payment amount with up to 4 decimal places",
-            "example": 1500
+            "example": 1500.0
           },
           "currency": {
             "pattern": "^[A-Z]{3}$",
@@ -2110,7 +2192,7 @@
             "maxLength": 500,
             "minLength": 0,
             "type": "string",
-            "description": "Optional HTTPS URL that FLEX Switch will POST the final transaction status to once accepted or rejected",
+            "description": "Optional HTTPS URL that Switch will POST the final transaction status to once accepted or rejected",
             "example": "https://my-app.example.com/webhooks/transactions"
           },
           "idempotencyKey": {
@@ -2224,7 +2306,7 @@
           "amount": {
             "type": "number",
             "description": "Payment amount (DECIMAL 19,4)",
-            "example": 1500
+            "example": 1500.0
           },
           "currency": {
             "type": "string",
@@ -2275,6 +2357,11 @@
             "type": "string",
             "description": "ISO-8601 last-update timestamp",
             "format": "date-time"
+          },
+          "fee": {
+            "type": "number",
+            "description": "Fee charged to the application viewing this transaction",
+            "example": 25.0
           },
           "webhooks": {
             "type": "array",
@@ -2836,17 +2923,17 @@
           "totalCredited": {
             "type": "number",
             "description": "Total incoming accepted payments for the settlement period",
-            "example": 150000
+            "example": 150000.0
           },
           "totalDebited": {
             "type": "number",
             "description": "Total outgoing accepted payments for the settlement period",
-            "example": 100000
+            "example": 100000.0
           },
           "netAmount": {
             "type": "number",
             "description": "Net position (totalCredited − totalDebited). Positive = net creditor.",
-            "example": 50000
+            "example": 50000.0
           },
           "openingBalance": {
             "type": "number",
@@ -2860,6 +2947,18 @@
             "type": "integer",
             "description": "Number of completed transactions included in this entry",
             "format": "int32"
+          },
+          "payoutReference": {
+            "type": "string",
+            "description": "External payout processor reference recorded for this settlement entry"
+          },
+          "payoutDetails": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "object",
+              "description": "Snapshot of the payout details used for this settlement entry"
+            },
+            "description": "Snapshot of the payout details used for this settlement entry"
           },
           "createdAt": {
             "type": "string",
@@ -2891,12 +2990,12 @@
           "totalCredited": {
             "type": "number",
             "description": "Total amount credited across all applications on this date",
-            "example": 250000
+            "example": 250000.0
           },
           "totalDebited": {
             "type": "number",
             "description": "Total amount debited across all applications on this date",
-            "example": 250000
+            "example": 250000.0
           },
           "transactionCount": {
             "type": "integer",
@@ -3028,31 +3127,21 @@
             "description": "Short unique slug used as the tag namespace for this application (e.g. 'walletapp'). Tags are addressed as 'localTag@appHandle' across the platform. Immutable once set.",
             "example": "walletapp"
           },
-          "clientId": {
-            "type": "string",
-            "description": "OAuth2-style client identifier (public)"
-          },
-          "clientSecret": {
-            "type": "string",
-            "description": "Raw client secret – returned ONLY on first registration; never stored in plaintext",
-            "readOnly": true
-          },
           "active": {
             "type": "boolean",
-            "description": "Whether this application can still use FLEX Switch"
+            "description": "Whether this application can still use Switch"
           },
           "redirectUris": {
             "type": "string",
             "description": "Space-separated list of allowed redirect URIs"
           },
+          "ipWhitelist": {
+            "type": "string",
+            "description": "Comma-separated list of allowed client IP addresses or CIDR ranges"
+          },
           "transactionWebhookUrl": {
             "type": "string",
-            "description": "URL that FLEX Switch POSTs transaction notifications to"
-          },
-          "webhookSecret": {
-            "type": "string",
-            "description": "Raw webhook signing secret – returned ONLY on first registration. Used to verify X-FLEX-Switch-Signature headers on inbound webhooks via HMAC-SHA256.",
-            "readOnly": true
+            "description": "URL that Switch POSTs transaction notifications to"
           },
           "metadata": {
             "type": "object",
@@ -3062,19 +3151,39 @@
             },
             "description": "Optional free-form metadata (JSON string)"
           },
+          "payoutDetails": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "object",
+              "description": "Arbitrary payout processor details for settling this application's net payouts"
+            },
+            "description": "Arbitrary payout processor details for settling this application's net payouts"
+          },
+          "walletNetThreshold": {
+            "type": "number",
+            "description": "Lowest permitted wallet net balance for this application before new outgoing transactions are blocked",
+            "example": -50000.0
+          },
           "logoUrl": {
             "type": "string",
             "description": "Optional URL of the application logo image"
           },
-          "appPublicKeyJwk": {
-            "$ref": "#/components/schemas/JwkDto"
+          "inflowPricingId": {
+            "type": "string",
+            "description": "Pricing applied when this application receives funds",
+            "format": "uuid"
           },
-          "appPrivateJwk": {
+          "outflowPricingId": {
+            "type": "string",
+            "description": "Pricing applied when this application sends funds",
+            "format": "uuid"
+          },
+          "publicJwk": {
             "$ref": "#/components/schemas/JwkDto"
           },
           "encryptionEnabled": {
             "type": "boolean",
-            "description": "Whether JWE payload encryption is enabled for this application. When true, FLEX Switch requires encrypted inbound request bodies and encrypts outbound webhooks."
+            "description": "Whether JWE payload encryption is enabled for this application. When true, Switch requires encrypted inbound request bodies and encrypts outbound webhooks."
           },
           "keyVersion": {
             "type": "integer",
@@ -3115,7 +3224,7 @@
             "type": "string"
           }
         },
-        "description": "EC P-256 private key in JWK format (includes 'd'). Returned ONLY on registration and on key rotation. Store securely – this can decrypt payloads encrypted for your application.",
+        "description": "EC P-256 public key in JWK format. Use this to encrypt payloads sent TO Switch (ECDH-ES+A256KW+A256GCM). Returned on registration and on key rotation.",
         "readOnly": true
       },
       "ApiResponseVoid": {
@@ -3249,13 +3358,13 @@
       "PageTransactionWebhookResponse": {
         "type": "object",
         "properties": {
-          "totalElements": {
-            "type": "integer",
-            "format": "int64"
-          },
           "totalPages": {
             "type": "integer",
             "format": "int32"
+          },
+          "totalElements": {
+            "type": "integer",
+            "format": "int64"
           },
           "first": {
             "type": "boolean"
@@ -3311,9 +3420,6 @@
           "paged": {
             "type": "boolean"
           },
-          "unpaged": {
-            "type": "boolean"
-          },
           "pageNumber": {
             "type": "integer",
             "format": "int32"
@@ -3321,6 +3427,9 @@
           "pageSize": {
             "type": "integer",
             "format": "int32"
+          },
+          "unpaged": {
+            "type": "boolean"
           }
         }
       },
@@ -3408,13 +3517,13 @@
       "PageLedgerEntryResponse": {
         "type": "object",
         "properties": {
-          "totalElements": {
-            "type": "integer",
-            "format": "int64"
-          },
           "totalPages": {
             "type": "integer",
             "format": "int32"
+          },
+          "totalElements": {
+            "type": "integer",
+            "format": "int64"
           },
           "first": {
             "type": "boolean"
@@ -3514,13 +3623,13 @@
       "PageTransactionResponse": {
         "type": "object",
         "properties": {
-          "totalElements": {
-            "type": "integer",
-            "format": "int64"
-          },
           "totalPages": {
             "type": "integer",
             "format": "int32"
+          },
+          "totalElements": {
+            "type": "integer",
+            "format": "int64"
           },
           "first": {
             "type": "boolean"
@@ -3680,13 +3789,13 @@
       "PageSettlementRecordResponse": {
         "type": "object",
         "properties": {
-          "totalElements": {
-            "type": "integer",
-            "format": "int64"
-          },
           "totalPages": {
             "type": "integer",
             "format": "int32"
+          },
+          "totalElements": {
+            "type": "integer",
+            "format": "int64"
           },
           "first": {
             "type": "boolean"
@@ -3817,7 +3926,8 @@
     "securitySchemes": {
       "bearerAuth": {
         "type": "http",
-        "description": "Obtain a token from `POST /v1/auth/token` using your `client_id` and `client_secret`, then enter `Bearer \u003Ctoken\u003E` here.\n",
+        "description": "Obtain a token from `POST /v1/auth/token` using your `client_id` and `client_secret`, then enter `Bearer <token>` here.\n",
+        "name": "bearerAuth",
         "scheme": "bearer",
         "bearerFormat": "JWT"
       }
