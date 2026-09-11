@@ -24,6 +24,21 @@ This command installs Mintlify's documentation skill for your configured AI tool
 
 See the [AI tools guides](/ai-tools) for tool-specific setup.
 
+## Sync OpenAPI specs
+
+Use the helper script to download an OpenAPI file from a remote URL into your local `openapi/` directory.
+
+```bash
+./scripts/sync-openapi.sh --url "https://example.com/openapi.json" --out "openapi/switch.openapi.json"
+```
+
+If your provider requires auth, pass a token from an environment variable:
+
+```bash
+export OPENAPI_TOKEN="your-token"
+./scripts/sync-openapi.sh --url "https://example.com/openapi.json" --out "openapi/switch.openapi.json" --token-env OPENAPI_TOKEN
+```
+
 ## Development
 
 Install the [Mintlify CLI](https://www.npmjs.com/package/mint) to preview your documentation changes locally. To install, use the following command:
