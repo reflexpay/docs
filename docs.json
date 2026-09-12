@@ -14,7 +14,7 @@
         "tab": "Guides",
         "groups": [
           {
-            "group": "Wallet SSO",
+            "group": "PayTag SSO",
             "pages": [
               "sso/index",
               "sso/authentication",
@@ -69,7 +69,7 @@
         "tab": "API Reference",
         "groups": [
           {
-            "group": "Wallet SSO",
+            "group": "PayTag SSO",
             "openapi": "openapi/sso.openapi.json"
           },
           {

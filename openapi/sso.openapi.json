@@ -1,9 +1,9 @@
 {
   "openapi": "3.0.3",
   "info": {
-    "title": "Wallet SSO API",
+    "title": "PayTag SSO API",
     "version": "1.0.0",
-    "description": "OpenAPI specification for the Wallet service API."
+    "description": "OpenAPI specification for PayTag wallet service API."
   },
   "servers": [
     {
