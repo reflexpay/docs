@@ -584,6 +584,42 @@
         ]
       }
     },
+    "/partner/wallet": {
+      "post": {
+        "tags": [
+          "Partner Wallet"
+        ],
+        "summary": "Create a partner-scoped wallet with KYC information",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreatePartnerWalletDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Partner wallet created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PartnerWallet"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ClientIdHeader": [],
+            "ApiKeyHeader": []
+          }
+        ]
+      }
+    },
     "/partner/wallet/{reference}": {
       "get": {
         "tags": [
@@ -752,12 +788,156 @@
         ]
       }
     },
-    "/partner/wallet/{reference}/refund/{transactionReference}": {
+    "/partner/wallet/{reference}/dynamic-account": {
       "post": {
         "tags": [
           "Partner Wallet"
         ],
-        "summary": "Refund a wallet transfer by initial transaction reference",
+        "summary": "Create a dynamic virtual account for a referenced partner wallet",
+        "parameters": [
+          {
+            "name": "reference",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Partner wallet reference"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/WalletTransferDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Dynamic virtual account",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WalletDynamicVirtualAccount"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ClientIdHeader": [],
+            "ApiKeyHeader": []
+          }
+        ]
+      }
+    },
+    "/partner/wallet/{reference}/transactions": {
+      "get": {
+        "tags": [
+          "Partner Wallet"
+        ],
+        "summary": "Get transactions for a referenced partner wallet",
+        "parameters": [
+          {
+            "name": "reference",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Partner wallet reference"
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 0
+            }
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 0
+            }
+          },
+          {
+            "name": "search",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "reference",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "schema": {
+              "$ref": "#/components/schemas/TransactionStatus"
+            }
+          },
+          {
+            "name": "currency",
+            "in": "query",
+            "schema": {
+              "$ref": "#/components/schemas/WalletCurrency"
+            }
+          },
+          {
+            "name": "startDate",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "description": "Date filter in YYYYMMDD format"
+            }
+          },
+          {
+            "name": "endDate",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "description": "Date filter in YYYYMMDD format"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Paginated wallet transactions",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaginatedWalletTransactionResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ClientIdHeader": [],
+            "ApiKeyHeader": []
+          }
+        ]
+      }
+    },
+    "/partner/wallet/{reference}/transactions/{transactionReference}": {
+      "get": {
+        "tags": [
+          "Partner Wallet"
+        ],
+        "summary": "Get a wallet transaction by reference",
         "parameters": [
           {
             "name": "reference",
@@ -775,12 +955,58 @@
             "schema": {
               "type": "string"
             },
-            "description": "Initial transaction reference to refund"
+            "description": "Wallet transaction reference"
           }
         ],
         "responses": {
           "200": {
-            "description": "Refund transaction detail",
+            "description": "Wallet transaction detail",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WalletTransactionDetail"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ClientIdHeader": [],
+            "ApiKeyHeader": []
+          }
+        ]
+      }
+    },
+    "/partner/wallet/{reference}/transactions/{transactionReference}/reverse": {
+      "post": {
+        "tags": [
+          "Partner Wallet"
+        ],
+        "summary": "Reverse a wallet transaction by reference",
+        "parameters": [
+          {
+            "name": "reference",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Partner wallet reference"
+          },
+          {
+            "name": "transactionReference",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Wallet transaction reference"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Reversal transaction detail",
             "content": {
               "application/json": {
                 "schema": {
@@ -1192,6 +1418,97 @@
           "metadata": {
             "type": "object",
             "additionalProperties": true
+          }
+        }
+      },
+      "CreatePartnerWalletKycDto": {
+        "type": "object",
+        "required": [
+          "firstName",
+          "lastName",
+          "otherName"
+        ],
+        "properties": {
+          "firstName": {
+            "type": "string"
+          },
+          "lastName": {
+            "type": "string"
+          },
+          "otherName": {
+            "type": "string"
+          }
+        }
+      },
+      "CreatePartnerWalletDto": {
+        "type": "object",
+        "required": [
+          "kyc"
+        ],
+        "properties": {
+          "currency": {
+            "$ref": "#/components/schemas/WalletCurrency"
+          },
+          "profileId": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "kyc": {
+            "$ref": "#/components/schemas/CreatePartnerWalletKycDto"
+          }
+        }
+      },
+      "WalletDynamicVirtualAccount": {
+        "type": "object",
+        "properties": {
+          "ID": {
+            "type": "integer"
+          },
+          "Reference": {
+            "type": "string"
+          },
+          "AccountNumber": {
+            "type": "string"
+          },
+          "AccountName": {
+            "type": "string"
+          },
+          "BankName": {
+            "type": "string"
+          },
+          "Amount": {
+            "type": "number"
+          },
+          "ExpiresAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          }
+        }
+      },
+      "PaginatedWalletTransactionResponse": {
+        "type": "object",
+        "required": [
+          "items",
+          "count",
+          "limit",
+          "offset"
+        ],
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/WalletTransactionDetail"
+            }
+          },
+          "count": {
+            "type": "integer"
+          },
+          "limit": {
+            "type": "integer"
+          },
+          "offset": {
+            "type": "integer"
           }
         }
       },

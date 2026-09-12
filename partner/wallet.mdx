@@ -1,6 +1,6 @@
 ---
 title: 'Wallet'
-description: 'Partner wallet endpoints for retrieving scoped wallets, summaries, transfers, and refunds'
+description: 'Partner wallet endpoints for provisioning scoped wallets, transfers, dynamic accounts, and transaction management'
 ---
 
 ## Overview
@@ -10,11 +10,14 @@ Each wallet reference represents a user identity mapped into your institution co
 
 These endpoints support:
 
+- Creating a partner-scoped wallet with KYC information
 - Retrieving the wallet profile by reference
 - Viewing the wallet transaction summary
 - Debiting the referenced wallet into your partner wallet
 - Crediting the referenced wallet from your partner wallet
-- Refunding an earlier wallet transaction using its original transaction reference
+- Creating a dynamic virtual account on a referenced wallet
+- Listing wallet transactions and retrieving a single wallet transaction
+- Reversing an earlier wallet transaction by reference
 
 <Note>
   All wallet endpoints require **partner authentication** headers:
@@ -29,6 +32,9 @@ These endpoints support:
 ## Wallet Endpoints
 
 <CardGroup cols={2}>
+  <Card title="Create Wallet" icon="circle-plus">
+    `POST /partner/wallet` - Provision a partner-scoped wallet with KYC information
+  </Card>
   <Card title="Get Wallet" icon="wallet">
     `GET /partner/wallet/{reference}` - Fetch a partner-scoped wallet by reference
   </Card>
@@ -41,10 +47,60 @@ These endpoints support:
   <Card title="Credit Wallet" icon="arrow-up-wide-short">
     `POST /partner/wallet/{reference}/credit` - Move funds from your partner wallet into the referenced wallet
   </Card>
-  <Card title="Refund Wallet Transaction" icon="rotate-left">
-    `POST /partner/wallet/{reference}/refund/{transactionReference}` - Refund a previous wallet transfer by initial transaction reference
+  <Card title="Create Dynamic Account" icon="building-columns">
+    `POST /partner/wallet/{reference}/dynamic-account` - Generate a temporary virtual account for a transaction
+  </Card>
+  <Card title="List Wallet Transactions" icon="list">
+    `GET /partner/wallet/{reference}/transactions` - Get paginated wallet transactions for a referenced wallet
+  </Card>
+  <Card title="Get Wallet Transaction" icon="receipt">
+    `GET /partner/wallet/{reference}/transactions/{transactionReference}` - Retrieve a wallet transaction by reference
+  </Card>
+  <Card title="Reverse Wallet Transaction" icon="rotate-left">
+    `POST /partner/wallet/{reference}/transactions/{transactionReference}/reverse` - Reverse a previous wallet transaction
   </Card>
 </CardGroup>
+
+---
+
+## Create Wallet
+
+Create a new partner-scoped wallet with customer KYC information.
+
+**Endpoint**: `POST /partner/wallet`
+
+**Request Body**:
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| currency | string | No | Wallet currency (`NGN` or `FP`) |
+| profileId | number | No | KYC profile ID to attach |
+| kyc.firstName | string | Yes | Customer first name |
+| kyc.lastName | string | Yes | Customer last name |
+| kyc.otherName | string | Yes | Customer other/middle name |
+
+### Request Example
+
+```bash cURL
+curl --request POST \
+  --url https://staging-api.yourflexpay.com/v2/partner/wallet \
+  --header 'Content-Type: application/json' \
+  --header 'x-client-id: your_partner_id' \
+  --header 'x-api-key: your_api_key' \
+  --data '{
+    "currency": "NGN",
+    "profileId": 3,
+    "kyc": {
+      "firstName": "Jane",
+      "lastName": "Doe",
+      "otherName": "A"
+    }
+  }'
+```
+
+### Response
+
+Returns the created `PartnerWallet` record including wallet `Reference`.
 
 ---
 
@@ -226,30 +282,108 @@ Returns the same wallet transaction detail structure as the debit endpoint.
 
 ---
 
-## Refund Wallet Transaction
+## Create Dynamic Virtual Account
 
-Refund a previous partner wallet transfer using the **initial transaction reference**.
-This endpoint only supports refunding wallet transfers that belong to the supplied partner wallet context.
+Create a dynamic (temporary) virtual account linked to the referenced wallet.
 
-**Endpoint**: `POST /partner/wallet/{reference}/refund/{transactionReference}`
+**Endpoint**: `POST /partner/wallet/{reference}/dynamic-account`
 
 **Path Parameters**:
 
 - `reference` (required): Partner wallet reference
-- `transactionReference` (required): Initial transaction reference to reverse/refund
+
+**Request Body**:
+
+Uses the same payload as debit/credit (`WalletTransferDto`) to define amount, reference, and metadata.
 
 ### Request Example
 
 ```bash cURL
 curl --request POST \
-  --url https://staging-api.yourflexpay.com/v2/partner/wallet/PW-ABC123/refund/TRF-1756747777777 \
+  --url https://staging-api.yourflexpay.com/v2/partner/wallet/PW-ABC123/dynamic-account \
+  --header 'Content-Type: application/json' \
+  --header 'x-client-id: your_partner_id' \
+  --header 'x-api-key: your_api_key' \
+  --data '{
+    "amount": 5000,
+    "reference": "PARTNER-DYN-1001"
+  }'
+```
+
+### Response
+
+Returns a `WalletDynamicVirtualAccount` payload containing account name/number, bank name, and expiry details.
+
+---
+
+## List Wallet Transactions
+
+Retrieve paginated transactions for a referenced partner wallet.
+
+**Endpoint**: `GET /partner/wallet/{reference}/transactions`
+
+**Path Parameters**:
+
+- `reference` (required): Partner wallet reference
+
+**Query Parameters**:
+
+- `limit`, `offset`
+- `search`, `reference`
+- `status`, `currency`
+- `startDate`, `endDate` (format: `YYYYMMDD`)
+
+### Request Example
+
+```bash cURL
+curl --request GET \
+  --url 'https://staging-api.yourflexpay.com/v2/partner/wallet/PW-ABC123/transactions?limit=20&offset=0&status=Successful' \
   --header 'x-client-id: your_partner_id' \
   --header 'x-api-key: your_api_key'
 ```
 
 ### Response
 
-Returns a wallet transaction detail object for the generated refund/reversal transaction.
+Returns a paginated response of wallet transaction detail objects.
+
+---
+
+## Get Wallet Transaction
+
+Retrieve a specific wallet transaction under a referenced partner wallet.
+
+**Endpoint**: `GET /partner/wallet/{reference}/transactions/{transactionReference}`
+
+**Path Parameters**:
+
+- `reference` (required): Partner wallet reference
+- `transactionReference` (required): Wallet transaction reference
+
+---
+
+## Reverse Wallet Transaction
+
+Reverse a previous partner wallet transaction by transaction reference.
+
+**Endpoint**: `POST /partner/wallet/{reference}/transactions/{transactionReference}/reverse`
+
+**Path Parameters**:
+
+- `reference` (required): Partner wallet reference
+- `transactionReference` (required): Wallet transaction reference to reverse
+
+### Request Example
+
+```bash cURL
+curl --request POST \
+  --url https://staging-api.yourflexpay.com/v2/partner/wallet/PW-ABC123/transactions/TRF-1756747777777/reverse \
+  --header 'x-client-id: your_partner_id' \
+  --header 'x-api-key: your_api_key'
+```
+
+### Response
+
+Returns a wallet transaction detail object for the generated reversal transaction.
 
 ```json
 {
@@ -259,7 +393,7 @@ Returns a wallet transaction detail object for the generated refund/reversal tra
   "Reference": "REV-TRF-1756747777777",
   "ExternalReference": "TRF-1756747777777",
   "Status": "Successful",
-  "Comment": "Refund for TRF-1756747777777",
+  "Comment": "Reverse for TRF-1756747777777",
   "Sender": {
     "Name": "Partner Wallet",
     "Amount": 5000,
@@ -285,7 +419,7 @@ Returns a wallet transaction detail object for the generated refund/reversal tra
 
 | Status Code | Description |
 |-------------|-------------|
-| `400` | Invalid request, unsupported refund target, or transaction does not belong to the partner wallet context |
+| `400` | Invalid request, unsupported reversal target, or transaction does not belong to the partner wallet context |
 | `401` | Invalid partner credentials |
 | `404` | Wallet reference or transaction reference not found |
 | `500` | Unexpected server error |
@@ -293,7 +427,7 @@ Returns a wallet transaction detail object for the generated refund/reversal tra
 ## Best Practices
 
 <Check>
-  Persist both the partner wallet `reference` and the returned transaction `Reference` values for reconciliation and refund workflows.
+  Persist both the partner wallet `reference` and the returned transaction `Reference` values for reconciliation and reversal workflows.
 </Check>
 
 <Check>
@@ -301,7 +435,7 @@ Returns a wallet transaction detail object for the generated refund/reversal tra
 </Check>
 
 <Check>
-  Only issue refunds for completed partner wallet transfer flows that were initiated from your institution context.
+  Only reverse completed partner wallet transfer flows that were initiated from your institution context.
 </Check>
 
 ## Related Pages

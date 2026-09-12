@@ -24,7 +24,7 @@ Participating applications initiate and confirm transactions through the gateway
     Generate QR codes for collection and split payment flows
   </Card>
   <Card title="Wallet Credit and Debit" icon="wallet">
-    Move funds between partner wallet and authenticated customer wallets
+    Provision wallets with KYC, move funds, create dynamic accounts, and reverse wallet transactions
   </Card>
   <Card title="Webhook Notifications" icon="webhook">
     Receive partner transaction and wallet debit or credit events in real time
@@ -64,7 +64,7 @@ All API requests are authenticated using partner credentials with support for te
     Manage collection points, route transactions, and handle splits
   </Card>
   <Card title="Wallet API" icon="wallet" href="/partner/wallet">
-    Retrieve wallet references, view summaries, move funds, and issue refunds
+    Provision scoped wallets, view summaries, move funds, create dynamic accounts, and reverse wallet transactions
   </Card>
   <Card title="Webhooks" icon="webhook" href="/partner/webhooks">
     Receive transaction status and wallet debit or credit event notifications
@@ -86,7 +86,7 @@ All Partner API endpoints require authentication using your partner credentials:
 </Note>
 
 <Note>
-  Wallet transfer and refund endpoints are available under the dedicated Wallet API using partner authentication and a partner wallet reference.
+  Wallet provisioning, transfer, dynamic account, and transaction reversal endpoints are available under the dedicated Wallet API using partner authentication and a partner wallet reference.
 </Note>
 
 <Note>
@@ -123,7 +123,7 @@ All Partner API endpoints require authentication using your partner credentials:
     Integrate FLEX collections into your point-of-sale system
   </Card>
   <Card title="Wallet Operations" icon="wallet">
-    Perform institution-scoped debit, credit, summary, and refund operations on linked wallets
+    Perform institution-scoped provisioning, debit, credit, summary, dynamic account, and reversal operations on linked wallets
   </Card>
   <Card title="Webhook Automation" icon="webhook">
     Automate reconciliation and notifications using partner webhook callbacks
