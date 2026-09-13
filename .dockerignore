@@ -1,0 +1,19 @@
+.git
+.gitignore
+.DS_Store
+node_modules
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+.env
+.env.*
+
+# Local IDE files
+.idea
+.vscode
+
+# Optional local artifacts
+dist
+coverage
+

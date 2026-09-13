@@ -1,0 +1,46 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: flex-docs
+  labels:
+    app: flex-docs
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: flex-docs
+  template:
+    metadata:
+      labels:
+        app: flex-docs
+    spec:
+      containers:
+        - name: flex-docs
+          image: europe-west2-docker.pkg.dev/reflexpay-43e95/flex-docker/docs:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: http
+              containerPort: 3000
+          startupProbe:
+            httpGet:
+              path: /
+              port: http
+            # Allow up to 10 minutes for initial indexing/build.
+            periodSeconds: 15
+            timeoutSeconds: 10
+            failureThreshold: 40
+          readinessProbe:
+            httpGet:
+              path: /
+              port: http
+            initialDelaySeconds: 30
+            periodSeconds: 15
+            timeoutSeconds: 10
+            failureThreshold: 10
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi
