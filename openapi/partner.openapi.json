@@ -585,11 +585,35 @@
       }
     },
     "/partner/wallet": {
+      "get": {
+        "tags": [
+          "Partner Wallet"
+        ],
+        "summary": "Get partner wallet",
+        "responses": {
+          "200": {
+            "description": "Partner wallet",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Wallet"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ClientIdHeader": [],
+            "ApiKeyHeader": []
+          }
+        ]
+      },
       "post": {
         "tags": [
           "Partner Wallet"
         ],
-        "summary": "Create a partner-scoped wallet with KYC information",
+        "summary": "Create partner scoped wallet",
         "requestBody": {
           "required": true,
           "content": {
@@ -602,7 +626,7 @@
         },
         "responses": {
           "200": {
-            "description": "Partner wallet created",
+            "description": "Partner scoped wallet created",
             "content": {
               "application/json": {
                 "schema": {
@@ -625,7 +649,7 @@
         "tags": [
           "Partner Wallet"
         ],
-        "summary": "Get partner wallet by reference",
+        "summary": "Get partner scoped wallet",
         "parameters": [
           {
             "name": "reference",
@@ -639,7 +663,7 @@
         ],
         "responses": {
           "200": {
-            "description": "Partner wallet details",
+            "description": "Partner scoped wallet details",
             "content": {
               "application/json": {
                 "schema": {
@@ -1512,7 +1536,75 @@
           }
         }
       },
+      "Wallet": {
+        "description": "Wallet",
+        "type": "object",
+        "required": [
+          "ID",
+          "CreatedAt",
+          "UpdatedAt",
+          "TotalAmount",
+          "Currency",
+          "SuspendedAmount",
+          "BlockedAmount",
+          "Status",
+          "AvailableAmount",
+          "Amount",
+          "Nuban"
+        ],
+        "properties": {
+          "ID": {
+            "type": "integer"
+          },
+          "CreatedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "UpdatedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "Metadata": {
+            "type": "object",
+            "additionalProperties": true
+          },
+          "Type": {
+            "$ref": "#/components/schemas/WalletType"
+          },
+          "PayTag": {
+            "$ref": "#/components/schemas/PayTag"
+          },
+          "TotalAmount": {
+            "type": "number"
+          },
+          "Currency": {
+            "$ref": "#/components/schemas/WalletCurrency"
+          },
+          "SuspendedAmount": {
+            "type": "number"
+          },
+          "BlockedAmount": {
+            "type": "number"
+          },
+          "Status": {
+            "$ref": "#/components/schemas/WalletStatus"
+          },
+          "AvailableAmount": {
+            "type": "number"
+          },
+          "Amount": {
+            "type": "number"
+          },
+          "Name": {
+            "type": "string"
+          },
+          "Nuban": {
+            "type": "string"
+          }
+        }
+      },
       "PartnerWallet": {
+        "description": "Partner scoped wallet.",
         "type": "object",
         "required": [
           "ID",
@@ -1542,39 +1634,13 @@
             "format": "date-time"
           },
           "PayTag": {
-            "$ref": "#/components/schemas/PartnerWalletPayTag"
+            "$ref": "#/components/schemas/PayTag"
           },
           "Wallet": {
-            "$ref": "#/components/schemas/PartnerWalletLedger"
+            "$ref": "#/components/schemas/Wallet"
           },
           "KycProfile": {
             "$ref": "#/components/schemas/PartnerWalletKycProfile"
-          }
-        }
-      },
-      "PartnerWalletPayTag": {
-        "type": "object",
-        "properties": {
-          "ID": {
-            "type": "integer"
-          },
-          "Tag": {
-            "type": "string"
-          }
-        }
-      },
-      "PartnerWalletLedger": {
-        "type": "object",
-        "required": [
-          "ID",
-          "Currency"
-        ],
-        "properties": {
-          "ID": {
-            "type": "integer"
-          },
-          "Currency": {
-            "$ref": "#/components/schemas/WalletCurrency"
           }
         }
       },
@@ -1623,6 +1689,36 @@
         "type": "object",
         "additionalProperties": {
           "$ref": "#/components/schemas/PartnerWalletSummary"
+        }
+      },
+      "WalletType": {
+        "description": "Wallet type.",
+        "type": "object",
+        "properties": {
+          "Name": {
+            "type": "string"
+          }
+        }
+      },
+      "PayTag": {
+        "description": "Paytag profile.",
+        "type": "object",
+        "properties": {
+          "Tag": {
+            "type": "string"
+          },
+          "Name": {
+            "type": "string"
+          },
+          "Email": {
+            "type": "string"
+          },
+          "Phone": {
+            "type": "string"
+          },
+          "ImageUrl": {
+            "type": "string"
+          }
         }
       },
       "PartnerWebhookEnvelope": {
@@ -1836,6 +1932,15 @@
         "enum": [
           "NGN",
           "FP"
+        ]
+      },
+      "WalletStatus": {
+        "type": "string",
+        "enum": [
+          "Enabled",
+          "Blocked",
+          "PND",
+          "PNC"
         ]
       },
       "TransactionStatus": {

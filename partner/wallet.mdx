@@ -6,10 +6,11 @@ description: 'Partner wallet endpoints for provisioning scoped wallets, transfer
 ## Overview
 
 The Wallet API allows a partner to operate on a **partner-scoped wallet reference**.
-Each wallet reference represents a user identity mapped into your institution context through `PartnerWallet`.
+Each wallet reference represents a user identity mapped into your institution context through a `PartnerWallet` mapping, while your own partner balance is exposed as a `Wallet` ledger.
 
 These endpoints support:
 
+- Retrieving your authenticated partner wallet
 - Creating a partner-scoped wallet with KYC information
 - Retrieving the wallet profile by reference
 - Viewing the wallet transaction summary
@@ -32,6 +33,9 @@ These endpoints support:
 ## Wallet Endpoints
 
 <CardGroup cols={2}>
+  <Card title="Get Partner Wallet" icon="building">
+    `GET /partner/wallet` - Fetch the authenticated partner wallet tied to your API credentials
+  </Card>
   <Card title="Create Wallet" icon="circle-plus">
     `POST /partner/wallet` - Provision a partner-scoped wallet with KYC information
   </Card>
@@ -63,9 +67,62 @@ These endpoints support:
 
 ---
 
+## Get Partner Wallet
+
+Retrieve the wallet owned by the authenticated partner.
+This endpoint does not require a wallet reference because the wallet ledger is resolved directly from your partner credentials.
+
+**Endpoint**: `GET /partner/wallet`
+
+### Request Example
+
+```bash cURL
+curl --request GET \
+  --url https://staging-api.yourflexpay.com/v2/partner/wallet \
+  --header 'x-client-id: your_partner_id' \
+  --header 'x-api-key: your_api_key'
+```
+
+### Response
+
+Returns the authenticated `Wallet` ledger for your partner context, not the `PartnerWallet` mapping object used for referenced customer-scoped wallets.
+
+```json
+{
+  "ID": 1,
+  "Type": {
+    "Name": "Escrow"
+  },
+  "PayTag": {
+    "Tag": "@partnerdemo",
+    "Name": "Partner Demo Ltd"
+  },
+  "CreatedAt": "2026-09-01T10:00:00Z",
+  "UpdatedAt": "2026-09-01T10:00:00Z",
+  "Metadata": {
+    "alias": "Partner Demo Ltd"
+  },
+  "TotalAmount": 125000,
+  "Currency": "NGN",
+  "SuspendedAmount": 0,
+  "BlockedAmount": 0,
+  "Status": "Enabled",
+  "AvailableAmount": 125000,
+  "Amount": 125000,
+  "Name": "Partner Demo Ltd",
+  "Nuban": "0000000001"
+}
+```
+
+<Note>
+  Use this endpoint when you need the wallet currently attached to your partner account itself. Use `GET /partner/wallet/{reference}` to retrieve a customer-scoped `PartnerWallet` that was provisioned under your institution context.
+</Note>
+
+---
+
 ## Create Wallet
 
-Create a new partner-scoped wallet with customer KYC information.
+Create a new partner-scoped `PartnerWallet` mapping with customer KYC information.
 
 **Endpoint**: `POST /partner/wallet`
 
@@ -100,7 +157,7 @@ curl --request POST \
 
 ### Response
 
-Returns the created `PartnerWallet` record including wallet `Reference`.
+Returns the created `PartnerWallet` mapping including the partner-scoped `Reference` and underlying `Wallet` ledger.
 
 ---
 
@@ -121,6 +178,7 @@ You should store this reference when a wallet is provisioned or linked for your 
 ## Get Wallet
 
 Retrieve the wallet profile linked to your partner for the supplied wallet reference.
+This endpoint returns the `PartnerWallet` mapping for a referenced customer-scoped wallet, including the nested `Wallet` ledger.
 
 **Endpoint**: `GET /partner/wallet/{reference}`
 
