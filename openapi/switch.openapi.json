@@ -1026,57 +1026,14 @@
         "security": []
       }
     },
-    "/v1/applications/webhook-secret/rotate": {
-      "post": {
-        "tags": [
-          "Authentication",
-          "Encryption"
-        ],
-        "summary": "Rotate the calling application's webhook signing secret",
-        "description": "Generates a new webhook signing secret for the authenticated application,\nstores only its hash, and returns the raw secret once.\n\nThis endpoint returns credential material via `ApplicationCredentialsResponse`,\nnot the minimal `ApplicationResponse` profile.\n\nUse the returned `webhookSecret` to verify `X-Switch-Signature` on inbound webhooks.\nThe previous webhook secret becomes invalid immediately.\n",
-        "operationId": "rotateWebhookSecret",
-        "responses": {
-          "401": {
-            "description": "Missing or invalid bearer token",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResponseApplicationCredentialsResponse"
-                }
-              }
-            }
-          },
-          "200": {
-            "description": "Webhook secret rotated - new secret returned once",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResponseApplicationCredentialsResponse"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Application not found",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResponseApplicationCredentialsResponse"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
     "/v1/applications/keys/rotate": {
       "post": {
         "tags": [
           "Authentication",
           "Encryption"
         ],
-        "summary": "Rotate the calling application's EC keypair",
-        "description": "Generates a fresh EC P-256 keypair for the authenticated application and\nreturns the new public key JWK and the raw private key material once.\n\nThis endpoint returns credential material via `ApplicationCredentialsResponse`,\nnot the minimal `ApplicationResponse` profile.\n\n**The private JWK is returned only once** - store it securely.\nAfter rotation:\n- Switch will encrypt all outbound webhooks with the **new** public key.\n- Requests encrypted with the **old** public key will be rejected (Content-Encryption: JWE decryption will fail).\n- Allow a brief migration window for in-flight messages before destroying the old private key.\n\nThe `keyVersion` field is incremented on each rotation.\n",
+        "summary": "Rotate the calling application's full credential set",
+        "description": "Generates a fresh client secret, webhook signing secret, and EC P-256 keypair\nfor the authenticated application and returns the new credential material once.\n\nThis endpoint returns credential material via `ApplicationCredentialsResponse`.\n\n**The clientSecret, webhookSecret, and privateJWK are returned only once** - store them securely.\nAfter rotation:\n- The previous client secret becomes invalid immediately.\n- The previous webhook secret becomes invalid immediately.\n- Switch will encrypt all outbound webhooks with the **new** public key.\n- Requests encrypted with the **old** public key will be rejected (Content-Encryption: JWE decryption will fail).\n- Allow a brief migration window for in-flight messages before destroying the old private key.\n\nThe `keyVersion` field is incremented on each rotation.\n",
         "operationId": "rotateKeys",
         "responses": {
           "401": {
@@ -1089,8 +1046,8 @@
               }
             }
           },
-          "500": {
-            "description": "Keypair rotation failed",
+          "200": {
+            "description": "Credentials rotated - new credential material returned",
             "content": {
               "*/*": {
                 "schema": {
@@ -1099,8 +1056,8 @@
               }
             }
           },
-          "200": {
-            "description": "Keypair rotated - new key material returned",
+          "500": {
+            "description": "Credential rotation failed",
             "content": {
               "*/*": {
                 "schema": {
