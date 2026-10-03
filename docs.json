@@ -113,6 +113,10 @@
   "navbar": {
     "links": [
       {
+        "label": "Customer",
+        "href": "https://app.yourflexpay.com"
+      },
+      {
         "label": "Merchant",
         "href": "https://business.yourflexpay.com"
       },
@@ -124,7 +128,7 @@
     "primary": {
       "type": "button",
       "label": "Support",
-      "href": "mailto:developer@yourflexpay.com"
+      "href": "mailto:techsupport@yourflexpay.com"
     }
   },
   "contextual": {
