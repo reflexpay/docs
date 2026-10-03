@@ -1033,7 +1033,7 @@
           "Encryption"
         ],
         "summary": "Rotate the calling application's webhook signing secret",
-        "description": "Generates a new webhook signing secret for the authenticated application,\nstores only its hash, and returns the raw secret once.\n\nUse the returned `webhookSecret` to verify `X-Switch-Signature` on inbound webhooks.\nThe previous webhook secret becomes invalid immediately.\n",
+        "description": "Generates a new webhook signing secret for the authenticated application,\nstores only its hash, and returns the raw secret once.\n\nThis endpoint returns credential material via `ApplicationCredentialsResponse`,\nnot the minimal `ApplicationResponse` profile.\n\nUse the returned `webhookSecret` to verify `X-Switch-Signature` on inbound webhooks.\nThe previous webhook secret becomes invalid immediately.\n",
         "operationId": "rotateWebhookSecret",
         "responses": {
           "401": {
@@ -1041,7 +1041,7 @@
             "content": {
               "*/*": {
                 "schema": {
-                  "$ref": "#/components/schemas/ApiResponseApplicationResponse"
+                  "$ref": "#/components/schemas/ApiResponseApplicationCredentialsResponse"
                 }
               }
             }
@@ -1051,7 +1051,7 @@
             "content": {
               "*/*": {
                 "schema": {
-                  "$ref": "#/components/schemas/ApiResponseApplicationResponse"
+                  "$ref": "#/components/schemas/ApiResponseApplicationCredentialsResponse"
                 }
               }
             }
@@ -1061,7 +1061,7 @@
             "content": {
               "*/*": {
                 "schema": {
-                  "$ref": "#/components/schemas/ApiResponseApplicationResponse"
+                  "$ref": "#/components/schemas/ApiResponseApplicationCredentialsResponse"
                 }
               }
             }
@@ -1076,7 +1076,7 @@
           "Encryption"
         ],
         "summary": "Rotate the calling application's EC keypair",
-        "description": "Generates a fresh EC P-256 keypair for the authenticated application and\nreturns the new public key (JWK) and private key material (`appPrivateJwk`).\n\n**The private JWK is returned only once** - store it securely.\nAfter rotation:\n- Switch will encrypt all outbound webhooks with the **new** public key.\n- Requests encrypted with the **old** public key will be rejected (Content-Encryption: JWE decryption will fail).\n- Allow a brief migration window for in-flight messages before destroying the old private key.\n\nThe `keyVersion` field is incremented on each rotation.\n",
+        "description": "Generates a fresh EC P-256 keypair for the authenticated application and\nreturns the new public key JWK and the raw private key material once.\n\nThis endpoint returns credential material via `ApplicationCredentialsResponse`,\nnot the minimal `ApplicationResponse` profile.\n\n**The private JWK is returned only once** - store it securely.\nAfter rotation:\n- Switch will encrypt all outbound webhooks with the **new** public key.\n- Requests encrypted with the **old** public key will be rejected (Content-Encryption: JWE decryption will fail).\n- Allow a brief migration window for in-flight messages before destroying the old private key.\n\nThe `keyVersion` field is incremented on each rotation.\n",
         "operationId": "rotateKeys",
         "responses": {
           "401": {
@@ -1084,7 +1084,7 @@
             "content": {
               "*/*": {
                 "schema": {
-                  "$ref": "#/components/schemas/ApiResponseApplicationResponse"
+                  "$ref": "#/components/schemas/ApiResponseApplicationCredentialsResponse"
                 }
               }
             }
@@ -1094,7 +1094,7 @@
             "content": {
               "*/*": {
                 "schema": {
-                  "$ref": "#/components/schemas/ApiResponseApplicationResponse"
+                  "$ref": "#/components/schemas/ApiResponseApplicationCredentialsResponse"
                 }
               }
             }
@@ -1104,7 +1104,7 @@
             "content": {
               "*/*": {
                 "schema": {
-                  "$ref": "#/components/schemas/ApiResponseApplicationResponse"
+                  "$ref": "#/components/schemas/ApiResponseApplicationCredentialsResponse"
                 }
               }
             }
@@ -2485,7 +2485,7 @@
           "tag": {
             "maxLength": 64,
             "minLength": 3,
-            "pattern": "^[a-z0-9]([a-z0-9\\-]*[a-z0-9])?$",
+            "pattern": "^[a-z0-9]+$",
             "type": "string"
           },
           "subjectId": {
@@ -2915,6 +2915,16 @@
             "description": "UUID of the application's escrow wallet",
             "format": "uuid"
           },
+          "settlementRecordId": {
+            "type": "string",
+            "description": "UUID of the settlement batch this entry belongs to",
+            "format": "uuid"
+          },
+          "settlementDate": {
+            "type": "string",
+            "description": "Settlement date for the batch this entry belongs to",
+            "format": "date"
+          },
           "currency": {
             "type": "string",
             "description": "ISO 4217 currency code",
@@ -3083,7 +3093,7 @@
           }
         }
       },
-      "ApiResponseApplicationResponse": {
+      "ApiResponseApplicationCredentialsResponse": {
         "type": "object",
         "properties": {
           "success": {
@@ -3096,7 +3106,7 @@
             "type": "string"
           },
           "data": {
-            "$ref": "#/components/schemas/ApplicationResponse"
+            "$ref": "#/components/schemas/ApplicationCredentialsResponse"
           },
           "errors": {
             "type": "array",
@@ -3110,94 +3120,37 @@
           }
         }
       },
-      "ApplicationResponse": {
+      "ApplicationCredentialsResponse": {
         "type": "object",
         "properties": {
-          "id": {
+          "clientId": {
             "type": "string",
-            "description": "Application UUID",
-            "format": "uuid"
+            "description": "OAuth2-style client identifier (public)"
           },
-          "name": {
+          "clientSecret": {
             "type": "string",
-            "description": "Human-readable application name"
+            "description": "Raw client secret. Returned only when application is created.",
+            "readOnly": true
           },
-          "appHandle": {
+          "webhookSecret": {
             "type": "string",
-            "description": "Short unique slug used as the tag namespace for this application (e.g. 'walletapp'). Tags are addressed as 'localTag@appHandle' across the platform. Immutable once set.",
-            "example": "walletapp"
-          },
-          "active": {
-            "type": "boolean",
-            "description": "Whether this application can still use Switch"
-          },
-          "redirectUris": {
-            "type": "string",
-            "description": "Space-separated list of allowed redirect URIs"
-          },
-          "ipWhitelist": {
-            "type": "string",
-            "description": "Comma-separated list of allowed client IP addresses or CIDR ranges"
-          },
-          "transactionWebhookUrl": {
-            "type": "string",
-            "description": "URL that Switch POSTs transaction notifications to"
-          },
-          "metadata": {
-            "type": "object",
-            "additionalProperties": {
-              "type": "object",
-              "description": "Optional free-form metadata (JSON string)"
-            },
-            "description": "Optional free-form metadata (JSON string)"
-          },
-          "payoutDetails": {
-            "type": "object",
-            "additionalProperties": {
-              "type": "object",
-              "description": "Arbitrary payout processor details for settling this application's net payouts"
-            },
-            "description": "Arbitrary payout processor details for settling this application's net payouts"
-          },
-          "walletNetThreshold": {
-            "type": "number",
-            "description": "Lowest permitted wallet net balance for this application before new outgoing transactions are blocked",
-            "example": -50000.0
-          },
-          "logoUrl": {
-            "type": "string",
-            "description": "Optional URL of the application logo image"
-          },
-          "inflowPricingId": {
-            "type": "string",
-            "description": "Pricing applied when this application receives funds",
-            "format": "uuid"
-          },
-          "outflowPricingId": {
-            "type": "string",
-            "description": "Pricing applied when this application sends funds",
-            "format": "uuid"
+            "description": "Raw webhook signing secret",
+            "readOnly": true
           },
           "publicJwk": {
             "$ref": "#/components/schemas/JwkDto"
           },
-          "encryptionEnabled": {
-            "type": "boolean",
-            "description": "Whether JWE payload encryption is enabled for this application. When true, Switch requires encrypted inbound request bodies and encrypts outbound webhooks."
+          "privateJwk": {
+            "$ref": "#/components/schemas/JwkDto"
           },
           "keyVersion": {
             "type": "integer",
             "description": "Current keypair version. Incremented on each rotation.",
             "format": "int32",
             "example": 1
-          },
-          "createdAt": {
-            "type": "string",
-            "description": "ISO-8601 creation timestamp",
-            "format": "date-time"
           }
         },
-        "description": "Registered application (tenant) details"
+        "description": "Application credentials"
       },
       "JwkDto": {
         "type": "object",
@@ -3224,7 +3177,7 @@
             "type": "string"
           }
         },
-        "description": "EC P-256 public key in JWK format. Use this to encrypt payloads sent TO Switch (ECDH-ES+A256KW+A256GCM). Returned on registration and on key rotation.",
+        "description": "EC P-256 private key in JWK format",
         "readOnly": true
       },
       "ApiResponseVoid": {
@@ -3417,9 +3370,6 @@
               "$ref": "#/components/schemas/SortObject"
             }
           },
-          "paged": {
-            "type": "boolean"
-          },
           "pageNumber": {
             "type": "integer",
             "format": "int32"
@@ -3429,6 +3379,9 @@
             "format": "int32"
           },
           "unpaged": {
+            "type": "boolean"
+          },
+          "paged": {
             "type": "boolean"
           }
         }
@@ -3921,6 +3874,113 @@
             "type": "string"
           }
         }
+      },
+      "ApiResponseApplicationResponse": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "message": {
+            "type": "string"
+          },
+          "errorCode": {
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/ApplicationResponse"
+          },
+          "errors": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "timestamp": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "ApplicationResponse": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Application UUID",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string",
+            "description": "Human-readable application name"
+          },
+          "appHandle": {
+            "type": "string",
+            "description": "Short unique slug used as the tag namespace for this application (e.g. 'walletapp'). Tags are addressed as 'localTag@appHandle' across the platform. Immutable once set.",
+            "example": "walletapp"
+          },
+          "active": {
+            "type": "boolean",
+            "description": "Whether this application can still use Switch"
+          },
+          "redirectUris": {
+            "type": "string",
+            "description": "Space-separated list of allowed redirect URIs"
+          },
+          "ipWhitelist": {
+            "type": "string",
+            "description": "Comma-separated list of allowed client IP addresses or CIDR ranges"
+          },
+          "transactionWebhookUrl": {
+            "type": "string",
+            "description": "URL that Switch POSTs transaction notifications to"
+          },
+          "metadata": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "object",
+              "description": "Optional free-form metadata (JSON string)"
+            },
+            "description": "Optional free-form metadata (JSON string)"
+          },
+          "payoutDetails": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "object",
+              "description": "Arbitrary payout processor details for settling this application's net payouts"
+            },
+            "description": "Arbitrary payout processor details for settling this application's net payouts"
+          },
+          "walletNetThreshold": {
+            "type": "number",
+            "description": "Lowest permitted wallet net balance for this application before new outgoing transactions are blocked",
+            "example": -50000.0
+          },
+          "logoUrl": {
+            "type": "string",
+            "description": "Optional URL of the application logo image"
+          },
+          "inflowPricingId": {
+            "type": "string",
+            "description": "Pricing applied when this application receives funds",
+            "format": "uuid"
+          },
+          "outflowPricingId": {
+            "type": "string",
+            "description": "Pricing applied when this application sends funds",
+            "format": "uuid"
+          },
+          "encryptionEnabled": {
+            "type": "boolean",
+            "description": "Whether JWE payload encryption is enabled for this application. When true, Switch requires encrypted inbound request bodies and encrypts outbound webhooks."
+          },
+          "createdAt": {
+            "type": "string",
+            "description": "ISO-8601 creation timestamp",
+            "format": "date-time"
+          }
+        },
+        "description": "Application profile"
       }
     },
     "securitySchemes": {

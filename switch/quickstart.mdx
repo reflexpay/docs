@@ -24,7 +24,7 @@ Save these values immediately from the response:
 - `clientId`
 - `clientSecret`
 - `webhookSecret`
-- `appPrivateKeyWrapped` if you plan to use JWE
+- `privateJwk` if you plan to use JWE
 
 ## 2. Exchange credentials for a token
 
@@ -63,7 +63,7 @@ curl -X POST https://staging-switch.yourflexpay.com/api/v1/tags \
   -H 'Content-Type: application/json' \
   -d '{
     "subjectId": "<subject-id>",
-    "tagString": "alice"
+    "tag": "alice"
   }'
 ```
 

@@ -38,7 +38,7 @@ Before creating a PayTag, check if the desired PayTag is available.
 <CodeGroup>
 ```bash cURL
 curl --request GET \
-  --url 'https://staging-api.yourflexpay.com/v2/sso/verify-tag?tag=@johndoe' \
+  --url 'https://staging-api.yourflexpay.com/v2/sso/verify-tag?tag=johndoe' \
   --header 'x-client-id: your_partner_id' \
   --header 'x-api-key: your_api_key'
 ```
@@ -60,7 +60,7 @@ async function checkPayTagAvailability(paytag) {
 }
 
 // Usage
-const isAvailable = await checkPayTagAvailability('@johndoe');
+const isAvailable = await checkPayTagAvailability('johndoe');
 if (isAvailable) {
   console.log('PayTag is available!');
 } else {
@@ -82,7 +82,7 @@ def check_paytag_availability(paytag):
     return result['availability']
 
 # Usage
-is_available = check_paytag_availability('@johndoe')
+is_available = check_paytag_availability('johndoe')
 if is_available:
     print('PayTag is available!')
 ```
@@ -92,12 +92,12 @@ if is_available:
 ```json
 {
   "availability": true,
-  "tag": "@johndoe"
+  "tag": "johndoe"
 }
 ```
 
 <Tip>
-  PayTags must start with `@` and can contain letters, numbers, underscores, and hyphens.
+  PayTags must be alphanumeric and 3-64 characters long.
 </Tip>
 
 ## Step 2: Initiate PayTag Creation
@@ -114,7 +114,7 @@ curl --request POST \
   --data '{
     "bvn": "12345678901",
     "uid": "optional_unique_id",
-    "referrer": "@referrer_paytag"
+    "referrer": "referrer_paytag"
   }'
 ```
 
@@ -145,7 +145,7 @@ async function initiateOnboarding(bvn, options = {}) {
 // Usage
 const onboarding = await initiateOnboarding('12345678901', {
   uid: 'user-12345',
-  referrer: '@partner_account'
+  referrer: 'partner_account'
 });
 ```
 
@@ -171,7 +171,7 @@ def initiate_onboarding(bvn, uid=None, referrer=None):
 onboarding = initiate_onboarding(
     bvn='12345678901',
     uid='user-12345',
-    referrer='@partner_account'
+    referrer='partner_account'
 )
 ```
 </CodeGroup>
@@ -358,7 +358,7 @@ curl --request POST \
   --header 'x-client-id: your_partner_id' \
   --header 'x-api-key: your_api_key' \
   --data '{
-    "tag": "@johndoe",
+    "tag": "johndoe",
     "password": "secure_password_123",
     "firstName": "John",
     "lastName": "Doe",
@@ -389,7 +389,7 @@ async function completeOnboarding(sessionId, customerData) {
 
 // Usage
 const customer = await completeOnboarding('onboarding_abc123xyz', {
-  tag: '@johndoe',
+  tag: 'johndoe',
   password: 'secure_password_123',
   firstName: 'John',
   lastName: 'Doe',
@@ -414,7 +414,7 @@ def complete_onboarding(session_id, customer_data):
 
 # Usage
 customer = complete_onboarding('onboarding_abc123xyz', {
-    'tag': '@johndoe',
+    'tag': 'johndoe',
     'password': 'secure_password_123',
     'firstName': 'John',
     'lastName': 'Doe',
@@ -433,7 +433,7 @@ customer = complete_onboarding('onboarding_abc123xyz', {
 ```json
 {
   "ID": 12345,
-  "PayTag": "@johndoe",
+  "PayTag": "johndoe",
   "Name": "John Doe",
   "Email": "john@example.com",
   "Phone": "2348012345678",

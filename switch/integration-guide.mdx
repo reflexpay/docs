@@ -77,7 +77,7 @@ A portable payment identifier (for example `alice`, `shop-main`) **scoped to the
 This means two different applications can each have a user named `alice` without any conflict - they become `alice@walletapp` and `alice@shopapp`, clearly distinct identities.
 
 Tag rules:
-- `localTag` part: 3–64 characters, lowercase alphanumeric + hyphens, not starting or ending with a hyphen
+- `localTag` part: 3–64 characters, lowercase alphanumeric only
 - `appHandle` part: 3–30 characters, lowercase alphanumeric + hyphens, not starting or ending with a hyphen; **set at registration time and immutable**
 - Tags can be resolved publicly using either the bare local name (`alice`) or the qualified address (`alice@walletapp`)
 - A bare name lookup that matches tags in more than one application returns **409 Conflict** - use the qualified address in that case
@@ -354,7 +354,7 @@ Content-Type: application/json
 
 | Field | Required | Validation |
 |---|---|---|
-| `tag` | ✅ | 3–64 chars; lowercase alphanumeric + hyphens; must not start or end with a hyphen |
+| `tag` | ✅ | 3–64 chars; lowercase alphanumeric |
 | `subjectId` | ✅ | Switch subject UUID - must belong to your application |
 
 Switch automatically derives the **qualified address** by appending your application's `appHandle`: `alice` → `alice@walletapp`.
@@ -416,7 +416,7 @@ Use this before initiating a payment to confirm the destination tag exists and i
 
 The sending application calls this endpoint to begin a cross-application payment.
 
-> **Tag addressing:** Both `senderTag` and `receiverTag` accept either a bare local name (`alice`) or a qualified address (`alice@walletapp`).  
+> **Tag addressing:** Both `senderTag` and `receiverTag` accept either a bare local name (`alice`) or a qualified address (`alice@walletapp`).
 > Use the **qualified address whenever possible** - bare names that exist on more than one application return a **409 Conflict** asking you to specify the qualified address.
 
 ```http
@@ -578,42 +578,20 @@ Only the **receiving application** can accept or reject. Switch enforces this - 
 
 ### Accept
 
-```http
-POST /v1/transactions/TXN-9812345678-A1B2C3D4/accept
-Authorization: Bearer <App B (receiver) token>
-```
+Call `POST /v1/transactions/{reference}/accept` with the receiver application's token. No request body is required.
 
-No request body required. On success:
+On success:
 - Sender's wallet is **debited** by `amount`
 - Receiver's wallet is **credited** by `amount`
 - Two immutable `LedgerEntry` rows are written
 - Transaction status moves to `COMPLETED`
 - Sender's `callbackUrl` receives `TRANSACTION_COMPLETED` (or the sender app's `transactionWebhookUrl` if no transaction-specific callback was supplied)
 
-```json
-{
-  "success": true,
-  "message": "Transaction accepted",
-  "data": {
-    "reference": "TXN-9812345678-A1B2C3D4",
-    "status": "COMPLETED",
-    "acceptedAt": "2025-03-04T10:10:00Z",
-    ...
-  }
-}
-```
+The response confirms the transaction was accepted and includes the transaction `reference`, `status`, and `acceptedAt` timestamp.
 
 ### Reject
 
-```http
-POST /v1/transactions/TXN-9812345678-A1B2C3D4/reject
-Authorization: Bearer <App B (receiver) token>
-Content-Type: application/json
-
-{
-  "reason": "Insufficient items in stock"
-}
-```
+Call `POST /v1/transactions/{reference}/reject` with the receiver application's token. You can include an optional `reason` such as `Insufficient items in stock`.
 
 The `reason` field is optional (max 500 chars). On success:
 - No ledger movement
@@ -1585,7 +1563,7 @@ POST /v1/wallet ──────►  Provision wallet (idempotent)
                                                                ◄──  credentials, keys
                                            POST /v1/auth/token ──►  Issue JWT
                                            POST /v1/subjects ────►  Create subject (Bob)
-                                           POST /v1/tags ────────►  Create tag "bob" → qualified: bob@shopapp
+                                            POST /v1/tags ────────►  Create tag "bob" → qualified: bob@shopapp
                                            POST /v1/wallet ──────►  Provision wallet
 
 ─── Payment ─────────────────────────────────────────────────────
@@ -1601,8 +1579,8 @@ POST /v1/transactions ──► Validate alice@walletapp ∈ App A ✓
                     POST /switch/webhook ───────────────────────►
                     {event: TRANSACTION_INITIATED,               200 OK
                      X-Switch-Signature: v0=...,            ◄────
-                     transaction: {ref, senderTag: alice@walletapp,
-                                   receiverTag: bob@shopapp, amount, ...}}
+                      transaction: {ref, senderTag: alice@walletapp,
+                                    receiverTag: bob@shopapp, amount, ...}}
                                                            Verify signature ✓
                                                            Check business logic ✓
                                                            POST /v1/transactions/TXN-xxx/accept
