@@ -1,6 +1,6 @@
 ---
 title: 'Wallet'
-description: 'Partner wallet endpoints for provisioning scoped wallets, transfers, dynamic accounts, and transaction management'
+description: 'Partner wallet endpoints for provisioning scoped wallets, transfers, static and dynamic accounts, and transaction management'
 ---
 
 ## Overview
@@ -16,6 +16,7 @@ These endpoints support:
 - Viewing the wallet transaction summary
 - Debiting the referenced wallet into your partner wallet
 - Crediting the referenced wallet from your partner wallet
+- Creating a static virtual account on a referenced wallet
 - Creating a dynamic virtual account on a referenced wallet
 - Listing wallet transactions and retrieving a single wallet transaction
 - Reversing an earlier wallet transaction by reference
@@ -50,6 +51,9 @@ These endpoints support:
   </Card>
   <Card title="Credit Wallet" icon="arrow-up-wide-short">
     `POST /partner/wallet/{reference}/credit` - Move funds from your partner wallet into the referenced wallet
+  </Card>
+  <Card title="Create Static Account" icon="building-columns">
+    `POST /partner/wallet/{reference}/static-account` - Create a persistent virtual account for wallet funding
   </Card>
   <Card title="Create Dynamic Account" icon="building-columns">
     `POST /partner/wallet/{reference}/dynamic-account` - Generate a temporary virtual account for a transaction
@@ -371,6 +375,42 @@ curl --request POST \
 ### Response
 
 Returns a `WalletDynamicVirtualAccount` payload containing account name/number, bank name, and expiry details.
+
+---
+
+## Create Static Virtual Account
+
+Create a static (persistent) virtual account linked to the referenced wallet.
+
+**Endpoint**: `POST /partner/wallet/{reference}/static-account`
+
+**Path Parameters**:
+
+- `reference` (required): Partner wallet reference
+
+### Request Example
+
+```bash cURL
+curl --request POST \
+  --url https://staging-api.yourflexpay.com/v2/partner/wallet/PW-ABC123/static-account \
+  --header 'x-client-id: your_partner_id' \
+  --header 'x-api-key: your_api_key'
+```
+
+### Response
+
+Returns a `WalletStaticVirtualAccount` payload containing account name/number, bank name, and status.
+
+```json
+{
+  "ID": 415,
+  "Reference": "STV-001-ABC",
+  "AccountNumber": "1234567890",
+  "AccountName": "Jane Doe",
+  "BankName": "FLEX Settlement Bank",
+  "Status": "Enabled"
+}
+```
 
 ---
 

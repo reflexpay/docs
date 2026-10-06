@@ -1,0 +1,262 @@
+---
+title: 'PayTag'
+description: 'Partner PayTag endpoints for search, lookup, BVN linking, and PayTag creation'
+---
+
+## Overview
+
+The Partner PayTag API lets you search the FLEX ecosystem for PayTags, resolve a PayTag profile, look up an existing PayTag by BVN, link an existing PayTag into your partner context, and create a new PayTag-backed partner wallet.
+
+<Note>
+  All Partner PayTag endpoints require partner authentication headers:
+  - `x-client-id`
+  - `x-api-key`
+</Note>
+
+## PayTag Endpoints
+
+<CardGroup cols={2}>
+  <Card title="Search PayTags" icon="magnifying-glass">
+    `GET /partner/paytag/search?q={identifier}` - Search by tag, email, or phone prefix
+  </Card>
+  <Card title="Resolve PayTag" icon="at">
+    `GET /partner/paytag/{tag}` - Fetch a PayTag profile by tag
+  </Card>
+  <Card title="Get PayTag by BVN" icon="id-card">
+    `GET /partner/paytag/bvn/{bvn}` - Fetch the PayTag currently linked to a BVN
+  </Card>
+  <Card title="Link Existing PayTag" icon="link">
+    `POST /partner/paytag/bvn/{bvn}` - Create a partner wallet mapping for an existing BVN-linked PayTag
+  </Card>
+  <Card title="Create Partner PayTag" icon="circle-plus">
+    `POST /partner/paytag` - Create a new PayTag-backed partner wallet from customer details
+  </Card>
+</CardGroup>
+
+---
+
+## Search PayTags
+
+Search PayTags across the FLEX ecosystem using a query prefix.
+
+**Endpoint**: `GET /partner/paytag/search`
+
+**Query Parameters**:
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| q | string | Yes | Identifier prefix to search by tag, email, or phone |
+
+### Request Example
+
+```bash cURL
+curl --request GET \
+  --url 'https://staging-api.yourflexpay.com/v2/partner/paytag/search?q=jane' \
+  --header 'x-client-id: your_partner_id' \
+  --header 'x-api-key: your_api_key'
+```
+
+### Response
+
+```json
+{
+  "items": [
+    {
+      "Tag": "janedoe",
+      "Name": "Jane Doe",
+      "Email": "jane@example.com",
+      "Phone": "08012345678",
+      "ImageUrl": "https://example.com/avatar.jpg"
+    }
+  ],
+  "count": 1,
+  "limit": 20,
+  "offset": 0
+}
+```
+
+---
+
+## Resolve PayTag
+
+Resolve a specific PayTag profile by tag value.
+
+**Endpoint**: `GET /partner/paytag/{tag}`
+
+**Path Parameters**:
+
+- `tag` (required): PayTag value to resolve
+
+### Request Example
+
+```bash cURL
+curl --request GET \
+  --url https://staging-api.yourflexpay.com/v2/partner/paytag/janedoe \
+  --header 'x-client-id: your_partner_id' \
+  --header 'x-api-key: your_api_key'
+```
+
+### Response
+
+```json
+{
+  "Tag": "janedoe",
+  "Name": "Jane Doe",
+  "Email": "jane@example.com",
+  "Phone": "08012345678",
+  "ImageUrl": "https://example.com/avatar.jpg"
+}
+```
+
+---
+
+## Get PayTag by BVN
+
+Find the PayTag currently associated with a BVN.
+
+**Endpoint**: `GET /partner/paytag/bvn/{bvn}`
+
+**Path Parameters**:
+
+- `bvn` (required): Customer BVN
+
+### Request Example
+
+```bash cURL
+curl --request GET \
+  --url https://staging-api.yourflexpay.com/v2/partner/paytag/bvn/12345678901 \
+  --header 'x-client-id: your_partner_id' \
+  --header 'x-api-key: your_api_key'
+```
+
+### Response
+
+Returns the same `PayTag` structure as the resolve endpoint.
+
+---
+
+## Link Existing PayTag by BVN
+
+Use an already-existing BVN-linked PayTag to create a `PartnerWallet` mapping in your institution context.
+
+**Endpoint**: `POST /partner/paytag/bvn/{bvn}`
+
+**Path Parameters**:
+
+- `bvn` (required): Customer BVN
+
+### Request Example
+
+```bash cURL
+curl --request POST \
+  --url https://staging-api.yourflexpay.com/v2/partner/paytag/bvn/12345678901 \
+  --header 'x-client-id: your_partner_id' \
+  --header 'x-api-key: your_api_key'
+```
+
+### Response
+
+Returns a `PartnerWallet` mapping containing the linked PayTag, generated partner reference, and underlying wallet.
+
+```json
+{
+  "ID": 42,
+  "Reference": "PW-ABC123",
+  "PayTag": {
+    "Tag": "janedoe",
+    "Name": "Jane Doe"
+  },
+  "Wallet": {
+    "ID": 901,
+    "Currency": "NGN"
+  },
+  "CreatedAt": "2026-10-06T10:00:00Z",
+  "UpdatedAt": "2026-10-06T10:00:00Z"
+}
+```
+
+---
+
+## Create Partner PayTag
+
+Create a new PayTag-backed partner wallet using customer identity details.
+
+**Endpoint**: `POST /partner/paytag`
+
+**Request Body**:
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| firstName | string | Yes | Customer first name |
+| lastName | string | Yes | Customer last name |
+| otherName | string | Yes | Customer other/middle name |
+| email | string | Yes | Customer email |
+| phone | string | Yes | Customer phone |
+| bvn | string | Yes | Customer BVN |
+| tag | string | No | Desired PayTag |
+| dateOfBirth | string | No | Customer date of birth |
+| imageUrl | string | No | Profile image URL |
+| gender | string | No | `Male` or `Female` |
+| address | string | No | Customer address |
+
+### Request Example
+
+```bash cURL
+curl --request POST \
+  --url https://staging-api.yourflexpay.com/v2/partner/paytag \
+  --header 'Content-Type: application/json' \
+  --header 'x-client-id: your_partner_id' \
+  --header 'x-api-key: your_api_key' \
+  --data '{
+    "firstName": "Jane",
+    "lastName": "Doe",
+    "otherName": "A",
+    "email": "jane@example.com",
+    "phone": "08012345678",
+    "bvn": "12345678901",
+    "tag": "janedoe"
+  }'
+```
+
+### Response
+
+Returns the created `PartnerWallet` mapping for the new PayTag and scoped wallet.
+
+---
+
+## Common Error Cases
+
+| Status Code | Description |
+|-------------|-------------|
+| `400` | Invalid payload, invalid PayTag, or a PayTag already exists for the BVN |
+| `401` | Invalid partner credentials |
+| `404` | PayTag or BVN-linked PayTag not found |
+| `500` | Unexpected server error |
+
+## Best Practices
+
+<Check>
+  Search or resolve a PayTag before linking by BVN so your integration can display a confirmation screen to operators.
+</Check>
+
+<Check>
+  Store the returned `PartnerWallet.Reference` after linking or creating a PayTag so you can use wallet endpoints later.
+</Check>
+
+## Related Pages
+
+<CardGroup cols={2}>
+  <Card title="Partner Overview" icon="home" href="/partner/index">
+    General partner API capabilities and authentication
+  </Card>
+  <Card title="Wallet API" icon="wallet" href="/partner/wallet">
+    Operate on partner-scoped wallets created from PayTags
+  </Card>
+  <Card title="Terminal API" icon="cash-register" href="/partner/terminal">
+    Handle partner terminal collection flows
+  </Card>
+  <Card title="OpenAPI Spec" icon="file-code" href="/openapi/partner.openapi.json">
+    Complete machine-readable API schema
+  </Card>
+</CardGroup>
+

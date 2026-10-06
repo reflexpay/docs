@@ -24,7 +24,10 @@ Participating applications initiate and confirm transactions through the gateway
     Generate QR codes for collection and split payment flows
   </Card>
   <Card title="Wallet Credit and Debit" icon="wallet">
-    Provision wallets with KYC, move funds, create dynamic accounts, and reverse wallet transactions
+    Provision wallets with KYC, move funds, create static and dynamic accounts, and reverse wallet transactions
+  </Card>
+  <Card title="PayTag Management" icon="at">
+    Search, resolve, create, and link PayTags to partner-scoped wallets
   </Card>
   <Card title="Webhook Notifications" icon="webhook">
     Receive partner transaction and wallet debit or credit events in real time
@@ -64,7 +67,10 @@ All API requests are authenticated using partner credentials with support for te
     Manage collection points, route transactions, and handle splits
   </Card>
   <Card title="Wallet API" icon="wallet" href="/partner/wallet">
-    Retrieve your partner wallet, provision scoped wallets, view summaries, move funds, create dynamic accounts, and reverse wallet transactions
+    Retrieve your partner wallet, provision scoped wallets, view summaries, move funds, create static and dynamic accounts, and reverse wallet transactions
+  </Card>
+  <Card title="PayTag API" icon="at" href="/partner/paytag">
+    Search ecosystem PayTags, resolve by tag or BVN, link existing profiles, and create partner PayTags
   </Card>
   <Card title="Webhooks" icon="webhook" href="/partner/webhooks">
     Receive transaction status and wallet debit or credit event notifications
@@ -125,6 +131,9 @@ All Partner API endpoints require authentication using your partner credentials:
   <Card title="Wallet Operations" icon="wallet">
     Retrieve your partner wallet and perform institution-scoped provisioning, debit, credit, summary, dynamic account, and reversal operations on linked wallets
   </Card>
+  <Card title="PayTag Resolution" icon="at">
+    Find or create PayTags for customers and bind them into your partner context
+  </Card>
   <Card title="Webhook Automation" icon="webhook">
     Automate reconciliation and notifications using partner webhook callbacks
   </Card>
@@ -163,6 +172,9 @@ Need help? Reach out to our developer support team:
   </Card>
   <Card title="Wallet API" icon="wallet" href="/partner/wallet">
     Explore scoped wallet operations and refunds
+  </Card>
+  <Card title="PayTag API" icon="at" href="/partner/paytag">
+    Explore partner PayTag lookup and creation flows
   </Card>
   <Card title="Webhooks" icon="webhook" href="/partner/webhooks">
     Implement partner event callbacks

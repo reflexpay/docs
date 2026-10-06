@@ -27,11 +27,14 @@
        "name": "Partner Transactions"
      },
      {
+       "name": "Partner PayTag"
+     },
+     {
        "name": "Partner Wallet"
      }
    ],
   "paths": {
-    "/terminal": {
+    "/partner/terminal": {
       "get": {
         "tags": [
           "Partner Terminal"
@@ -62,7 +65,7 @@
         ]
       }
     },
-    "/terminal/transaction": {
+    "/partner/terminal/transaction": {
       "post": {
         "tags": [
           "Partner Terminal"
@@ -103,7 +106,7 @@
         ]
       }
     },
-    "/terminal/transactions": {
+    "/partner/terminal/transactions": {
       "get": {
         "tags": [
           "Partner Terminal"
@@ -187,7 +190,7 @@
         ]
       }
     },
-    "/terminal/transaction/{reference}": {
+    "/partner/terminal/transaction/{reference}": {
       "get": {
         "tags": [
           "Partner Terminal"
@@ -226,7 +229,7 @@
         ]
       }
     },
-    "/terminal/split": {
+    "/partner/terminal/split": {
       "post": {
         "tags": [
           "Partner Terminal"
@@ -267,7 +270,7 @@
         ]
       }
     },
-    "/terminal/splits": {
+    "/partner/terminal/splits": {
       "get": {
         "tags": [
           "Partner Terminal"
@@ -337,7 +340,7 @@
         ]
       }
     },
-    "/terminal/split/{split}": {
+    "/partner/terminal/split/{split}": {
       "get": {
         "tags": [
           "Partner Terminal"
@@ -376,7 +379,7 @@
         ]
       }
     },
-    "/terminal/split/{split}/qr": {
+    "/partner/terminal/split/{split}/qr": {
       "get": {
         "tags": [
           "Partner Terminal"
@@ -571,6 +574,266 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/IPartnerTransaction"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ClientIdHeader": [],
+            "ApiKeyHeader": []
+          }
+        ]
+      }
+    },
+    "/partner/paytag/search": {
+      "get": {
+        "tags": [
+          "Partner PayTag"
+        ],
+        "summary": "Search PayTags",
+        "parameters": [
+          {
+            "name": "q",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Identifier prefix to search by tag, email, or phone"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Paginated PayTag search results",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaginatedPayTagResponse"
+                },
+                "example": {
+                  "items": [
+                    {
+                      "Tag": "janedoe",
+                      "Name": "Jane Doe",
+                      "Email": "jane@example.com",
+                      "Phone": "08012345678",
+                      "ImageUrl": "https://example.com/avatar.jpg"
+                    }
+                  ],
+                  "count": 1,
+                  "limit": 20,
+                  "offset": 0
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ClientIdHeader": [],
+            "ApiKeyHeader": []
+          }
+        ]
+      }
+    },
+    "/partner/paytag/{tag}": {
+      "get": {
+        "tags": [
+          "Partner PayTag"
+        ],
+        "summary": "Resolve PayTag",
+        "parameters": [
+          {
+            "name": "tag",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "PayTag value to resolve"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Resolved PayTag profile",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PayTag"
+                },
+                "example": {
+                  "Tag": "janedoe",
+                  "Name": "Jane Doe",
+                  "Email": "jane@example.com",
+                  "Phone": "08012345678",
+                  "ImageUrl": "https://example.com/avatar.jpg"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ClientIdHeader": [],
+            "ApiKeyHeader": []
+          }
+        ]
+      }
+    },
+    "/partner/paytag/bvn/{bvn}": {
+      "get": {
+        "tags": [
+          "Partner PayTag"
+        ],
+        "summary": "Get PayTag by BVN",
+        "parameters": [
+          {
+            "name": "bvn",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Customer BVN"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "PayTag profile linked to the BVN",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PayTag"
+                },
+                "example": {
+                  "Tag": "janedoe",
+                  "Name": "Jane Doe",
+                  "Email": "jane@example.com",
+                  "Phone": "08012345678",
+                  "ImageUrl": "https://example.com/avatar.jpg"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ClientIdHeader": [],
+            "ApiKeyHeader": []
+          }
+        ]
+      },
+      "post": {
+        "tags": [
+          "Partner PayTag"
+        ],
+        "summary": "Link BVN PayTag to partner",
+        "parameters": [
+          {
+            "name": "bvn",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Customer BVN"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Partner wallet created from the resolved PayTag",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PartnerWallet"
+                },
+                "example": {
+                  "ID": 42,
+                  "Reference": "PW-ABC123",
+                  "RevokedAt": null,
+                  "PayTag": {
+                    "Tag": "janedoe",
+                    "Name": "Jane Doe",
+                    "Email": "jane@example.com",
+                    "Phone": "08012345678",
+                    "ImageUrl": "https://example.com/avatar.jpg"
+                  },
+                  "Wallet": {
+                    "ID": 901,
+                    "Currency": "NGN",
+                    "Amount": 0,
+                    "AvailableAmount": 0,
+                    "TotalAmount": 0,
+                    "SuspendedAmount": 0,
+                    "BlockedAmount": 0,
+                    "Status": "Enabled",
+                    "Nuban": "0000000001"
+                  },
+                  "CreatedAt": "2026-10-06T10:00:00Z",
+                  "UpdatedAt": "2026-10-06T10:00:00Z"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ClientIdHeader": [],
+            "ApiKeyHeader": []
+          }
+        ]
+      }
+    },
+    "/partner/paytag": {
+      "post": {
+        "tags": [
+          "Partner PayTag"
+        ],
+        "summary": "Create partner PayTag",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreatePartnerTagDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Partner wallet created for the new PayTag",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PartnerWallet"
+                },
+                "example": {
+                  "ID": 43,
+                  "Reference": "PW-XYZ456",
+                  "RevokedAt": null,
+                  "PayTag": {
+                    "Tag": "janedoe",
+                    "Name": "Jane Doe",
+                    "Email": "jane@example.com",
+                    "Phone": "08012345678",
+                    "ImageUrl": "https://example.com/avatar.jpg"
+                  },
+                  "Wallet": {
+                    "ID": 902,
+                    "Currency": "NGN",
+                    "Amount": 0,
+                    "AvailableAmount": 0,
+                    "TotalAmount": 0,
+                    "SuspendedAmount": 0,
+                    "BlockedAmount": 0,
+                    "Status": "Enabled",
+                    "Nuban": "0000000002"
+                  },
+                  "CreatedAt": "2026-10-06T10:15:00Z",
+                  "UpdatedAt": "2026-10-06T10:15:00Z"
                 }
               }
             }
@@ -799,6 +1062,43 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/WalletTransactionDetail"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ClientIdHeader": [],
+            "ApiKeyHeader": []
+          }
+        ]
+      }
+    },
+    "/partner/wallet/{reference}/static-account": {
+      "post": {
+        "tags": [
+          "Partner Wallet"
+        ],
+        "summary": "Create a static virtual account for a referenced partner wallet",
+        "parameters": [
+          {
+            "name": "reference",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Partner wallet reference"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Static virtual account",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WalletStaticVirtualAccount"
                 }
               }
             }
@@ -1417,6 +1717,32 @@
           }
         }
       },
+      "PaginatedPayTagResponse": {
+        "type": "object",
+        "required": [
+          "items",
+          "count",
+          "limit",
+          "offset"
+        ],
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PayTag"
+            }
+          },
+          "count": {
+            "type": "integer"
+          },
+          "limit": {
+            "type": "integer"
+          },
+          "offset": {
+            "type": "integer"
+          }
+        }
+      },
       "WalletTransferDto": {
         "type": "object",
         "required": [
@@ -1461,6 +1787,35 @@
           },
           "otherName": {
             "type": "string"
+          },
+          "email": {
+            "type": "string"
+          },
+          "phone": {
+            "type": "string"
+          },
+          "dateOfBirth": {
+            "type": "string"
+          },
+          "imageUrl": {
+            "type": "string",
+            "format": "uri"
+          },
+          "gender": {
+            "type": "string",
+            "enum": [
+              "Male",
+              "Female"
+            ]
+          },
+          "payTag": {
+            "type": "string"
+          },
+          "bvn": {
+            "type": "string"
+          },
+          "address": {
+            "type": "string"
           }
         }
       },
@@ -1474,11 +1829,62 @@
             "$ref": "#/components/schemas/WalletCurrency"
           },
           "profileId": {
-            "type": "integer",
+            "type": "number",
             "minimum": 1
           },
           "kyc": {
             "$ref": "#/components/schemas/CreatePartnerWalletKycDto"
+          }
+        }
+      },
+      "CreatePartnerTagDto": {
+        "type": "object",
+        "required": [
+          "firstName",
+          "lastName",
+          "otherName",
+          "email",
+          "phone",
+          "bvn"
+        ],
+        "properties": {
+          "firstName": {
+            "type": "string"
+          },
+          "lastName": {
+            "type": "string"
+          },
+          "otherName": {
+            "type": "string"
+          },
+          "email": {
+            "type": "string"
+          },
+          "phone": {
+            "type": "string"
+          },
+          "dateOfBirth": {
+            "type": "string"
+          },
+          "imageUrl": {
+            "type": "string",
+            "format": "uri"
+          },
+          "gender": {
+            "type": "string",
+            "enum": [
+              "Male",
+              "Female"
+            ]
+          },
+          "address": {
+            "type": "string"
+          },
+          "tag": {
+            "type": "string"
+          },
+          "bvn": {
+            "type": "string"
           }
         }
       },
@@ -1507,6 +1913,29 @@
             "type": "string",
             "format": "date-time",
             "nullable": true
+          }
+        }
+      },
+      "WalletStaticVirtualAccount": {
+        "type": "object",
+        "properties": {
+          "ID": {
+            "type": "integer"
+          },
+          "Reference": {
+            "type": "string"
+          },
+          "AccountNumber": {
+            "type": "string"
+          },
+          "AccountName": {
+            "type": "string"
+          },
+          "BankName": {
+            "type": "string"
+          },
+          "Status": {
+            "type": "string"
           }
         }
       },

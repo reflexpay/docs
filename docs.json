@@ -44,8 +44,9 @@
             "pages": [
               "partner/index",
               "partner/terminal",
-              "partner/wallet",
               "partner/transaction",
+              "partner/paytag",
+              "partner/wallet",
               "partner/webhooks"
             ]
           },

@@ -20,16 +20,16 @@ Terminals are managed from the Partner Portal at [https://partner.yourflexpay.co
 
 <CardGroup cols={2}>
   <Card title="Get Terminal Profile" icon="id-card">
-    `GET /terminal` - Retrieve terminal information and QR code
+    `GET /partner/terminal` - Retrieve terminal information and QR code
   </Card>
   <Card title="Initiate Transaction" icon="money-bill-transfer">
-    `POST /terminal/transaction` - Process a terminal payment
+    `POST /partner/terminal/transaction` - Process a terminal payment
   </Card>
   <Card title="List Transactions" icon="list">
-    `GET /terminal/transactions` - Get terminal transaction history
+    `GET /partner/terminal/transactions` - Get terminal transaction history
   </Card>
   <Card title="Get Transaction" icon="magnifying-glass">
-    `GET /terminal/transaction/{reference}` - Get specific transaction details
+    `GET /partner/terminal/transaction/{reference}` - Get specific transaction details
   </Card>
 </CardGroup>
 
@@ -37,16 +37,16 @@ Terminals are managed from the Partner Portal at [https://partner.yourflexpay.co
 
 <CardGroup cols={2}>
   <Card title="Create Split" icon="hand-holding-dollar">
-    `POST /terminal/split` - Create a split payment
+    `POST /partner/terminal/split` - Create a split payment
   </Card>
   <Card title="List Splits" icon="list">
-    `GET /terminal/splits` - Get all splits for terminal
+    `GET /partner/terminal/splits` - Get all splits for terminal
   </Card>
   <Card title="Get Split" icon="magnifying-glass">
-    `GET /terminal/split/{split}` - Get split details
+    `GET /partner/terminal/split/{split}` - Get split details
   </Card>
   <Card title="Split QR Code" icon="qrcode">
-    `GET /terminal/split/{split}/qr` - Generate QR for split payment
+    `GET /partner/terminal/split/{split}/qr` - Generate QR for split payment
   </Card>
 </CardGroup>
 
@@ -54,7 +54,7 @@ Terminals are managed from the Partner Portal at [https://partner.yourflexpay.co
 
 Retrieve terminal information including balance, PayTag, and a dynamic QR code for accepting customer payments into Flex Wallet.
 
-**Endpoint**: `GET /terminal`
+**Endpoint**: `GET /partner/terminal`
 
 **Headers**:
 - `x-client-id`: Your partner ID
@@ -92,7 +92,7 @@ Retrieve terminal information including balance, PayTag, and a dynamic QR code f
 
 Create a new collection transaction for the terminal.
 
-**Endpoint**: `POST /terminal/transaction`
+**Endpoint**: `POST /partner/terminal/transaction`
 
 **Request Body**:
 
@@ -109,7 +109,7 @@ Create a new collection transaction for the terminal.
 <CodeGroup>
 ```bash cURL
 curl --request POST \
-  --url https://staging-api.yourflexpay.com/v2/terminal/transaction \
+  --url https://staging-api.yourflexpay.com/v2/partner/terminal/transaction \
   --header 'Content-Type: application/json' \
   --header 'x-client-id: your_partner_id' \
   --header 'x-api-key: your_api_key' \
@@ -127,7 +127,7 @@ curl --request POST \
 
 ```javascript JavaScript
 const response = await fetch(
-  'https://staging-api.yourflexpay.com/v2/terminal/transaction',
+  'https://staging-api.yourflexpay.com/v2/partner/terminal/transaction',
   {
     method: 'POST',
     headers: {
@@ -160,7 +160,7 @@ const transactionToken = await response.json();
 
 Retrieve paginated transaction history for the terminal.
 
-**Endpoint**: `GET /terminal/transactions`
+**Endpoint**: `GET /partner/terminal/transactions`
 
 **Query Parameters**:
 
@@ -215,7 +215,7 @@ Retrieve paginated transaction history for the terminal.
 
 Create a split payment configuration that allows multiple parties to contribute to a total amount collected through the terminal.
 
-**Endpoint**: `POST /terminal/split`
+**Endpoint**: `POST /partner/terminal/split`
 
 **Request Body**:
 
@@ -231,7 +231,7 @@ Create a split payment configuration that allows multiple parties to contribute 
 <CodeGroup>
 ```bash cURL
 curl --request POST \
-  --url https://staging-api.yourflexpay.com/v2/terminal/split \
+  --url https://staging-api.yourflexpay.com/v2/partner/terminal/split \
   --header 'Content-Type: application/json' \
   --header 'x-client-id: your_partner_id' \
   --header 'x-api-key: your_api_key' \
@@ -245,7 +245,7 @@ curl --request POST \
 
 ```javascript JavaScript
 const response = await fetch(
-  'https://staging-api.yourflexpay.com/v2/terminal/split',
+  'https://staging-api.yourflexpay.com/v2/partner/terminal/split',
   {
     method: 'POST',
     headers: {
@@ -286,7 +286,7 @@ const split = await response.json();
 
 Generate a QR code for a customer to contribute a specific amount to a split payment.
 
-**Endpoint**: `GET /terminal/split/{split}/qr`
+**Endpoint**: `GET /partner/terminal/split/{split}/qr`
 
 **Path Parameters**:
 - `split`: Split reference
@@ -299,7 +299,7 @@ Generate a QR code for a customer to contribute a specific amount to a split pay
 <CodeGroup>
 ```bash cURL
 curl --request GET \
-  --url 'https://staging-api.yourflexpay.com/v2/terminal/split/SPLIT-ABC123/qr?amount=2500' \
+  --url 'https://staging-api.yourflexpay.com/v2/partner/terminal/split/SPLIT-ABC123/qr?amount=2500' \
   --header 'x-client-id: your_partner_id' \
   --header 'x-api-key: your_api_key' \
   --header 'x-terminal: TERM-12345'
@@ -307,7 +307,7 @@ curl --request GET \
 
 ```javascript JavaScript
 const response = await fetch(
-  'https://staging-api.yourflexpay.com/v2/terminal/split/SPLIT-ABC123/qr?amount=2500',
+  'https://staging-api.yourflexpay.com/v2/partner/terminal/split/SPLIT-ABC123/qr?amount=2500',
   {
     headers: {
       'x-client-id': 'your_partner_id',
@@ -341,7 +341,7 @@ const qrPayload = await response.json();
   </Step>
 
   <Step title="Monitor Progress">
-    Track payments using `GET /terminal/split/{split}` to see TotalPaid and Remaining
+    Track payments using `GET /partner/terminal/split/{split}` to see TotalPaid and Remaining
   </Step>
 
   <Step title="Complete">
