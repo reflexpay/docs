@@ -5,7 +5,11 @@ description: 'Partner PayTag endpoints for search, lookup, BVN linking, and PayT
 
 ## Overview
 
-The Partner PayTag API lets you search the FLEX ecosystem for PayTags, resolve a PayTag profile, look up an existing PayTag by BVN, link an existing PayTag into your partner context, and create a new PayTag-backed partner wallet.
+The Partner PayTag API lets you search the unified FLEX PayTag directory, resolve a PayTag profile, look up an existing local PayTag by BVN, link an existing PayTag into your partner context, and create a new PayTag-backed partner wallet.
+
+<Note>
+  Search and direct tag resolution are now powered by the PayTag directory. Results are not limited to tags created locally in this FLEX instance and may include tags discovered from connected directory providers.
+</Note>
 
 <Note>
   All Partner PayTag endpoints require partner authentication headers:
@@ -17,10 +21,10 @@ The Partner PayTag API lets you search the FLEX ecosystem for PayTags, resolve a
 
 <CardGroup cols={2}>
   <Card title="Search PayTags" icon="magnifying-glass">
-    `GET /partner/paytag/search?q={identifier}` - Search by tag, email, or phone prefix
+    `GET /partner/paytag/search?q={identifier}` - Search the unified directory by tag, email, or phone prefix
   </Card>
   <Card title="Resolve PayTag" icon="at">
-    `GET /partner/paytag/{tag}` - Fetch a PayTag profile by tag
+    `GET /partner/paytag/{tag}` - Resolve a PayTag from the unified directory
   </Card>
   <Card title="Get PayTag by BVN" icon="id-card">
     `GET /partner/paytag/bvn/{bvn}` - Fetch the PayTag currently linked to a BVN
@@ -37,7 +41,7 @@ The Partner PayTag API lets you search the FLEX ecosystem for PayTags, resolve a
 
 ## Search PayTags
 
-Search PayTags across the FLEX ecosystem using a query prefix.
+Search PayTags across the unified directory using a query prefix.
 
 **Endpoint**: `GET /partner/paytag/search`
 
@@ -45,7 +49,11 @@ Search PayTags across the FLEX ecosystem using a query prefix.
 
 | Parameter | Type | Required | Description |
 |-----------|------|----------|-------------|
-| q | string | Yes | Identifier prefix to search by tag, email, or phone |
+| q | string | Yes | Identifier prefix to search by tag, email, or phone across local and connected directory providers |
+
+<Note>
+  The directory merges local FLEX PayTags with eligible external directory results when available. Your integration should treat returned `Tag` values as canonical recipient identifiers.
+</Note>
 
 ### Request Example
 
@@ -62,11 +70,12 @@ curl --request GET \
 {
   "items": [
     {
-      "Tag": "janedoe",
+      "App": "local",
+      "Tag": "janedoe@flex",
       "Name": "Jane Doe",
       "Email": "jane@example.com",
-      "Phone": "08012345678",
-      "ImageUrl": "https://example.com/avatar.jpg"
+      "PhoneNumber": "08012345678",
+      "ProfileImage": "https://example.com/avatar.jpg"
     }
   ],
   "count": 1,
@@ -79,19 +88,19 @@ curl --request GET \
 
 ## Resolve PayTag
 
-Resolve a specific PayTag profile by tag value.
+Resolve a specific PayTag profile by tag value or qualified directory address.
 
 **Endpoint**: `GET /partner/paytag/{tag}`
 
 **Path Parameters**:
 
-- `tag` (required): PayTag value to resolve
+- `tag` (required): PayTag value or qualified directory address to resolve
 
 ### Request Example
 
 ```bash cURL
 curl --request GET \
-  --url https://staging-api.yourflexpay.com/v2/partner/paytag/janedoe \
+  --url https://staging-api.yourflexpay.com/v2/partner/paytag/janedoe@flex \
   --header 'x-client-id: your_partner_id' \
   --header 'x-api-key: your_api_key'
 ```
@@ -100,13 +109,29 @@ curl --request GET \
 
 ```json
 {
-  "Tag": "janedoe",
+  "App": "local",
+  "Tag": "janedoe@flex",
   "Name": "Jane Doe",
   "Email": "jane@example.com",
-  "Phone": "08012345678",
-  "ImageUrl": "https://example.com/avatar.jpg"
+  "PhoneNumber": "08012345678",
+  "ProfileImage": "https://example.com/avatar.jpg"
 }
 ```
+
+### Directory Response Fields
+
+| Field | Description |
+|-------|-------------|
+| `App` | Source application/provider for the PayTag |
+| `Tag` | Canonical PayTag or qualified directory address |
+| `Name` | Display name |
+| `Email` | Resolved email when available |
+| `PhoneNumber` | Resolved phone number when available |
+| `ProfileImage` | Profile image URL when available |
+
+<Check>
+  Use the resolved `Tag` value exactly as returned when initiating partner wallet P2P transfers.
+</Check>
 
 ---
 
@@ -131,7 +156,7 @@ curl --request GET \
 
 ### Response
 
-Returns the same `PayTag` structure as the resolve endpoint.
+Returns the local FLEX `PayTag` profile currently associated with the supplied BVN.
 
 ---
 

@@ -16,6 +16,7 @@ These endpoints support:
 - Viewing the wallet transaction summary
 - Debiting the referenced wallet into your partner wallet
 - Crediting the referenced wallet from your partner wallet
+- Sending P2P transfers from a referenced wallet to a PayTag recipient
 - Creating a static virtual account on a referenced wallet
 - Creating a dynamic virtual account on a referenced wallet
 - Listing wallet transactions and retrieving a single wallet transaction
@@ -51,6 +52,9 @@ These endpoints support:
   </Card>
   <Card title="Credit Wallet" icon="arrow-up-wide-short">
     `POST /partner/wallet/{reference}/credit` - Move funds from your partner wallet into the referenced wallet
+  </Card>
+  <Card title="P2P Transfer" icon="paper-plane">
+    `POST /partner/wallet/{reference}/p2p` - Transfer funds from the referenced wallet to a PayTag recipient
   </Card>
   <Card title="Create Static Account" icon="building-columns">
     `POST /partner/wallet/{reference}/static-account` - Create a persistent virtual account for wallet funding
@@ -344,6 +348,58 @@ Returns the same wallet transaction detail structure as the debit endpoint.
 
 ---
 
+## P2P Transfer
+
+Transfer funds from the referenced partner wallet to a recipient identified by PayTag.
+
+**Endpoint**: `POST /partner/wallet/{reference}/p2p`
+
+**Path Parameters**:
+
+- `reference` (required): Partner wallet reference
+
+**Request Body**:
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| amount | number | Yes | Amount to transfer |
+| recipient | string | Yes | Recipient PayTag or qualified directory address |
+| comment | string | No | Transfer narration |
+| reference | string | No | Your external reference |
+| currency | string | No | Wallet currency, e.g. `NGN` |
+| metadata | object | No | Additional metadata |
+| hostId | number | No | Optional source host context |
+| recipientHostId | number | No | Optional recipient host context |
+
+<Note>
+  The `recipient` value is resolved through the PayTag directory and may refer to a tag outside the local FLEX tag set. Use the exact canonical tag returned from the PayTag search or resolve endpoints.
+</Note>
+
+### Request Example
+
+```bash cURL
+curl --request POST \
+  --url https://staging-api.yourflexpay.com/v2/partner/wallet/PW-ABC123/p2p \
+  --header 'Content-Type: application/json' \
+  --header 'x-client-id: your_partner_id' \
+  --header 'x-api-key: your_api_key' \
+  --data '{
+    "amount": 3500,
+    "recipient": "janedoe@flex",
+    "comment": "Wallet to wallet transfer",
+    "reference": "PARTNER-P2P-1001",
+    "metadata": {
+      "channel": "api"
+    }
+  }'
+```
+
+### Response
+
+Returns the same wallet transaction detail structure as debit and credit wallet operations.
+
+---
+
 ## Create Dynamic Virtual Account
 
 Create a dynamic (temporary) virtual account linked to the referenced wallet.
@@ -530,6 +586,10 @@ Returns a wallet transaction detail object for the generated reversal transactio
 
 <Check>
   Use your own `reference` in debit and credit requests so you can map FLEX transaction outcomes back to your internal ledger.
+</Check>
+
+<Check>
+  Resolve recipient PayTags through the Partner PayTag API before submitting a P2P transfer, especially when your users can transfer to tags that may live outside the local FLEX instance.
 </Check>
 
 <Check>

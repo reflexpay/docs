@@ -592,7 +592,7 @@
         "tags": [
           "Partner PayTag"
         ],
-        "summary": "Search PayTags",
+        "summary": "Search PayTag directory",
         "parameters": [
           {
             "name": "q",
@@ -601,25 +601,26 @@
             "schema": {
               "type": "string"
             },
-            "description": "Identifier prefix to search by tag, email, or phone"
+            "description": "Identifier prefix to search by tag, email, or phone across the unified PayTag directory"
           }
         ],
         "responses": {
           "200": {
-            "description": "Paginated PayTag search results",
+            "description": "Paginated PayTag directory search results",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/PaginatedPayTagResponse"
+                  "$ref": "#/components/schemas/PaginatedDirectoryTagResponse"
                 },
                 "example": {
                   "items": [
                     {
-                      "Tag": "janedoe",
+                      "App": "local",
+                      "Tag": "janedoe@flex",
                       "Name": "Jane Doe",
                       "Email": "jane@example.com",
-                      "Phone": "08012345678",
-                      "ImageUrl": "https://example.com/avatar.jpg"
+                      "PhoneNumber": "08012345678",
+                      "ProfileImage": "https://example.com/avatar.jpg"
                     }
                   ],
                   "count": 1,
@@ -652,23 +653,24 @@
             "schema": {
               "type": "string"
             },
-            "description": "PayTag value to resolve"
+            "description": "PayTag value or qualified address to resolve from the unified directory"
           }
         ],
         "responses": {
           "200": {
-            "description": "Resolved PayTag profile",
+            "description": "Resolved PayTag directory profile",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/PayTag"
+                  "$ref": "#/components/schemas/DirectoryTag"
                 },
                 "example": {
-                  "Tag": "janedoe",
+                  "App": "local",
+                  "Tag": "janedoe@flex",
                   "Name": "Jane Doe",
                   "Email": "jane@example.com",
-                  "Phone": "08012345678",
-                  "ImageUrl": "https://example.com/avatar.jpg"
+                  "PhoneNumber": "08012345678",
+                  "ProfileImage": "https://example.com/avatar.jpg"
                 }
               }
             }
@@ -1146,6 +1148,53 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/WalletDynamicVirtualAccount"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ClientIdHeader": [],
+            "ApiKeyHeader": []
+          }
+        ]
+      }
+    },
+    "/partner/wallet/{reference}/p2p": {
+      "post": {
+        "tags": [
+          "Partner Wallet"
+        ],
+        "summary": "Transfer from referenced wallet to PayTag",
+        "parameters": [
+          {
+            "name": "reference",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Partner wallet reference"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/P2pTransactionDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Wallet transaction detail",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WalletTransactionDetail"
                 }
               }
             }
@@ -1717,6 +1766,61 @@
           }
         }
       },
+      "DirectoryTag": {
+        "description": "Directory-backed PayTag profile. Results may come from FLEX local tags or connected external directory providers.",
+        "type": "object",
+        "required": [
+          "App",
+          "Tag",
+          "Name"
+        ],
+        "properties": {
+          "App": {
+            "type": "string"
+          },
+          "Tag": {
+            "type": "string"
+          },
+          "Name": {
+            "type": "string"
+          },
+          "Email": {
+            "type": "string"
+          },
+          "PhoneNumber": {
+            "type": "string"
+          },
+          "ProfileImage": {
+            "type": "string"
+          }
+        }
+      },
+      "PaginatedDirectoryTagResponse": {
+        "type": "object",
+        "required": [
+          "items",
+          "count",
+          "limit",
+          "offset"
+        ],
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DirectoryTag"
+            }
+          },
+          "count": {
+            "type": "integer"
+          },
+          "limit": {
+            "type": "integer"
+          },
+          "offset": {
+            "type": "integer"
+          }
+        }
+      },
       "PaginatedPayTagResponse": {
         "type": "object",
         "required": [
@@ -1768,6 +1872,45 @@
           "metadata": {
             "type": "object",
             "additionalProperties": true
+          }
+        }
+      },
+      "P2pTransactionDto": {
+        "type": "object",
+        "required": [
+          "amount",
+          "recipient"
+        ],
+        "properties": {
+          "amount": {
+            "type": "number",
+            "minimum": 1,
+            "maximum": 999999999
+          },
+          "recipient": {
+            "type": "string",
+            "description": "Recipient PayTag or qualified directory address"
+          },
+          "comment": {
+            "type": "string",
+            "maxLength": 250
+          },
+          "reference": {
+            "type": "string",
+            "maxLength": 100
+          },
+          "currency": {
+            "$ref": "#/components/schemas/WalletCurrency"
+          },
+          "metadata": {
+            "type": "object",
+            "additionalProperties": true
+          },
+          "hostId": {
+            "type": "number"
+          },
+          "recipientHostId": {
+            "type": "number"
           }
         }
       },

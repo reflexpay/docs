@@ -24,10 +24,10 @@ Participating applications initiate and confirm transactions through the gateway
     Generate QR codes for collection and split payment flows
   </Card>
   <Card title="Wallet Credit and Debit" icon="wallet">
-    Provision wallets with KYC, move funds, create static and dynamic accounts, and reverse wallet transactions
+    Provision wallets with KYC, move funds, run PayTag P2P transfers, create static and dynamic accounts, and reverse wallet transactions
   </Card>
   <Card title="PayTag Management" icon="at">
-    Search, resolve, create, and link PayTags to partner-scoped wallets
+    Search and resolve the unified PayTag directory, then create and link PayTags to partner-scoped wallets
   </Card>
   <Card title="Webhook Notifications" icon="webhook">
     Receive partner transaction and wallet debit or credit events in real time
@@ -67,10 +67,10 @@ All API requests are authenticated using partner credentials with support for te
     Manage collection points, route transactions, and handle splits
   </Card>
   <Card title="Wallet API" icon="wallet" href="/partner/wallet">
-    Retrieve your partner wallet, provision scoped wallets, view summaries, move funds, create static and dynamic accounts, and reverse wallet transactions
+    Retrieve your partner wallet, provision scoped wallets, view summaries, move funds, send PayTag P2P transfers, create static and dynamic accounts, and reverse wallet transactions
   </Card>
   <Card title="PayTag API" icon="at" href="/partner/paytag">
-    Search ecosystem PayTags, resolve by tag or BVN, link existing profiles, and create partner PayTags
+    Search the unified PayTag directory, resolve by tag or BVN, link existing profiles, and create partner PayTags
   </Card>
   <Card title="Webhooks" icon="webhook" href="/partner/webhooks">
     Receive transaction status and wallet debit or credit event notifications
@@ -92,7 +92,11 @@ All Partner API endpoints require authentication using your partner credentials:
 </Note>
 
 <Note>
-  Wallet retrieval, provisioning, transfer, dynamic account, and transaction reversal endpoints are available under the dedicated Wallet API using partner authentication and, where applicable, a partner wallet reference.
+  Wallet retrieval, provisioning, transfer, PayTag P2P, dynamic account, and transaction reversal endpoints are available under the dedicated Wallet API using partner authentication and, where applicable, a partner wallet reference.
+</Note>
+
+<Note>
+  Partner PayTag search and direct tag resolution use the unified directory and may return tags that originate outside the local FLEX tag store.
 </Note>
 
 <Note>
@@ -129,10 +133,10 @@ All Partner API endpoints require authentication using your partner credentials:
     Integrate FLEX collections into your point-of-sale system
   </Card>
   <Card title="Wallet Operations" icon="wallet">
-    Retrieve your partner wallet and perform institution-scoped provisioning, debit, credit, summary, dynamic account, and reversal operations on linked wallets
+    Retrieve your partner wallet and perform institution-scoped provisioning, debit, credit, PayTag P2P, summary, dynamic account, and reversal operations on linked wallets
   </Card>
   <Card title="PayTag Resolution" icon="at">
-    Find or create PayTags for customers and bind them into your partner context
+    Find PayTags from the unified directory or create new ones for customers, then bind them into your partner context
   </Card>
   <Card title="Webhook Automation" icon="webhook">
     Automate reconciliation and notifications using partner webhook callbacks
