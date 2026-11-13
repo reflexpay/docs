@@ -30,7 +30,8 @@
        "name": "Partner PayTag"
      },
      {
-       "name": "Partner Wallet"
+       "name": "Partner Wallet",
+       "description": "Authenticated partner-owned wallet operations. Every wallet reference path accepts either the generated Reference or the partner-supplied ExternalReference. Revoked wallets are rejected except when repeating revocation."
      }
    ],
   "paths": {
@@ -879,6 +880,7 @@
           "Partner Wallet"
         ],
         "summary": "Create partner scoped wallet",
+        "description": "Provision a wallet with KYC metadata. Optional reference is trimmed and stored as ExternalReference, unique per partner. Reusing an active reference returns the existing wallet; a revoked or deleted wallet reference cannot be reused. A supplied BVN enriches the KYC data and assigns the Silver KYC profile.",
         "requestBody": {
           "required": true,
           "content": {
@@ -915,6 +917,7 @@
           "Partner Wallet"
         ],
         "summary": "Get partner scoped wallet",
+        "description": "Resolve an active wallet owned by the authenticated partner using either its generated Reference or ExternalReference. Revoked wallets are rejected.",
         "parameters": [
           {
             "name": "reference",
@@ -944,6 +947,167 @@
             "ApiKeyHeader": []
           }
         ]
+      }
+    },
+    "/partner/wallet/{reference}/revoke": {
+      "post": {
+        "tags": ["Partner Wallet"],
+        "summary": "Revoke a partner scoped wallet",
+        "description": "Set RevokedAt on a partner-owned wallet using either Reference or ExternalReference. Repeated revocations succeed without changing the original timestamp. Balances are unchanged; subsequent reference-based wallet operations reject the revoked wallet. Revocation does not release the external reference for reuse.",
+        "parameters": [
+          {
+            "name": "reference",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string" },
+            "description": "Generated wallet Reference or partner-supplied ExternalReference"
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Wallet revoked or already revoked; no wallet payload",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": { "status": { "type": "boolean", "enum": [true] } }
+                }
+              }
+            }
+          },
+          "401": { "description": "Invalid partner credentials" },
+          "404": { "description": "Wallet reference is not linked to this partner" }
+        },
+        "security": [{ "ClientIdHeader": [], "ApiKeyHeader": [] }]
+      }
+    },
+    "/partner/wallet/{reference}/qr": {
+      "post": {
+        "tags": ["Partner Wallet"],
+        "summary": "Pay a QR code from a partner scoped wallet",
+        "description": "Resolve the supplied QR identity and pay it from the active partner-owned wallet. QR fields are case-sensitive; the recipient wallet is resolved in NGN.",
+        "parameters": [
+          {
+            "name": "reference",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string" },
+            "description": "Generated wallet Reference or partner-supplied ExternalReference"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/QrTransactionDto" }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Wallet transaction detail (data inside the standard success envelope)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": { "type": "boolean", "enum": [true] },
+                    "data": { "$ref": "#/components/schemas/WalletTransactionDetail" }
+                  }
+                }
+              }
+            }
+          },
+          "400": { "description": "Invalid QR, revoked wallet, self-payment, or invalid transaction" },
+          "401": { "description": "Invalid partner credentials" },
+          "404": { "description": "Wallet or QR transaction not found" }
+        },
+        "security": [{ "ClientIdHeader": [], "ApiKeyHeader": [] }]
+      }
+    },
+    "/partner/wallet/{reference}/bank-account": {
+      "post": {
+        "tags": ["Partner Wallet"],
+        "summary": "Link a withdrawal bank account",
+        "description": "Resolve and link a bank account to the active partner-owned wallet. Only one withdrawal account may be linked and its holder must match the wallet BVN.",
+        "parameters": [
+          {
+            "name": "reference",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string" },
+            "description": "Generated wallet Reference or partner-supplied ExternalReference"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/BankAccountLookupDto" }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Bank account linked; no account payload",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": { "status": { "type": "boolean", "enum": [true] } }
+                }
+              }
+            }
+          },
+          "400": { "description": "Revoked wallet, account already linked, or bank account does not match BVN" },
+          "401": { "description": "Invalid partner credentials" },
+          "404": { "description": "Wallet or bank account not found" }
+        },
+        "security": [{ "ClientIdHeader": [], "ApiKeyHeader": [] }]
+      }
+    },
+    "/partner/wallet/{reference}/withdraw": {
+      "post": {
+        "tags": ["Partner Wallet"],
+        "summary": "Withdraw to the wallet bank account",
+        "description": "Withdraw from the active partner-owned wallet to its withdrawal bank account. metadata.feeInclusive defaults to true when omitted.",
+        "parameters": [
+          {
+            "name": "reference",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string" },
+            "description": "Generated wallet Reference or partner-supplied ExternalReference"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/WalletTransferDto" }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Withdrawal transaction detail (data inside the standard success envelope)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": { "type": "boolean", "enum": [true] },
+                    "data": { "$ref": "#/components/schemas/WalletTransactionDetail" }
+                  }
+                }
+              }
+            }
+          },
+          "400": { "description": "Revoked wallet or invalid withdrawal" },
+          "401": { "description": "Invalid partner credentials" },
+          "404": { "description": "Wallet or withdrawal account not found" }
+        },
+        "security": [{ "ClientIdHeader": [], "ApiKeyHeader": [] }]
       }
     },
     "/partner/wallet/{reference}/summary": {
@@ -1855,7 +2019,6 @@
         "properties": {
           "amount": {
             "type": "number",
-            "minimum": 1,
             "maximum": 999999999
           },
           "comment": {
@@ -1868,6 +2031,12 @@
           },
           "currency": {
             "$ref": "#/components/schemas/WalletCurrency"
+          },
+          "method": {
+            "type": "string"
+          },
+          "category": {
+            "type": "string"
           },
           "metadata": {
             "type": "object",
@@ -1914,12 +2083,35 @@
           }
         }
       },
+      "BankAccountLookupDto": {
+        "type": "object",
+        "required": ["accountNumber", "bankCode"],
+        "properties": {
+          "accountNumber": { "type": "string", "example": "0123456789" },
+          "bankCode": { "type": "string", "example": "044" }
+        }
+      },
+      "QrTransactionDto": {
+        "type": "object",
+        "required": ["Tag", "Type", "Amount"],
+        "properties": {
+          "Tag": { "type": "string", "description": "PayTag from a valid QR payload; required by QR identity resolution" },
+          "Type": { "type": "string", "enum": ["AdminAuth", "Customer", "Merchant", "MerchantUser", "Partner"] },
+          "Amount": { "type": "number", "minimum": 1 },
+          "QrType": { "type": "string", "enum": ["P2P_TRANSACTION", "SPLIT_TRANSACTION", "FLEX_TERMINAL_TRANSACTION", "PARTNER_GATEWAY_TRANSACTION", "PARTNER_TERMINAL_TRANSACTION"] },
+          "Name": { "type": "string" },
+          "Email": { "type": "string" },
+          "HostID": { "type": "number" },
+          "Reference": { "type": "string" },
+          "Description": { "type": "string" },
+          "Metadata": { "type": "object", "additionalProperties": true }
+        }
+      },
       "CreatePartnerWalletKycDto": {
         "type": "object",
         "required": [
           "firstName",
-          "lastName",
-          "otherName"
+          "lastName"
         ],
         "properties": {
           "firstName": {
@@ -1951,7 +2143,7 @@
               "Female"
             ]
           },
-          "payTag": {
+          "tag": {
             "type": "string"
           },
           "bvn": {
@@ -1971,9 +2163,11 @@
           "currency": {
             "$ref": "#/components/schemas/WalletCurrency"
           },
-          "profileId": {
-            "type": "number",
-            "minimum": 1
+          "reference": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 255,
+            "description": "Trimmed external reference unique per partner, stored as ExternalReference. Reusing an active reference returns the existing wallet; revoked or deleted references remain reserved."
           },
           "kyc": {
             "$ref": "#/components/schemas/CreatePartnerWalletKycDto"
@@ -2191,6 +2385,11 @@
           },
           "Reference": {
             "type": "string"
+          },
+          "ExternalReference": {
+            "type": "string",
+            "nullable": true,
+            "description": "Partner-supplied reference from wallet creation; also accepted by reference-based wallet endpoints"
           },
           "RevokedAt": {
             "type": "string",

@@ -13,10 +13,13 @@ These endpoints support:
 - Retrieving your authenticated partner wallet
 - Creating a partner-scoped wallet with KYC information
 - Retrieving the wallet profile by reference
+- Revoking a partner-scoped wallet
 - Viewing the wallet transaction summary
 - Debiting the referenced wallet into your partner wallet
 - Crediting the referenced wallet from your partner wallet
 - Sending P2P transfers from a referenced wallet to a PayTag recipient
+- Paying a QR code from a referenced wallet
+- Linking a withdrawal bank account and withdrawing funds
 - Creating a static virtual account on a referenced wallet
 - Creating a dynamic virtual account on a referenced wallet
 - Listing wallet transactions and retrieving a single wallet transaction
@@ -46,6 +49,18 @@ These endpoints support:
   </Card>
   <Card title="Wallet Summary" icon="chart-line">
     `GET /partner/wallet/{reference}/summary` - Retrieve inflow/outflow summary
+  </Card>
+  <Card title="Revoke Wallet" icon="ban">
+    `POST /partner/wallet/{reference}/revoke` - Revoke a scoped wallet without changing its balance
+  </Card>
+  <Card title="QR Payment" icon="qrcode">
+    `POST /partner/wallet/{reference}/qr` - Pay a resolved QR identity from the wallet
+  </Card>
+  <Card title="Link Bank Account" icon="building-columns">
+    `POST /partner/wallet/{reference}/bank-account` - Link a BVN-matched withdrawal account
+  </Card>
+  <Card title="Withdraw" icon="money-bill-transfer">
+    `POST /partner/wallet/{reference}/withdraw` - Withdraw funds to the wallet bank account
   </Card>
   <Card title="Debit Wallet" icon="arrow-down-wide-short">
     `POST /partner/wallet/{reference}/debit` - Move funds from the referenced wallet into your partner wallet
@@ -139,10 +154,23 @@ Create a new partner-scoped `PartnerWallet` mapping with customer KYC informatio
 | Field | Type | Required | Description |
 |-------|------|----------|-------------|
 | currency | string | No | Wallet currency (`NGN` or `FP`) |
-| profileId | number | No | KYC profile ID to attach |
+| reference | string | No | External reference unique per partner; trimmed, 1-255 characters |
 | kyc.firstName | string | Yes | Customer first name |
 | kyc.lastName | string | Yes | Customer last name |
-| kyc.otherName | string | Yes | Customer other/middle name |
+| kyc.otherName | string | No | Customer other/middle name |
+| kyc.tag | string | No | PayTag to create for this wallet |
+| kyc.bvn | string | No | BVN used to enrich KYC and assign the Silver KYC profile |
+| kyc.email | string | No | Customer email |
+| kyc.phone | string | No | Customer phone number |
+| kyc.dateOfBirth | string | No | Customer date of birth |
+| kyc.imageUrl | string | No | Customer profile image URL |
+| kyc.gender | string | No | `Male` or `Female` |
+| kyc.address | string | No | Customer address |
+
+When a BVN is supplied, verified first name, last name, other name, gender,
+date of birth, and profile image replace the supplied KYC values. The underlying
+wallet alias uses the resulting first and last names. `profileId` is not a
+creation parameter.
 
 ### Request Example
 
@@ -154,7 +182,7 @@ curl --request POST \
   --header 'x-api-key: your_api_key' \
   --data '{
     "currency": "NGN",
-    "profileId": 3,
+    "reference": "customer-123",
     "kyc": {
       "firstName": "Jane",
       "lastName": "Doe",
@@ -167,6 +195,12 @@ curl --request POST \
 
 Returns the created `PartnerWallet` mapping including the partner-scoped `Reference` and underlying `Wallet` ledger.
 
+The supplied `reference` is returned as `ExternalReference`. Retrying creation
+with the same reference under the same partner returns the existing active wallet
+without updating its KYC or creating dependent records. References belonging to
+revoked or deleted wallets remain reserved and return `400`; use a new reference
+for a new wallet.
+
 ---
 
 ## Authentication
@@ -178,8 +212,14 @@ Returns the created `PartnerWallet` mapping including the partner-scoped `Refere
 
 ## Wallet Reference
 
-The `reference` path parameter is the partner wallet reference assigned to the user wallet in your partner context.
-You should store this reference when a wallet is provisioned or linked for your institution.
+Every wallet `reference` path parameter accepts either the generated `Reference`
+or your creation-time `ExternalReference`. Both are resolved only within the
+authenticated partner. For example, `GET /partner/wallet/customer-123` retrieves
+the wallet created with `"reference": "customer-123"`; there is no separate
+external-reference route. Store both returned references for reconciliation.
+
+All referenced operations reject revoked wallets with `400`, except repeat
+revocation, which succeeds. Unknown references return `404`.
 
 ---
 
@@ -209,6 +249,7 @@ curl --request GET \
 {
   "ID": 42,
   "Reference": "PW-ABC123",
+  "ExternalReference": "customer-123",
   "RevokedAt": null,
   "PayTag": {
     "Tag": "@janedoe"
@@ -225,6 +266,115 @@ curl --request GET \
   "UpdatedAt": "2026-09-01T10:00:00Z"
 }
 ```
+
+---
+
+## Revoke Wallet
+
+**Endpoint**: `POST /partner/wallet/{reference}/revoke`
+
+Revoke a wallet owned by your partner using its generated or external reference.
+No request body is required.
+
+```bash cURL
+curl --request POST \
+  --url https://staging-api.yourflexpay.com/v2/partner/wallet/customer-123/revoke \
+  --header 'x-client-id: your_partner_id' \
+  --header 'x-api-key: your_api_key'
+```
+
+Sets `RevokedAt` without changing balances. Repeating the request preserves the
+original timestamp and succeeds. Revocation does not release `ExternalReference`
+for reuse. Subsequent reference-based operations reject the revoked wallet.
+
+Returns HTTP `201` with the standard success envelope (`{"status": true}`), without
+a wallet payload. An unknown reference or one owned by another partner returns `404`.
+
+---
+
+## QR Payment
+
+**Endpoint**: `POST /partner/wallet/{reference}/qr`
+
+Submit the fields from a valid QR payload. Field names are case-sensitive:
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| Tag | string | Yes | Recipient PayTag resolved by the QR identity pipe |
+| Type | string | Yes | Account type from the QR, e.g. `Customer`, `Merchant`, or `Partner` |
+| Amount | number | Yes | Amount, at least 1 |
+| QrType | string | No | QR type from the original payload, e.g. `P2P_TRANSACTION` |
+| HostID | number | No | Recipient host context |
+| Reference | string | No | QR transaction reference; validated when Type is Partner |
+| Name, Email, Description | string | No | Values from the QR payload |
+| Metadata | object | No | Original QR metadata, including split or terminal context when present |
+
+```bash cURL
+curl --request POST \
+  --url https://staging-api.yourflexpay.com/v2/partner/wallet/PW-ABC123/qr \
+  --header 'Content-Type: application/json' \
+  --header 'x-client-id: your_partner_id' \
+  --header 'x-api-key: your_api_key' \
+  --data '{
+    "Tag": "@janedoe",
+    "Type": "Customer",
+    "QrType": "P2P_TRANSACTION",
+    "Amount": 1000
+  }'
+```
+
+The recipient wallet is resolved in `NGN`. Returns HTTP `201` with the wallet
+transaction detail in the standard `{ "status": true, "data": ... }` envelope.
+Invalid QR identities and self-payments are rejected.
+
+---
+
+## Link Withdrawal Bank Account
+
+**Endpoint**: `POST /partner/wallet/{reference}/bank-account`
+
+Link a bank account after bank-account resolution and BVN matching.
+
+```bash cURL
+curl --request POST \
+  --url https://staging-api.yourflexpay.com/v2/partner/wallet/PW-ABC123/bank-account \
+  --header 'Content-Type: application/json' \
+  --header 'x-client-id: your_partner_id' \
+  --header 'x-api-key: your_api_key' \
+  --data '{"accountNumber": "0123456789", "bankCode": "044"}'
+```
+
+Both `accountNumber` and `bankCode` are required. The account holder must match
+the wallet BVN. An already-linked withdrawal account or a BVN mismatch returns
+`400`; this endpoint does not replace an existing account.
+
+Returns HTTP `201` with `{"status": true}`, without an account payload.
+
+---
+
+## Withdraw
+
+**Endpoint**: `POST /partner/wallet/{reference}/withdraw`
+
+Withdraw funds to the wallet withdrawal account. Link the account first using
+the bank-account endpoint. Uses the same transaction fields as debit/credit.
+
+```bash cURL
+curl --request POST \
+  --url https://staging-api.yourflexpay.com/v2/partner/wallet/PW-ABC123/withdraw \
+  --header 'Content-Type: application/json' \
+  --header 'x-client-id: your_partner_id' \
+  --header 'x-api-key: your_api_key' \
+  --data '{
+    "amount": 5000,
+    "reference": "PARTNER-WITHDRAW-1001",
+    "metadata": {"feeInclusive": true}
+  }'
+```
+
+`metadata.feeInclusive` defaults to `true` when omitted. Returns HTTP `201`
+with the withdrawal transaction detail in the standard
+`{ "status": true, "data": ... }` envelope.
 
 ---
 
@@ -573,7 +723,7 @@ Returns a wallet transaction detail object for the generated reversal transactio
 
 | Status Code | Description |
 |-------------|-------------|
-| `400` | Invalid request, unsupported reversal target, or transaction does not belong to the partner wallet context |
+| `400` | Invalid request, revoked wallet, inactive creation reference, invalid QR, account already linked, BVN mismatch, or unsupported reversal target |
 | `401` | Invalid partner credentials |
 | `404` | Wallet reference or transaction reference not found |
 | `500` | Unexpected server error |
@@ -612,5 +762,4 @@ Returns a wallet transaction detail object for the generated reversal transactio
     Complete machine-readable API schema
   </Card>
 </CardGroup>
-
 
